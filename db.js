@@ -11,9 +11,9 @@ module.exports={
         return new Promise((resolve,reject)=>{
             const con = mysql.createConnection( {
                 host: 'srv1759.hstgr.io',
-                user: 'u899193124_asianow',
-                password: 'g12@c3M312c4',
-                database: 'u899193124_asianow',
+                user: 'u899193124_asianowjt',
+                password: 'M312c4@g125c3',
+                database: 'u899193124_asianowjt',
                 port:3306,
                 multipleStatements: true
             });

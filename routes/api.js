@@ -55,20 +55,20 @@ const { connectPg, closePg, closeDb, connectDb}  = require('../db')
 
 connectPg() 
 .then((pg)=>{
-    console.log("====api.js ASIANOW POSTGRESQL CONNECTION SUCCESS!====")
+    console.log("====api.js ASIANOW  J&T GROUP POSTGRESQL CONNECTION SUCCESS!====")
     closePg(pg);
 })                        
 .catch((error)=>{
-    console.log("***ERROR, API.JS CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
+    console.log("*** J&T GROUP ERROR, API.JS CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
 }); 
 
 connectDb()
 .then((db)=>{
-    console.log("====API.JS ASIANOW MYSQL CONNECTION SUCCESS!====")
+    console.log("====API.JS ASIANOW  J&T GROUP MYSQL CONNECTION SUCCESS!====")
     closeDb(db);
 })                        
 .catch((error)=>{
-    console.log("***ERROR, CAN'T CONNECT TO MYSQL DB!****",error.code)
+    console.log("*** J&T GROUP ERROR, CAN'T CONNECT TO MYSQL DB!****",error.code)
 });  
 //=====CLAIMS UPLOAD
 // Set up multer for file uploads
@@ -81,9 +81,9 @@ const mysqls = require('mysql2/promise')
 
 const dbconfig  ={
 	host: 'srv1759.hstgr.io',
-	user: 'u899193124_asianow',
-	password: 'g12@c3M312c4',
-	database: 'u899193124_asianow'
+	user: 'u899193124_asianowjt',
+	password: 'M312c4@g125c3',
+	database: 'u899193124_asianowjt'
 }
 
 // Upload endpoint
@@ -140,7 +140,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
     .then((db)=>{
 
 		let sql =`SELECT a.id,a.full_name, 
-			a.email, GROUP_CONCAT(distinct a.region) as region, 
+			a.email, a.region, 
 			a.grp_id,a.pic 
 			from asn_users a 
 			WHERE a.email='${req.params.uid}' and a.pwd='${req.params.pwd}'` 

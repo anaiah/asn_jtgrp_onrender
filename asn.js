@@ -9,20 +9,20 @@ const { connectPg, closePg, connectDb, closeDb }  = require('./db')
 
 connectPg() 
 .then((pg)=>{
-    console.log("====ASN.JS ASIANOW POSTGRESQL CONNECTION SUCCESS!====")
+    console.log("====ASN.JS ASIANOW J&T GROUP POSTGRESQL CONNECTION SUCCESS!====")
     closePg(pg);
 })                        
 .catch((error)=>{
-    console.log("***ERROR, CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
+    console.log("*** J&T GROUP ERROR, CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
 });  
 
 connectDb()
 .then((db)=>{
-    console.log("====ASN.JS ASIANOW MYSQL CONNECTION SUCCESS!====")
+    console.log("====ASN.JS ASIANOW  J&T GROUP MYSQL CONNECTION SUCCESS!====")
     closeDb(db);
 })                        
 .catch((error)=>{
-    console.log("***ERROR, ASN.JS CAN'T CONNECT TO MYSQL DB!****",error.code)
+    console.log("*** J&T GROUP ERROR, ASN.JS CAN'T CONNECT TO MYSQL DB!****",error.code)
 });  
 
 const http = require('http')
