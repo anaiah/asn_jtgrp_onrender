@@ -152,7 +152,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 			console.log( data)
 			//console.log(data.length)
             //console.log(sql)
-			if ( data[0].full_name == null) {  //data = array 
+			if ( data.length == 0) {  //data = array 
 				console.log('no rec')
 
 				closeDb(db);//CLOSE connection
