@@ -331,7 +331,7 @@ const Busboy = require('busboy')
 
 //================ post image ==================//
 router.post('/postimage',   async (req, res) => {
-	console.log('===FIRING /postimage===')
+	console.log('===FIRING /postimage===', req.body)
 
 	const busboy = Busboy({ headers: req.headers });
 		
