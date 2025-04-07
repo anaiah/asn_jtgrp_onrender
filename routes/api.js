@@ -64,7 +64,7 @@ connectPg()
 
 connectDb()
 .then((db)=>{
-    console.log("====API.JS ASIANOW  J&T GROUP MYSQL CONNECTION SUCCESS!====")
+    console.log("====API.JS ASIANOW  J&T GROUP MYSQL SUCCESS!====")
     closeDb(db);
 })                        
 .catch((error)=>{
@@ -149,7 +149,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 
         db.query( sql, (err,data) => { 
 
-			console.log( data)
+			//console.log( data)
 			//console.log(data.length)
             //console.log(sql)
 			if ( data.length == 0) {  //data = array 
@@ -178,7 +178,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 					ipaddress = ipaddress.substring(7)
 				} 
 				*/
-                console.log('osndp render login data ',data[0])
+                console.log('login data ',data[0])
 				//set cookie-parser
 				res.writeHead(200, {
 						"Set-Cookie": `xfname=${data[0].full_name.toUpperCase()}; HttpOnly`,
@@ -328,10 +328,11 @@ router.post('/newemppost/', async (req, res) => {
 
 //==============busboy, scp2  for file uploading============
 const Busboy = require('busboy')
+const {Client} = require("basic-ftp")
 
 //================ post image ==================//
-router.post('/postimage',   async (req, res) => {
-	console.log('===FIRING /postimage===', req.body)
+router.post('/postimage/:transnumber',   async (req, res) => {
+	console.log('===FIRING /postimage===', req.params.transnumber )
 
 	const busboy = Busboy({ headers: req.headers });
 		
@@ -349,7 +350,7 @@ router.post('/postimage',   async (req, res) => {
 		
 		// fieldname is 'fileUpload'
 		//var fstream = fs.createWriteStream('ASN-'+ filename + extname);
-		var fstream = fs.createWriteStream('ASN-test' + extname);
+		var fstream = fs.createWriteStream(`${req.params.transnumber}` + extname);
 
 		file.pipe(fstream);
 			
@@ -362,14 +363,89 @@ router.post('/postimage',   async (req, res) => {
 
 			console.log('Compacting file size.... ')
 
-			sharp( fstream.path ).jpeg({ quality: 30 }).toFile('FINAL_'+fstream.path)
+			var xfile = 'A_'+fstream.path
 
-			ftpclient.scp('FINAL_'+fstream.path, {
-				host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
-				//port: 3331, // defaults to 21
-				username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
-				password: "2Timothy@1:9_10",
-				path: 'public_html/vanz/dr' 
+			sharp( fstream.path ).jpeg({ quality: 30 }).toFile(xfile, async(err,info)=>{
+
+				//console.log(err,'?')
+				if(!err){
+
+					const client = new Client()
+					//client.ftp.verbose = true
+
+					try{
+						await client.access({
+							host: "ftp.asianowapp.com",
+							user: "u899193124.0811carlo",
+							password: "u899193124.Asn",
+						})
+
+
+						client.trackProgress(info => {
+							console.log("file", info.name)
+							console.log("transferred overall", info.bytesOverall)
+						})
+
+						await client.uploadFrom(xfile, xfile)
+
+						fs.unlink( xfile,()=>{
+							console.log('===Delete temp file on Hostinger==== ', xfile )
+	
+							fs.unlink( fstream.path ,()=>{
+								console.log('===Delete temp file on Hostinger==== ', fstream.path )
+								return res.status(200).send({ status: true });	
+							})	
+	
+						})
+
+
+					}
+					catch(err){
+						console.log(err)
+					}
+
+					client.close()
+				
+					/*
+					ftpclient.scp(xfile, {
+					host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
+					//port: 3331, // defaults to 21
+					username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
+					password: "2Timothy@1:9_10",
+					path: "public_html/vanz/rcpt/" 
+					}, function(errs)  {
+						
+						console.log('error ', errs)
+						console.log("====File Uploaded to Hostinger!!!===");
+						
+						//==delete file
+						fs.unlink( xfile,()=>{
+							console.log('===Delete temp file on Hostinger==== ', xfile )
+
+							fs.unlink( fstream.path ,()=>{
+								console.log('===Delete temp file on Hostinger==== ', fstream.path )
+								return res.status(200).send({ status: true });	
+							})	
+
+						})
+					
+						//=====use 301 for permanent redirect
+						//res.status(301).redirect("https://vantaztic.com/app/admin.html")
+		
+					})//===end ftpclient
+					*/
+
+				}//eif err
+
+			}) //end sharp
+
+					// ftpclient.scp(xfile, {
+					// 	host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
+					// 	//port: 3331, // defaults to 21
+					// 	username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
+					// 	password: "2Timothy@1:9_10",
+					// 	path: "public_html/vanz/dr/" 
+			
 
 			// ftpclient.scp(fstream.path, {
 			// 	//host: '46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
@@ -379,20 +455,7 @@ router.post('/postimage',   async (req, res) => {
 			// 	username: 'u899193124', // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
 			// 	password: `u899193124.Asn`,
 			// 	path: 'public_html/html/rcpt/'
-			}, function(err) {
-				console.log("====File Uploaded to Hostinger!!!===");
-				
-				//==delete file
-				fs.unlink( 'FINAL_'+fstream.path,()=>{
-					console.log('===Delete temp file on Hostinger==== ', 'FINAL_'+fstream.path)
-					
-						return res.status(200).send({ success: true });	
-							
-				})
-				//=====use 301 for permanent redirect
-				//res.status(301).redirect("https://vantaztic.com/app/admin.html")
-
-			})//===end ftpclient
+			
 		})//====end fstream
 	})//===end busboy on file 
 	
