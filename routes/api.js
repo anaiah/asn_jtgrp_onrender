@@ -239,6 +239,37 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 //=============ADD RIDER TRANSACTION J&T GRP====//
 router.post('/savetransaction', async (req, res) => {
 	console.log('==',req.body)
+	
+	connectDb()
+    .then((db)=>{
+
+		$sql = `INSERT INTO asn_transaction (emp_id, transaction_number, parcel, amount, remarks) 
+		VALUES (?,?,?,?,?) `
+			
+		db.query( $sql,
+			[	req.body.ff_empid, 
+				req.body.transnumber, 
+				req.body.parcel, 
+				req.body.amount, 
+				req.body.remarks ],
+			(error,result)=>{
+				console.log('inserting..',result.rowCount)
+
+				//results[0]
+				res.json({
+					message: "Transaction added Successfully!",
+					voice:"Transaction Added Successfully!",
+					status:true
+				})
+	
+				closeDb(db);//CLOSE connection
+			
+		})
+		
+    }).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    }) 
+
 
 })
 //=============END ADD RIDER TRANSACTION J&T GRP====//
@@ -317,8 +348,9 @@ router.post('/postimage',   async (req, res) => {
 		} 
 		
 		// fieldname is 'fileUpload'
-		var fstream = fs.createWriteStream('ASN-'+ filename + extname);
-		
+		//var fstream = fs.createWriteStream('ASN-'+ filename + extname);
+		var fstream = fs.createWriteStream('ASN-'+ req.body.image_name + extname);
+
 		file.pipe(fstream);
 			
 		console.log( 'Writing Stream... ', fstream.path )
@@ -333,11 +365,11 @@ router.post('/postimage',   async (req, res) => {
 			sharp( fstream.path ).jpeg({ quality: 30 }).toFile('FINAL '+fstream.path)
 
 			ftpclient.scp(fstream.path, {
-				host: 'gator3142.hostgator.com'	, //--this is orig ->process.env.FTPHOST,
+				host: 'ftp://46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
 				//port: 3331, // defaults to 21
-				username: 'vantazti', // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
-				password: `2Timothy@1:9_10`,
-				path: 'public_html/vanz/dr'
+				username: 'u899193124', // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
+				password: `u899193124.Asn`,
+				path: 'public_html/html/rcpt'
 			}, function(err) {
 				console.log("====File Uploaded to Hostinger!!!===");
 				
