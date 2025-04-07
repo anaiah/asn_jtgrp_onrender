@@ -236,16 +236,23 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 
 //=== end html routes
 
+//=============ADD RIDER TRANSACTION J&T GRP====//
+router.post('/savetransaction', async (req, res) => {
+	console.log('==',req.body)
+
+})
+//=============END ADD RIDER TRANSACTION J&T GRP====//
+
+
+
 //======================ADD NEW EMPLOYEE ====================
 // Create a new employee (CREATE)
 let myfile
-
 router.post('/newemppost/', async (req, res) => {
     //const { employeeId, full_name, email, phone, birth_date, hire_date, job_title, department, employment_status, address } = req.body;
 
 	myfile = req.body.employeeId
 	console.log('data is', req.body.fullName.toUpperCase(), req.body.birthDate , req.body.jobTitle)
-
 	
    	connectDb()
     .then((db)=>{
@@ -332,11 +339,11 @@ router.post('/postimage',   async (req, res) => {
 				password: `2Timothy@1:9_10`,
 				path: 'public_html/vanz/dr'
 			}, function(err) {
-				console.log("File Uploaded!!!");
+				console.log("====File Uploaded to Hostinger!!!===");
 				
 				//==delete file
 				fs.unlink( fstream.path,()=>{
-					console.log('Delete temp file ', fstream.path)
+					console.log('===Delete temp file on Hostinger==== ', fstream.path)
 
 					res.status(200).send({ success: true });			
 				})
