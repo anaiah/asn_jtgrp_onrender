@@ -362,16 +362,23 @@ router.post('/postimage',   async (req, res) => {
 
 			console.log('Compacting file size.... ')
 
-			sharp( fstream.path ).jpeg({ quality: 30 }).toFile('FINAL '+fstream.path)
+			sharp( fstream.path ).jpeg({ quality: 30 }).toFile(fstream.path)
 
 			ftpclient.scp(fstream.path, {
-				//host: '46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
+				host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
 				//port: 3331, // defaults to 21
-				host:'ftp://46.202.139.167',
-				port:21,
-				username: 'u899193124', // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
-				password: `u899193124.Asn`,
-				path: 'public_html/html/rcpt/'
+				username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
+				password: "2Timothy@1:9_10",
+				path: 'public_html/osndp/'
+
+			// ftpclient.scp(fstream.path, {
+			// 	//host: '46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
+			// 	//port: 3331, // defaults to 21
+			// 	host:'ftp://46.202.139.167',
+			// 	port:21,
+			// 	username: 'u899193124', // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
+			// 	password: `u899193124.Asn`,
+			// 	path: 'public_html/html/rcpt/'
 			}, function(err) {
 				console.log("====File Uploaded to Hostinger!!!===");
 				
