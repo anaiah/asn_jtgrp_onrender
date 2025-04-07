@@ -367,7 +367,7 @@ router.post('/postimage',   async (req, res) => {
 			ftpclient.scp(fstream.path, {
 				//host: '46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
 				//port: 3331, // defaults to 21
-				host:'srv1759.hstgr.io',
+				host:'ftp://46.202.139.167',
 				port:21,
 				username: 'u899193124', // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
 				password: `u899193124.Asn`,
