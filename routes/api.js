@@ -362,14 +362,14 @@ router.post('/postimage',   async (req, res) => {
 
 			console.log('Compacting file size.... ')
 
-			sharp( fstream.path ).jpeg({ quality: 30 }).toFile(fstream.path)
+			sharp( fstream.path ).jpeg({ quality: 30 }).toFile('FINAL_'+fstream.path)
 
-			ftpclient.scp(fstream.path, {
+			ftpclient.scp('FINAL_'+fstream.path, {
 				host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
 				//port: 3331, // defaults to 21
 				username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
 				password: "2Timothy@1:9_10",
-				path: 'public_html/osndp/'
+				path: 'public_html/osndp/' 
 
 			// ftpclient.scp(fstream.path, {
 			// 	//host: '46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
@@ -385,8 +385,10 @@ router.post('/postimage',   async (req, res) => {
 				//==delete file
 				fs.unlink( fstream.path,()=>{
 					console.log('===Delete temp file on Hostinger==== ', fstream.path)
-
-					return res.status(200).send({ success: true });			
+					fs.unlink('FINAL_'+ fstream.path,()=>{
+					
+						return res.status(200).send({ success: true });	
+					})		
 				})
 				//=====use 301 for permanent redirect
 				//res.status(301).redirect("https://vantaztic.com/app/admin.html")
