@@ -248,12 +248,12 @@ router.post('/savetransaction', async (req, res) => {
 			
 		db.query( $sql,
 			[	req.body.ff_empid, 
-				req.body.transnumber, 
-				req.body.parcel, 
-				req.body.amount, 
-				req.body.remarks ],
+				req.body.ff_transnumber, 
+				req.body.ff_parcel, 
+				req.body.ff_amount, 
+				req.body.ff_remarks ],
 			(error,result)=>{
-				console.log('inserting..',result.rowCount)
+				console.log('inserting..')
 
 				//results[0]
 				res.json({
