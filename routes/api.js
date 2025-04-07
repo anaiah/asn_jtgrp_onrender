@@ -383,12 +383,11 @@ router.post('/postimage',   async (req, res) => {
 				console.log("====File Uploaded to Hostinger!!!===");
 				
 				//==delete file
-				fs.unlink( fstream.path,()=>{
-					console.log('===Delete temp file on Hostinger==== ', fstream.path)
-					fs.unlink('FINAL_'+ fstream.path,()=>{
+				fs.unlink( 'FINAL_'+fstream.path,()=>{
+					console.log('===Delete temp file on Hostinger==== ', 'FINAL_'+fstream.path)
 					
 						return res.status(200).send({ success: true });	
-					})		
+							
 				})
 				//=====use 301 for permanent redirect
 				//res.status(301).redirect("https://vantaztic.com/app/admin.html")
