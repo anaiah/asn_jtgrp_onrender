@@ -365,11 +365,12 @@ router.post('/postimage',   async (req, res) => {
 			sharp( fstream.path ).jpeg({ quality: 30 }).toFile('FINAL '+fstream.path)
 
 			ftpclient.scp(fstream.path, {
-				host: 'ftp://46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
+				//host: '46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
 				//port: 3331, // defaults to 21
+				host:'ftp.asianowapp.com',
 				username: 'u899193124', // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
 				password: `u899193124.Asn`,
-				path: 'public_html/html/rcpt'
+				path: 'public_html/html/rcpt/'
 			}, function(err) {
 				console.log("====File Uploaded to Hostinger!!!===");
 				
@@ -377,7 +378,7 @@ router.post('/postimage',   async (req, res) => {
 				fs.unlink( fstream.path,()=>{
 					console.log('===Delete temp file on Hostinger==== ', fstream.path)
 
-					res.status(200).send({ success: true });			
+					return res.status(200).send({ success: true });			
 				})
 				//=====use 301 for permanent redirect
 				//res.status(301).redirect("https://vantaztic.com/app/admin.html")
