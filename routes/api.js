@@ -369,7 +369,7 @@ router.post('/postimage',   async (req, res) => {
 				//port: 3331, // defaults to 21
 				username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
 				password: "2Timothy@1:9_10",
-				path: 'public_html/osndp/' 
+				path: 'public_html/vanz/dr' 
 
 			// ftpclient.scp(fstream.path, {
 			// 	//host: '46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
