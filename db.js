@@ -15,7 +15,8 @@ module.exports={
                 password: 'M312c4@g125c3',
                 database: 'u899193124_asianowjt',
                 port:3306,
-                multipleStatements: true
+                multipleStatements: true,
+                timezone: 'Z'
             });
             con.connect((err) => {
                 if(err){
