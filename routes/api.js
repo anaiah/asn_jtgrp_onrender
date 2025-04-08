@@ -281,6 +281,64 @@ router.post('/savetransaction', async (req, res) => {
 //=============END ADD RIDER TRANSACTION J&T GRP====//
 
 
+//============= get monthly transaction riders =======//
+router.get('/getmonthlytransaction', async(req,res)=>{
+	var series = new Date() 
+	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
+	var yyyy = series.getFullYear()
+
+	series = yyyy+'-'+mm +'-01'
+
+	connectDb()
+    .then((db)=>{ 
+		const sql = `
+			select a.Date from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
+			from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
+			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
+			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
+			where a.Date between '${series}' and last_day('${series}') order by a.Date;`
+
+			let xtable = `
+			<table class="table"> 
+				<thead>
+					<tr>
+					<th>Region</th>
+					<th>Hub Location</th>
+					<th>Amount</th>
+					</tr>
+				</thead>
+				<tbody>`
+
+				
+
+			db.query( sql,null,	(error,result)=>{
+				console.log('selecting..',result.rowCount)
+	
+				for(let zkey in result){
+					xtable+= `<tr>
+					<td>${results[zkey].Dates}</td>
+					<td >&nbsp;</td>
+					<td >&nbsp;</td>
+					<tr>`
+
+				}//endfor
+				
+				xtable+=	
+				`</tbody>
+				</table>`
+
+				closeDb(db);//CLOSE connection
+				
+				res.status(200).send(xtable)
+			})
+
+	
+	}).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    }) 
+})
+//============= end get monthly transaction riders =====//
+
 
 //======================ADD NEW EMPLOYEE ====================
 // Create a new employee (CREATE)
