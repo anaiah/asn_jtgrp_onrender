@@ -299,7 +299,7 @@ router.get('/getmonthlytransaction', async(req,res)=>{
 			where a.Date between '${series}' and last_day('${series}') order by a.Date;`
 
 			let xtable = `
-			<table class="table"> 
+				<table class="table"> 
 				<thead>
 					<tr>
 					<th>Region</th>
@@ -309,28 +309,26 @@ router.get('/getmonthlytransaction', async(req,res)=>{
 				</thead>
 				<tbody>`
 
-				
-
 			db.query( sql,null,	(error,result)=>{
-				console.log('selecting..',result.rowCount)
-	
-				for(let zkey in result){
-					xtable+= `<tr>
-					<td>${results[zkey].Dates}</td>
-					<td >&nbsp;</td>
-					<td >&nbsp;</td>
-					<tr>`
+			console.log('selecting..',result.rowCount)
 
-				}//endfor
-				
-				xtable+=	
-				`</tbody>
-				</table>`
+			for(let zkey in result){
+				xtable+= `<tr>
+				<td>${result[zkey].Dates}</td>
+				<td >&nbsp;</td>
+				<td >&nbsp;</td>
+				<tr>`
 
-				closeDb(db);//CLOSE connection
-				
-				res.status(200).send(xtable)
-			})
+			}//endfor
+
+			xtable+=	
+			`</tbody>
+			</table>`
+
+			closeDb(db);//CLOSE connection
+			
+			res.status(200).send(xtable)
+		})
 
 	
 	}).catch((error)=>{
