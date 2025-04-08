@@ -248,7 +248,7 @@ router.post('/savetransaction', async (req, res) => {
     .then((db)=>{
 
 		$sql = `INSERT INTO asn_transaction (emp_id, transaction_number, parcel, actual_parcel, amount, actual_amount, remarks) 
-		VALUES (?,?,?,?,?,?,?) `
+		VALUES (?, ?, ?, ?, ?, ?, ? ) `
 			
 		db.query( $sql,
 			[	req.body.ff_empid, 
@@ -259,7 +259,7 @@ router.post('/savetransaction', async (req, res) => {
 				req.body.ff_amount, 
 				req.body.ff_remarks ],
 			(error,result)=>{
-				console.log('inserting..')
+				console.log('inserting result..',result)
 
 				//results[0]
 				res.json({
@@ -332,7 +332,7 @@ router.post('/newemppost/', async (req, res) => {
     }) 
 });
 
-//==============busboy, scp2  for file uploading============
+//==============busboy, basic-ftp  for file uploading============
 const Busboy = require('busboy')
 const {Client} = require("basic-ftp")
 
@@ -412,56 +412,11 @@ router.post('/postimage/:transnumber',   async (req, res) => {
 
 					client.close()
 				
-					/*
-					ftpclient.scp(xfile, {
-					host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
-					//port: 3331, // defaults to 21
-					username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
-					password: "2Timothy@1:9_10",
-					path: "public_html/vanz/rcpt/" 
-					}, function(errs)  {
-						
-						console.log('error ', errs)
-						console.log("====File Uploaded to Hostinger!!!===");
-						
-						//==delete file
-						fs.unlink( xfile,()=>{
-							console.log('===Delete temp file on Hostinger==== ', xfile )
-
-							fs.unlink( fstream.path ,()=>{
-								console.log('===Delete temp file on Hostinger==== ', fstream.path )
-								return res.status(200).send({ status: true });	
-							})	
-
-						})
-					
-						//=====use 301 for permanent redirect
-						//res.status(301).redirect("https://vantaztic.com/app/admin.html")
-		
-					})//===end ftpclient
-					*/
-
+				
 				}//eif err
 
 			}) //end sharp
 
-					// ftpclient.scp(xfile, {
-					// 	host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
-					// 	//port: 3331, // defaults to 21
-					// 	username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
-					// 	password: "2Timothy@1:9_10",
-					// 	path: "public_html/vanz/dr/" 
-			
-
-			// ftpclient.scp(fstream.path, {
-			// 	//host: '46.202.139.167'	, //--this is orig ->process.env.FTPHOST,
-			// 	//port: 3331, // defaults to 21
-			// 	host:'ftp://46.202.139.167',
-			// 	port:21,
-			// 	username: 'u899193124', // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
-			// 	password: `u899193124.Asn`,
-			// 	path: 'public_html/html/rcpt/'
-			
 		})//====end fstream
 	})//===end busboy on file 
 	
@@ -527,11 +482,12 @@ router.post('/uploadpdf',  async(req, res)=>{
 		
 })//==end upload
 
+
 const csvParser = require('csv-parser');
 
 //=== FINAL FOR CLAIMS
 router.post('/claims', async( req, res) => {
-	console.log('===FIRING /postimage===')
+	console.log('===FIRING /claims===')
 
 	const busboy = Busboy({ headers: req.headers });
 		
