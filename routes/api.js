@@ -236,8 +236,6 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
     }) 
 })//== end loginpost
 
-
-
 //=== end html routes
 
 //=============ADD RIDER TRANSACTION J&T GRP====//
@@ -280,55 +278,109 @@ router.post('/savetransaction', async (req, res) => {
 })
 //=============END ADD RIDER TRANSACTION J&T GRP====//
 
+//===== piechart for rider====//
+router.get('/getpiedata/:empid', async(req,res)=>{
+
+	var series = new Date() 
+	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
+	var yyyy = series.getFullYear()
+
+	series = yyyy+'-'+mm
+	
+	console.log('getpiedata...')
+
+	connectDb()
+    .then((db)=>{
+		let sql =`SELECT format((sum(a.actual_parcel)/Sum(a.parcel))*100 ,0) AS delivered_pct, 
+			format( 100 - (format((sum(a.actual_parcel)/Sum(a.parcel))*100 ,0)),0 ) as undelivered_pct 
+			FROM asn_transaction a 
+			where SUBSTRING(a.created_at,1,7) like '${series}%' 
+			and emp_id ='${req.params.empid}' `
+	
+		console.log( sql )
+
+		db.query( sql, (error, results)=>{
+			console.log(error,results)	 
+
+			closeDb(db)
+
+			res.status(200).json({data:results})
+		})
+
+	}).catch((error)=>{
+		res.status(500).json({error:'Error'})
+	}) 
+
+})
+//===== end piechart for rider====//
 
 //============= get monthly transaction riders =======//
-router.get('/getmonthlytransaction', async(req,res)=>{
+router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 	var series = new Date() 
 	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
 	var yyyy = series.getFullYear()
 
 	series = yyyy+'-'+mm +'-01'
+	const series2 = yyyy+'-'+mm
+
+	//console.log( 'series2 ',series2 )
+
+	let sql, sql2
 
 	connectDb()
     .then((db)=>{ 
-		const sql = `
-			select DATE_FORMAT(a.Dates,'%d-%b %Y, %a') as Dates
+
+		//====take-out comma after sql statement it will error if multiple statements is set to true
+		//DATE_FORMAT(a.Dates,'%d-%b %Y, %a') as Dates
+		sql = `
+			select DATE_FORMAT(a.Dates,'%Y-%m-%d') as Dates
 			from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
 			from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
-			where a.Dates between '${series}' and last_day('${series}') order by a.Dates;`
+			where a.Dates between '${series}' and last_day('${series}') order by a.Dates`
 
-			console.log(sql)
+		sql2 =`SELECT id,emp_id,transaction_number,parcel,
+				actual_parcel, 
+				format(amount,2) as amount, 
+				format(actual_amount,2) as actual_amount, remarks,
+				substring(created_at,1,10) as created_at 
+				from asn_transaction 
+				where SUBSTRING(created_at,1,7) like '${series2}%' 
+				and emp_id ='${req.params.empid}' `	
 
+		//console.log(sql)
+		//console.log(sql2)
+		
+		let xtable = `
+			<table class="table"> 
+			<thead>
+				<tr>
+				<th>Date</th>
+				<th>Parcel</th>
+				<th>Remitted</th>
+				<th>Amount</th>
+				<th>Remitted</th>
+				<th>Remarks</th>
+				</tr>
+			</thead>
+			<tbody>`
 
-		const sql2 =`SELECT * from asn_transactions where created_at like '%${series}%'`	
+		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
 
-			let xtable = `
-				<table class="table"> 
-				<thead>
-					<tr>
-					<th>Date</th>
-					<th>Parcel</th>
-					<th>Remitted</th>
-					<th>Amount</th>
-					<th>Remitted</th>
-					<th>Status</th>
-					</tr>
-				</thead>
-				<tbody>`
+			console.log('err',results[1])
+			let trans
+			for(let zkey in results[0]){
 
-			db.query( `${sql};${sql2}`,	(error,result)=>{
-			console.log('selecting..')
+				trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
 
-			for(let zkey in result[0]){
 				xtable+= `<tr>
-				<td>${result[0][zkey].Dates}</td>
-				<td >&nbsp;</td>
-				<td >&nbsp;</td>
-				<td >&nbsp;</td>
-				<td >&nbsp;</td>
-				<td >&nbsp;</td>
+				<td>${results[0][zkey].Dates}&nbsp;${(trans>=0 ? '<i style="color:green;font-size:15px;" class="ti ti-check"></i>': '<i style="color:red;font-size:11px;" class="ti ti-x"></i>')}</td>
+				<td >${(trans>=0 ? results[1][trans].parcel : '&nbsp;')}</td>
+				<td >${(trans>=0 ? results[1][trans].actual_parcel : '&nbsp;')}</td>
+				<td >${(trans>=0 ? results[1][trans].amount : '&nbsp;')}</td>
+				<td >${(trans>=0 ? results[1][trans].actual_amount : '&nbsp;')}</td>
+				<td >${(trans>=0 ? results[1][trans].remarks : '&nbsp;')}</td>
 				<tr>`
 
 			}//endfor
@@ -338,10 +390,9 @@ router.get('/getmonthlytransaction', async(req,res)=>{
 			</table>`
 
 			closeDb(db);//CLOSE connection
-			console.log(xtable)
+			//console.log(xtable)
 			res.status(200).send(xtable)
 		})
-
 	
 	}).catch((error)=>{
         res.status(500).json({error:'Error'})
