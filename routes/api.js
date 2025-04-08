@@ -242,13 +242,13 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 
 //=============ADD RIDER TRANSACTION J&T GRP====//
 router.post('/savetransaction', async (req, res) => {
-	console.log('==',req.body)
+	console.log('==SAVE TRANSACTION INFO',req.body)
 	
 	connectDb()
     .then((db)=>{
 
-		$sql = `INSERT INTO asn_transaction (emp_id, transaction_number, parcel, amount, remarks) 
-		VALUES (?,?,?,?,?) `
+		$sql = `INSERT INTO asn_transaction (emp_id, transaction_number, parcel, actual_parcel, amount, actual_amount, remarks) 
+		VALUES (?,?,?,?,?,?,?) `
 			
 		db.query( $sql,
 			[	req.body.ff_empid, 
