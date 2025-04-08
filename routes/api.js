@@ -309,8 +309,8 @@ router.get('/getmonthlytransaction', async(req,res)=>{
 				</thead>
 				<tbody>`
 
-			db.query( sql,null,	(error,result)=>{
-			console.log('selecting..',result.rowCount)
+			db.query( sql,	(error,result)=>{
+			console.log('selecting..')
 
 			for(let zkey in result){
 				xtable+= `<tr>
