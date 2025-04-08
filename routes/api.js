@@ -141,8 +141,11 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 
 		let sql =`SELECT a.id,a.full_name, 
 			a.email, a.region, 
-			a.grp_id,a.pic 
+			a.grp_id,a.pic,
+			b.position
 			from asn_users a 
+			join asn_position b
+			on a.grp_id = b.grp_id
 			WHERE a.email='${req.params.uid}' and a.pwd='${req.params.pwd}'` 
         
 			console.log(`${sql}`)
@@ -195,6 +198,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 				ip_addy :   ipaddress,
 				id      :   data[0].id,
 				region  :   data[0].region,
+				position:   data[0].position,
 				found:true
 			}))
 
