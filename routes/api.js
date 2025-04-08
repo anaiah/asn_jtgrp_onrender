@@ -292,24 +292,27 @@ router.get('/getmonthlytransaction', async(req,res)=>{
 	connectDb()
     .then((db)=>{ 
 		const sql = `
-			select a.Date from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
+			select a.Dates from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
 			from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
-			where a.Date between '${series}' and last_day('${series}') order by a.Date;`
+			where a.Dates between '${series}' and last_day('${series}') order by a.Dates;`
+
+			console.log(sql)
+
 
 			let xtable = `
 				<table class="table"> 
 				<thead>
 					<tr>
-					<th>Region</th>
-					<th>Hub Location</th>
+					<th>Dates</th>
+					<th>Parcel</th>
 					<th>Amount</th>
 					</tr>
 				</thead>
 				<tbody>`
 
-			db.query( sql,	(error,result)=>{
+			db.query( `${sql}`,	(error,result)=>{
 			console.log('selecting..')
 
 			for(let zkey in result){
@@ -326,7 +329,7 @@ router.get('/getmonthlytransaction', async(req,res)=>{
 			</table>`
 
 			closeDb(db);//CLOSE connection
-			
+			console.log(xtable)
 			res.status(200).send(xtable)
 		})
 
