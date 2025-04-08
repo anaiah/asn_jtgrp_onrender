@@ -302,23 +302,31 @@ router.get('/getmonthlytransaction', async(req,res)=>{
 			console.log(sql)
 
 
+		const sql2 =`SELECT * from asn_transactions where created_at like '%${series}%'`	
+
 			let xtable = `
 				<table class="table"> 
 				<thead>
 					<tr>
-					<th>Dates</th>
+					<th>Date</th>
 					<th>Parcel</th>
+					<th>Remitted</th>
 					<th>Amount</th>
+					<th>Remitted</th>
+					<th>Status</th>
 					</tr>
 				</thead>
 				<tbody>`
 
-			db.query( `${sql}`,	(error,result)=>{
+			db.query( `${sql};${sql2}`,	(error,result)=>{
 			console.log('selecting..')
 
-			for(let zkey in result){
+			for(let zkey in result[0]){
 				xtable+= `<tr>
-				<td>${result[zkey].Dates}</td>
+				<td>${result[0][zkey].Dates}</td>
+				<td >&nbsp;</td>
+				<td >&nbsp;</td>
+				<td >&nbsp;</td>
 				<td >&nbsp;</td>
 				<td >&nbsp;</td>
 				<tr>`
