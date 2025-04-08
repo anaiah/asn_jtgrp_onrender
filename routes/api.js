@@ -292,7 +292,7 @@ router.get('/getmonthlytransaction', async(req,res)=>{
 	connectDb()
     .then((db)=>{ 
 		const sql = `
-			select DATE_FORMAT(a.Dates,'%b %d, %Y, %a') as Dates
+			select DATE_FORMAT(a.Dates,'%d-%b %Y, %a') as Dates
 			from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
 			from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
