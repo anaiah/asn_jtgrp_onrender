@@ -253,7 +253,9 @@ router.post('/savetransaction', async (req, res) => {
 		db.query( $sql,
 			[	req.body.ff_empid, 
 				req.body.ff_transnumber, 
-				req.body.ff_parcel, 
+				req.body.old_parcel,
+				req.body.ff_parcel,
+				req.body.old_amount, 
 				req.body.ff_amount, 
 				req.body.ff_remarks ],
 			(error,result)=>{
