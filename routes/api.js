@@ -291,10 +291,8 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 
 	connectDb()
     .then((db)=>{
-		let sql =`SELECT format((sum(a.actual_parcel)/Sum(a.parcel))*100 ,0) AS delivered_pct, 
-			format( 100 - (format((sum(a.actual_parcel)/Sum(a.parcel))*100 ,0)),0 ) as undelivered_pct 
-			FROM asn_transaction a 
-			where SUBSTRING(a.created_at,1,7) like '${series}%' 
+		let sql =`select *  from getpiedata_view 
+			where SUBSTRING(created_at,1,7) like '${series}%' 
 			and emp_id ='${req.params.empid}' `
 	
 		//console.log( sql )
