@@ -287,7 +287,7 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 
 	series = yyyy+'-'+mm
 	
-	console.log('getpiedata...')
+	console.log('/getpiedata()')
 
 	connectDb()
     .then((db)=>{
@@ -297,10 +297,10 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 			where SUBSTRING(a.created_at,1,7) like '${series}%' 
 			and emp_id ='${req.params.empid}' `
 	
-		console.log( sql )
+		//console.log( sql )
 
 		db.query( sql, (error, results)=>{
-			console.log(error,results)	 
+			//console.log(error,results)	 
 
 			closeDb(db)
 
@@ -368,16 +368,29 @@ router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 
 		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
 
-			console.log('err',results[1])
-			let trans
+			//console.log('err',results[1])
+			let trans, tick
+
 			for(let zkey in results[0]){
 
 				trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
 
+				if(trans<0){ //no record
+					tick= null
+				}else{
+					if( parseInt(results[1][trans].parcel) > parseInt(results[1][trans].actual_parcel) ){
+						tick=`<i class="ti ti-arrow-down-right text-danger"></i>&nbsp;${results[1][trans].actual_parcel}`
+					}else{
+						tick= results[1][trans].actual_parcel
+					}
+					
+				}
+				
+
 				xtable+= `<tr>
 				<td>${results[0][zkey].Dates}&nbsp;${(trans>=0 ? '<i style="color:green;font-size:15px;" class="ti ti-check"></i>': '<i style="color:red;font-size:11px;" class="ti ti-x"></i>')}</td>
 				<td >${(trans>=0 ? results[1][trans].parcel : '&nbsp;')}</td>
-				<td >${(trans>=0 ? results[1][trans].actual_parcel : '&nbsp;')}</td>
+				<td >${(trans>=0 ? tick : '&nbsp;')}</td>
 				<td >${(trans>=0 ? results[1][trans].amount : '&nbsp;')}</td>
 				<td >${(trans>=0 ? results[1][trans].actual_amount : '&nbsp;')}</td>
 				<td >${(trans>=0 ? results[1][trans].remarks : '&nbsp;')}</td>
