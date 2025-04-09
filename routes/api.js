@@ -340,12 +340,7 @@ router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
 			where a.Dates between '${series}' and last_day('${series}') order by a.Dates`
 
-		sql2 =`SELECT id,emp_id,transaction_number,parcel,
-				actual_parcel, 
-				format(amount,2) as amount, 
-				format(actual_amount,2) as actual_amount, remarks,
-				substring(created_at,1,10) as created_at 
-				from asn_transaction 
+		sql2 =`SELECT * from getmonthlytransaction_view
 				where SUBSTRING(created_at,1,7) like '${series2}%' 
 				and emp_id ='${req.params.empid}' `	
 
@@ -384,7 +379,7 @@ router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 						tick= results[1][trans].actual_parcel
 					}
 					
-				}
+				}//eif
 				
 
 				xtable+= `<tr>
