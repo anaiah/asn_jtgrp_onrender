@@ -490,7 +490,7 @@ router.post('/postimage/:transnumber',   async (req, res) => {
 
 			var xfile = 'A_'+fstream.path
 
-			sharp( fstream.path ).jpeg({ quality: 30 }).toFile(xfile, async(err,info)=>{
+			sharp( fstream.path ).resize({width:200}).jpeg({ quality: 30 }).toFile(xfile, async(err,info)=>{
 
 				//console.log(err,'?')
 				if(!err){
