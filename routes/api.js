@@ -312,6 +312,114 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 })
 //===== end piechart for rider====//
 
+//===test menu-submenu array->json--->
+router.get('/menu/:grpid', async(req,res)=>{
+	connectDb()
+    .then((db)=>{ 
+
+		sql2 =`SELECT 
+			grp_id,
+			menu, menu_icon,
+			JSON_ARRAYAGG(
+						JSON_OBJECT(
+							'sub', submenu,
+							'icon', submenu_icon
+						)
+					) AS list
+			FROM asn_menu 
+			WHERE grp_id = ${req.params.grpid}`
+
+		//console.log(sql)
+		console.log(sql2)
+
+		db.query( sql2 , null , (error, results)=>{
+			console.log( error,results )
+		})
+
+	}).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    }) 
+
+})
+
+//==== for grid monthly transaction riders =======//
+router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
+	var series = new Date() 
+	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
+	var yyyy = series.getFullYear()
+
+	series = yyyy+'-'+mm +'-01'
+	const series2 = yyyy+'-'+mm
+
+	//console.log( 'series2 ',series2 )
+
+	connectDb()
+    .then((db)=>{ 
+
+		//====take-out comma after sql statement it will error if multiple statements is set to true
+		//DATE_FORMAT(a.Dates,'%d-%b %Y, %a') as Dates
+		sql = `
+			select DATE_FORMAT(a.Dates,'%Y-%m-%d') as Dates
+			from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
+			from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
+			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
+			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
+			where a.Dates between '${series}' and last_day('${series}') order by a.Dates`
+
+		sql2 =`SELECT * from getmonthlytransaction_view
+				where SUBSTRING(created_at,1,7) like '${series2}%' 
+				and emp_id ='${req.params.empid}' `	 
+
+		//console.log(sql)
+		//console.log(sql2)
+		
+		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
+
+			//console.log(results[0],results[1])
+			
+			let trans, tick
+
+			for(let zkey in results[0]){
+
+				trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
+
+				results[0][zkey].Dates=`${results[0][zkey].Dates}`
+
+				if(trans<0){ //no record
+					tick= ""	
+					results[0][zkey].parcel = 0
+					results[0][zkey].delivered = 0
+					results[0][zkey].total_amount = 0
+					results[0][zkey].amount_remitted = 0
+					results[0][zkey].remarks = ""
+					
+				}else{
+
+					tick=`${results[1][trans].actual_parcel}`
+					
+					results[0][zkey].parcel = results[1][trans].parcel
+					results[0][zkey].delivered = tick
+					results[0][zkey].total_amount = parseFloat(results[1][trans].amount.replaceAll(',','') )
+					results[0][zkey].amount_remitted = parseFloat(results[1][trans].actual_amount.replaceAll(',','') )
+					results[0][zkey].remarks = results[1][trans].remarks
+				}//eif
+			}//endfor
+
+			console.log( results[0])
+
+			closeDb(db);//CLOSE connection
+			//console.log(xtable)
+			res.status(200).json( results[0] )
+		})
+	
+	}).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    }) 
+})
+
+
+
+
 //============= get monthly transaction riders =======//
 router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 	var series = new Date() 
@@ -351,9 +459,9 @@ router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 				<tr>
 				<th>Date</th>
 				<th>Parcel</th>
-				<th>Remitted</th>
-				<th>Amount</th>
-				<th>Remitted</th>
+				<th>Delivered>
+				<th>Total Amount</th>
+				<th>Amount Remitted</th>
 				<th>Remarks</th>
 				</tr>
 			</thead>
@@ -361,7 +469,7 @@ router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 
 		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
 
-			//console.log('err',results[1])
+		console.log(results[0],results[1])
 			let trans, tick
 
 			for(let zkey in results[0]){
@@ -511,7 +619,6 @@ router.post('/postimage/:transnumber',   async (req, res) => {
 							password: "u899193124.Asn",
 						})
 
-
 						client.trackProgress(info => {
 							console.log("file", info.name)
 							console.log("transferred overall", info.bytesOverall)
@@ -528,7 +635,6 @@ router.post('/postimage/:transnumber',   async (req, res) => {
 							})	
 	
 						})
-
 
 					}
 					catch(err){
@@ -1766,7 +1872,7 @@ const smsPost = (msgbody) => {
 		method: 'POST',
 		body: JSON.stringify(smsdata),
 		headers: { 'Content-Type': 'application/json' }
-	})    
+	})   
 	.then(res => res.json() )
     .then(json => console.log ('sms ->', json ))
 	
