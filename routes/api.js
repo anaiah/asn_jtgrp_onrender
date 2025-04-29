@@ -1742,6 +1742,27 @@ router.get('/deletepdf/:e_num', async(req, res) => {
 })//end Utils.deletepdfse{
 
 
+
+//============SAVE J&T LINK WHEN SCANNED===//
+router.post('/addlink/:link', async(req,res)=>{
+	$sql = `INSERT INTO asn_jtlink (link) 
+		VALUES (?) `
+			
+		db.query( $sql,	[req.params.link ],	(error,result)=>{
+				console.log('inserting j&T link..',result)
+
+				//results[0]
+				res.json({
+					message: "Link added Successfully!",
+					status:true
+				})
+	
+				closeDb(db);//CLOSE connection
+			
+		})
+})
+
+
 router.get('/getzap/:eqptid', async(req,res)=>{
 	sql = `DELETE from equipment
 	where equipment_id = '${req.params.eqptid}'`
