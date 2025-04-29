@@ -418,7 +418,7 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 				}//eif
 			}//endfor
 
-			console.log( results[0])
+			///console.log( results[0])
 
 			closeDb(db);//CLOSE connection
 			//console.log(xtable)
@@ -1744,11 +1744,16 @@ router.get('/deletepdf/:e_num', async(req, res) => {
 
 
 //============SAVE J&T LINK WHEN SCANNED===//
-router.post('/addlink/:link', async(req,res)=>{
-	$sql = `INSERT INTO asn_jtlink (link) 
+router.get('/addlink/:link', async(req,res)=>{
+	sql = `INSERT INTO asn_jtlink (link) 
 		VALUES (?) `
-			
-		db.query( $sql,	[req.params.link ],	(error,result)=>{
+	
+		
+	console.log(sql)
+
+	connectDb()
+	.then((db)=>{
+		db.query( sql,	[req.params.link ],	(error,result)=>{
 				console.log('inserting j&T link..',result)
 
 				//results[0]
@@ -1760,6 +1765,7 @@ router.post('/addlink/:link', async(req,res)=>{
 				closeDb(db);//CLOSE connection
 			
 		})
+	})	
 })
 
 
