@@ -366,11 +366,20 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
 			where a.Dates between '${series}' and last_day('${series}') order by a.Dates`
 
-		sql2 =`SELECT * from getmonthlytransaction_view
-				where SUBSTRING(created_at,1,7) like '${series2}%' 
-				and emp_id ='${req.params.empid}' `	 
+		sql2 =`SELECT id,emp_id,
+				transaction_number,
+				sum(parcel) as parcel,
+				sum(actual_parcel) as actual_parcel,
+				sum(amount) as amount,
+				sum(actual_amount) as actual_amount,
+				remarks,
+				DATE_FORMAT(created_at,'%Y-%m-%d') as created_at
+				FROM asn_transaction
+				WHERE SUBSTRING(created_at,1,7) like '${series2}%' 
+				and emp_id =${req.params.empid} 
+				GROUP BY DATE_FORMAT(created_at,'%Y-%m-%d') `	 
 
-		//console.log(sql)
+		// console.log(sql)
 		//console.log(sql2)
 		
 		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
@@ -381,8 +390,10 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 
 			for(let zkey in results[0]){
 
+				
 				trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
 
+				
 				results[0][zkey].Dates=`${results[0][zkey].Dates}`
 
 				if(trans<0){ //no record
@@ -392,16 +403,18 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 					results[0][zkey].total_amount = 0
 					results[0][zkey].amount_remitted = 0
 					results[0][zkey].remarks = ""
-					
+					//results[0][zkey].Dates = null
 				}else{
 
 					tick=`${results[1][trans].actual_parcel}`
 					
 					results[0][zkey].parcel = results[1][trans].parcel
 					results[0][zkey].delivered = tick
-					results[0][zkey].total_amount = parseFloat(results[1][trans].amount.replaceAll(',','') )
-					results[0][zkey].amount_remitted = parseFloat(results[1][trans].actual_amount.replaceAll(',','') )
+					results[0][zkey].total_amount = parseFloat(results[1][trans].amount)
+					results[0][zkey].amount_remitted = parseFloat(results[1][trans].actual_amount)
 					results[0][zkey].remarks = results[1][trans].remarks
+					//results[0][zkey].Dates = results[1][trans].created_at
+
 				}//eif
 			}//endfor
 
@@ -416,8 +429,6 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
         res.status(500).json({error:'Error'})
     }) 
 })
-
-
 
 
 //============= get monthly transaction riders =======//
