@@ -1748,7 +1748,6 @@ router.get('/addlink/:link', async(req,res)=>{
 	sql = `INSERT INTO asn_jtlink (link) 
 		VALUES (?) `
 	
-		
 	console.log(sql)
 
 	connectDb()
