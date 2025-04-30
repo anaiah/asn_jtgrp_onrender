@@ -291,7 +291,12 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 
 	connectDb()
     .then((db)=>{
-		let sql =`select *  from getpiedata_view 
+		let sql =`select 
+			round( sum(actual_parcel) / sum(parcel) * 100 ) as delivered_pct,
+			round( 100 - sum(actual_parcel)/sum(parcel) ) as undelivered_pct,
+			created_at,
+			emp_id
+			from asn_transaction
 			where SUBSTRING(created_at,1,7) like '${series}%' 
 			and emp_id ='${req.params.empid}' `
 	
@@ -457,7 +462,7 @@ router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
 			where a.Dates between '${series}' and last_day('${series}') order by a.Dates`
 
-		sql2 =`SELECT * from getmonthlytransaction_view
+		sql2 =`SELECT * from
 				where SUBSTRING(created_at,1,7) like '${series2}%' 
 				and emp_id ='${req.params.empid}' `	
 
