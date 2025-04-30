@@ -1744,7 +1744,7 @@ router.get('/deletepdf/:e_num', async(req, res) => {
 
 
 //============SAVE J&T LINK WHEN SCANNED===//
-router.get('/addlink/:link', async(req,res)=>{
+router.post('/addlink', async(req,res)=>{
 	sql = `INSERT INTO asn_jtlink (link) 
 		VALUES (?) `
 	
@@ -1752,7 +1752,7 @@ router.get('/addlink/:link', async(req,res)=>{
 
 	connectDb()
 	.then((db)=>{
-		db.query( sql,	[req.params.link ],	(error,result)=>{
+		db.query( sql,	[req.body.link ],	(error,result)=>{
 				console.log('inserting j&T link..',result)
 
 				//results[0]
