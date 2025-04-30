@@ -292,8 +292,8 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 	connectDb()
     .then((db)=>{
 		let sql =`select 
-			round( sum(actual_parcel) / sum(parcel) * 100 ) as delivered_pct,
-			round( 100 - sum(actual_parcel)/sum(parcel) ) as undelivered_pct,
+			round( ( sum(actual_parcel) / sum(parcel) )   * 100 ) as delivered_pct,
+			round( 100 - ( sum(actual_parcel) / sum(parcel) ) * 100 ) as undelivered_pct,
 			created_at,
 			emp_id
 			from asn_transaction
