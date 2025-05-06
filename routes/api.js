@@ -318,7 +318,7 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 //===== end piechart for rider====//
 
 //===test menu-submenu array->json--->
-router.get('/menu/:grpid', async(req,res)=>{
+router.get('/xmenu/:grpid', async(req,res)=>{
 	connectDb()
     .then((db)=>{ 
 
