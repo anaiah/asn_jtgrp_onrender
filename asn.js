@@ -110,9 +110,13 @@ app.get('/test',(req, res)=>{
 
 //===============Main Routes
 const usersRouter = require('./routes/api');
-const cookieParser = require('cookie-parser');
 app.use('/', usersRouter);
 
+//===============coordinator/head routes=======
+const coordRouter = require('./routes/coor');
+app.use('/coor', coordRouter);
+
+const cookieParser = require('cookie-parser');
 app.use(cookieParser())
 
 //===== socket.io connect

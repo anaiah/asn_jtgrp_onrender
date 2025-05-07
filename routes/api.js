@@ -40,11 +40,10 @@ const PuppeteerHTMLPDF = require('puppeteer-html-pdf');
 
 const pdf = require('html-pdf');//used for pdf.create
 
-// const PassThrough = require('stream')
-const hbar = require('handlebars');
-const QRCode = require('qrcode')
-const multer = require('multer')
-const sharp = require('sharp')
+const hbar = require('handlebars'); //html template
+const QRCode = require('qrcode')  // qrcode maker
+const multer = require('multer') // for file manipulate
+const sharp = require('sharp')   // for image manipulate
 
 const ftpclient = require('scp2')
 
@@ -316,6 +315,7 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 
 })
 //===== end piechart for rider====//
+
 
 //===test menu-submenu array->json--->
 router.get('/xmenu/:grpid', async(req,res)=>{
