@@ -106,7 +106,24 @@ router.get('/summary', async(req,res)=>{
                 c.hub = b.hub
                 where c.coordinator_email = 'salimbagat.mcgold24@gmail.com'
                 group by c.hub
-                order by c.location;`
+                order by 
+                c.location,
+                (
+                    round(
+                    ( select  sum(x.actual_parcel) 
+                    from asn_transaction x 
+                        join asn_users y 
+                        on x.emp_id = y.id 
+                        where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                    ) /
+                    ( select  sum(x.parcel) 
+                    from asn_transaction x 
+                    join asn_users y 
+                    on x.emp_id = y.id 
+                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
+                    ) * 100,0)
+                ) DESC ,
+                 c.hub;`
             
         //console.log(sql)
         //console.log(sql2,)
@@ -152,13 +169,13 @@ router.get('/ridersummary/:hub', async(req,res)=>{
 `
             
         //console.log(sql)
-        console.log(sql2,)
+        //console.log(sql2,)
 
         db.query( sql2 , null , (error, results)=>{
             
             closeDb( db )
             
-            console.log(  results) 
+            //console.log(  results) 
             res.status(200).send(results )
 
         })
