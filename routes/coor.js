@@ -47,7 +47,7 @@ const getmos = () => {
 
 
 //==========SUMMARY OF COORDS
-router.get('/summary', async(req,res)=>{
+router.get('/summary/:email', async(req,res)=>{
     connectDb()
     .then((db)=>{ 
 
@@ -104,7 +104,7 @@ router.get('/summary', async(req,res)=>{
                 left join 
                 asn_users b ON
                 c.hub = b.hub
-                where c.coordinator_email = 'salimbagat.mcgold24@gmail.com'
+                where c.coordinator_email = '${req.params.email}'
                 group by c.hub
                 order by 
                 c.location,
