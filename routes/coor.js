@@ -185,4 +185,99 @@ router.get('/ridersummary/:hub', async(req,res)=>{
     }) 
 })
 
+
+router.get('/topfivehub/:email', async(req,res)=>{
+    connectDb()
+    .then((db)=>{ 
+
+        const xmos = getmos()
+        console.log('top 5 hub()====')
+        sql2 =`select 
+                c.hub,
+                ( select  sum(x.parcel) 
+                from asn_transaction x 
+                    join asn_users y 
+                    on x.emp_id = y.id 
+                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                ) as parcel,
+                ( select  sum(x.actual_parcel) 
+                from asn_transaction x 
+                    join asn_users y 
+                    on x.emp_id = y.id 
+                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                ) as parcel_delivered,
+                ( select  round(sum(x.actual_amount),2) 
+                from asn_transaction x 
+                    join asn_users y 
+                    on x.emp_id = y.id 
+                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                ) as amount,
+                ( select  round(sum(x.amount),2) 
+                from asn_transaction x 
+                    join asn_users y 
+                    on x.emp_id = y.id 
+                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                ) as amount_remitted,
+
+                
+                (
+                    round(concat(
+                    ( select  sum(x.actual_parcel) 
+                    from asn_transaction x 
+                        join asn_users y 
+                        on x.emp_id = y.id 
+                        where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                    ) /
+                    ( select  sum(x.parcel) 
+                    from asn_transaction x 
+                    join asn_users y 
+                    on x.emp_id = y.id 
+                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
+                    ) * 100
+                    ,'%'),0)
+                ) as qty_pct
+
+                from asn_hub  c 
+                left join 
+                asn_users b ON
+                c.hub = b.hub
+                where c.coordinator_email = '${req.params.email}'
+                group by c.hub
+                order by 
+            
+                (
+                    round(
+                    ( select  sum(x.actual_parcel) 
+                    from asn_transaction x 
+                        join asn_users y 
+                        on x.emp_id = y.id 
+                        where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                    ) /
+                    ( select  sum(x.parcel) 
+                    from asn_transaction x 
+                    join asn_users y 
+                    on x.emp_id = y.id 
+                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
+                    ) * 100,0)
+                ) DESC 
+                 LIMIT 5`
+            
+        //console.log(sql)
+        //console.log(sql2,)
+
+        db.query( sql2 , null , (error, results)=>{
+            
+            closeDb( db )
+            console.log(results)
+            
+            //console.log(  results) 
+            res.status(200).send(results )
+
+        })
+
+    }).catch((error)=>{
+        res.status(500).json({error:'x'})
+    }) 
+})
+
 module.exports = router;
