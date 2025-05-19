@@ -314,7 +314,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 asn_users b ON
                 c.hub = b.hub
                 where c.coordinator_email = '${req.params.email}'
-                group by c.hub
+                group by b.xname
                 order by 
             
                 (
