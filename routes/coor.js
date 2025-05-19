@@ -341,7 +341,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
         db.query( sql2 , null , (error, results)=>{
             
             closeDb( db )
-            //console.log(results)
+            console.log(results)
             
             //console.log(  results) 
             res.status(200).send(results )
