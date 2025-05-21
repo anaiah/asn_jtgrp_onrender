@@ -54,7 +54,7 @@ router.get('/summary/:email', async(req,res)=>{
         const xmos = getmos()
         console.log('firing summary()====')
         sql2 =`select 
-                c.coordinator,
+                c.area,
                 c.location,
                 c.hub,
                 ( select  sum(x.parcel) 
@@ -104,8 +104,8 @@ router.get('/summary/:email', async(req,res)=>{
                 left join 
                 asn_users b ON
                 c.hub = b.hub
-                where c.coordinator_email = '${req.params.email}'
-                group by c.hub
+                where c.head_email = '${req.params.email}'
+                group by c.area
                 order by 
                 c.location,
                 (
