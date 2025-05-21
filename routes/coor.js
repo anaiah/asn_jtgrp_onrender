@@ -226,7 +226,7 @@ router.get('/mtdlocation/:email', async( req, res) =>{
                     from asn_transaction x 
                         join asn_users y 
                         on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '${xmos}%'' group by y.hub
+                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                     ) /
                     ( select  sum(x.parcel) 
                     from asn_transaction x 
@@ -319,7 +319,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                     from asn_transaction x 
                         join asn_users y 
                         on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '${xmos}%'' group by y.hub
+                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                     ) /
                     ( select  sum(x.parcel) 
                     from asn_transaction x 
@@ -390,7 +390,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                     from asn_transaction x 
                         join asn_users y 
                         on x.emp_id = y.id and y.xname = b.xname
-                        where  y.hub = c.hub and x.created_at like '${xmos}%'' group by y.hub
+                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                     ) /
                     ( select  sum(x.parcel) 
                     from asn_transaction x 
