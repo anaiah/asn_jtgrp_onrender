@@ -56,7 +56,6 @@ router.get('/summary/:email', async(req,res)=>{
         sql2 =`select 
                 c.area,
                 c.location,
-                c.hub,
                 ( select  sum(x.parcel) 
                 from asn_transaction x 
                     join asn_users y 
@@ -106,10 +105,9 @@ router.get('/summary/:email', async(req,res)=>{
                 c.hub = b.hub
                 where c.head_email = '${req.params.email}'
                 group by c.area,c.location
-                order by 
-                c.location,
+                order by
                 (
-                    round(
+                    round(concat(
                     ( select  sum(x.actual_parcel) 
                     from asn_transaction x 
                         join asn_users y 
@@ -121,9 +119,9 @@ router.get('/summary/:email', async(req,res)=>{
                     join asn_users y 
                     on x.emp_id = y.id 
                     where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100,0)
-                ) DESC ,
-                 c.hub;`
+                    ) * 100
+                    ,'%'),0)
+                )  DESC;`
             
         //console.log(sql)
         //console.log(sql2,)
