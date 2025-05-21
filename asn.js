@@ -116,6 +116,10 @@ app.use('/', usersRouter);
 const coordRouter = require('./routes/coor');
 app.use('/coor', coordRouter);
 
+const headcoordRouter = require('./routes/headcoor');
+app.use('/headcoor', headcoordRouter);
+
+
 const cookieParser = require('cookie-parser');
 app.use(cookieParser())
 
