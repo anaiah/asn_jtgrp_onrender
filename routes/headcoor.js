@@ -114,7 +114,7 @@ router.get('/summary/:email', async(req,res)=>{
                     from asn_transaction x 
                         join asn_users y 
                         on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                     ) /
                     ( select  sum(x.parcel) 
                     from asn_transaction x 
@@ -194,6 +194,7 @@ router.get('/mtdlocation/:email', async( req, res) =>{
             console.log('mtd location()====')
 
             sql2 =`select 
+                c.area,
                 c.location,
                 ( select  sum(x.parcel) 
                 from asn_transaction x 
@@ -242,7 +243,7 @@ router.get('/mtdlocation/:email', async( req, res) =>{
                 asn_users b ON
                 c.hub = b.hub
                 where c.head_email = '${req.params.email}'
-                group by c.location
+                group by c.area,c.location
                 order by 
             
                 (
