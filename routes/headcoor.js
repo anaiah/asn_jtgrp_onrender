@@ -61,25 +61,25 @@ router.get('/summary/:email', async(req,res)=>{
                 from asn_transaction x 
                     join asn_users y 
                     on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                 ) as parcel,
                 ( select  sum(x.actual_parcel) 
                 from asn_transaction x 
                     join asn_users y 
                     on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                 ) as parcel_delivered,
                 ( select  round(sum(x.actual_amount),2) 
                 from asn_transaction x 
                     join asn_users y 
                     on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                 ) as amount,
                 ( select  round(sum(x.amount),2) 
                 from asn_transaction x 
                     join asn_users y 
                     on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                 ) as amount_remitted,
 
                 
@@ -89,7 +89,7 @@ router.get('/summary/:email', async(req,res)=>{
                     from asn_transaction x 
                         join asn_users y 
                         on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
+                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
                     ) /
                     ( select  sum(x.parcel) 
                     from asn_transaction x 
@@ -105,7 +105,7 @@ router.get('/summary/:email', async(req,res)=>{
                 asn_users b ON
                 c.hub = b.hub
                 where c.head_email = '${req.params.email}'
-                group by c.area
+                group by c.area,c.location
                 order by 
                 c.location,
                 (
