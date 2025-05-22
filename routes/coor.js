@@ -193,22 +193,42 @@ router.get('/mtdlocation/:email', async( req, res) =>{
 
             console.log('mtd location()====')
 
-            sql2 =`select 
-            a.location,
-            sum(b.parcel) as parcel,
-            sum(b.actual_parcel) as parcel_delivered,
-            round(sum(b.amount),2) as amount,
-            round(sum(b.actual_amount),2) as amount_remitted,
-            concat(round((sum(b.actual_parcel)/sum(b.parcel))*100),'%') as qty_pct
-            from asn_transaction b 
-            left join asn_users c
-            on  b.id = c.id
-            left join asn_hub a
-            on b.hub = a.hub
-            where a.coordinator_email = '${req.params.email}' 
-            and b.created_at like '${xmos}%' 
-            group by a.location
-            order by (sum(b.actual_parcel)) DESC`
+            sql2 =`SELECT 
+            b.location,
+            ( 
+                select sum(x.parcel) from asn_transaction x
+                join asn_users y on x.emp_id = y.id
+                join asn_hub z on y.hub = z.hub 
+                and z.location = b.location
+            ) as parcel,
+            ( 
+                select sum(x.actual_parcel) from asn_transaction x
+                join asn_users y on x.emp_id = y.id
+                join asn_hub z on y.hub = z.hub 
+                and z.location = b.location
+            ) as parcel_delivered,
+            ( 
+                select sum(x.amount) from asn_transaction x
+                join asn_users y on x.emp_id = y.id
+                join asn_hub z on y.hub = z.hub 
+                and z.location = b.location
+            ) as amount,
+            ( 
+                select sum(x.actual_amount) from asn_transaction x
+                join asn_users y on x.emp_id = y.id
+                join asn_hub z on y.hub = z.hub 
+                and z.location = b.location
+            ) as amount_remitted
+            from asn_hub b 
+            where  b.coordinator_email = '${req.params.email}'
+            group by b.location
+            order by ( 
+                select sum(x.actual_parcel) from asn_transaction x
+                join asn_users y on x.emp_id = y.id
+                join asn_hub z on y.hub = z.hub 
+                and z.location = b.location
+            ) DESC;
+            `
         
         db.query( sql2 , null , (error, results)=>{
             
@@ -246,7 +266,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
             left join asn_users c
             on  b.id = c.id
             left join asn_hub a
-            on b.hub = a.hub
+            on c.hub = a.hub
             where a.coordinator_email = '${req.params.email}' 
             and b.created_at like '${xmos}%' 
             group by a.hub
@@ -266,7 +286,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
             left join asn_users c
             on  b.id = c.id
             left join asn_hub a
-            on b.hub = a.hub
+            on c.hub = a.hub
             where a.coordinator_email = '${req.params.email}' 
             and b.created_at like '${xmos}%' 
             group by c.xname
