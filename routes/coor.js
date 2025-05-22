@@ -245,6 +245,49 @@ router.get('/mtdlocation/:email', async( req, res) =>{
     }) 
 
 })
+const mysqls = require('mysql2/promise')
+
+
+router.get('/five/:email/:trans',async(req,res)=>{
+    try{
+    console.log('five')
+    const dbconfig  ={
+	host: 'srv1759.hstgr.io',
+	user: 'u899193124_asianowjt',
+	password: 'M312c4@g125c3',
+	database: 'u899193124_asianowjt'
+    }
+
+    const xmos = getmos()
+    console.log(xmos)
+    sql2 =`SELECT 
+                a.hub AS hub,
+                COALESCE(SUM(b.parcel), 0) AS parcel,
+                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+                COALESCE(SUM(b.amount), 0) AS amount,
+                COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                WHERE a.coordinator_email = '${req.params.email}'
+                GROUP BY a.hub
+                ORDER by parcel_delivered DESC`
+                
+    const conn = await mysqls.createConnection(dbconfig);
+    
+    const [results, fields] = await conn.execute( sql2 )
+    
+    
+    console.log('tokwa',results)
+    res.json( results)
+    await conn.end()
+
+    }catch (err){
+        console.log(err)
+        res.status(500).json({error:'serror'})
+    }
+})
 
 router.get('/topfivehub/:email/:trans', async(req,res)=>{
     connectDb()
@@ -263,8 +306,9 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                WHERE a.coordinator_email = '${req.params.email}'
                 and b.created_at like '${xmos}%' 
+                
+                WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by parcel_delivered DESC
                 LIMIT 5;`
@@ -279,9 +323,10 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                
                 WHERE a.coordinator_email = '${req.params.email}'
                 AND c.xname IS NOT NULL 
-                and b.created_at like '${xmos}%'
                 GROUP BY c.xname
                 ORDER by parcel_delivered DESC
                 LIMIT 5;`
@@ -289,16 +334,16 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
         }//eif
             
         //console.log(sql)
-        //console.log(sql2,)
+        console.log(sql2,)
 
         db.query( sql2 , null , (error, results)=>{
             
-            closeDb( db )
-            //console.log(results)
+            
+            console.log(results)
             
             //console.log(  results) 
-            res.status(200).send(results )
-
+            res.send(results )
+            closeDb( db )
         })
 
     }).catch((error)=>{
