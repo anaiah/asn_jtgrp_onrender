@@ -59,7 +59,7 @@ router.get('/summary/:email', async(req,res)=>{
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
                 COALESCE(SUM(b.amount), 0) AS amount,
                 COALESCE(SUM(b.actual_amount), 0) AS amount_remitted,
-                round( SUM(b.actual_parcel) / SUM(b.parcel)*100),0) as qty_pct
+                COALESCE(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0),0) as qty_pct
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
