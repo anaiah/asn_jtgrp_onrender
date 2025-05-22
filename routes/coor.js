@@ -45,7 +45,6 @@ const getmos = () => {
     return series
 }
 
-
 //==========SUMMARY OF COORDS
 router.get('/summary/:email', async(req,res)=>{
     connectDb()
