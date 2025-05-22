@@ -149,8 +149,7 @@ router.get('/mtdlocation/:email', async( req, res) =>{
                 and b.created_at like '${xmos}%' 
                 WHERE a.head_email = '${req.params.email}'
                 GROUP BY a.location
-                ORDER by a.location, 
-                parcel_delivered DESC;`
+                ORDER by parcel_delivered DESC;`
 
         db.query( sql2 , null , (error, results)=>{
             
