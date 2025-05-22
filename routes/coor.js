@@ -255,7 +255,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
        if(req.params.trans=="hub"){
             console.log('top 5 hub()====')
             sql2 =`SELECT 
-                a.hub,
+                a.hub AS hub,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
                 COALESCE(SUM(b.amount), 0) AS amount,
@@ -271,7 +271,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
         }else{
             console.log('top 5 riderschart()====')
             sql2 =`SELECT 
-                c.xname,
+                c.xname AS xname,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
                 COALESCE(SUM(b.amount), 0) AS amount,
