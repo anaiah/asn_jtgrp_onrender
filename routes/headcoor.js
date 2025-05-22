@@ -67,8 +67,7 @@ router.get('/summary/:email', async(req,res)=>{
                 and b.created_at like '${xmos}%' 
                 WHERE a.head_email = '${req.params.email}'
                 GROUP BY a.area, a.location
-                ORDER by a.location, 
-                parcel_delivered DESC;`
+                ORDER by parcel_delivered DESC;`
     
         //console.log(sql)
         //console.log(sql2,)
@@ -139,7 +138,7 @@ router.get('/mtdlocation/:email', async( req, res) =>{
         console.log('mtd location()====')
 
         sql2 =`SELECT 
-                a.location
+                a.location,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
                 COALESCE(SUM(b.amount), 0) AS amount,
