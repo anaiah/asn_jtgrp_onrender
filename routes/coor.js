@@ -229,7 +229,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 and b.created_at like '${xmos}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
-                ORDER by parcel_delivered DESC
+                ORDER by parcel_delivered DESC, a.hub
                 LIMIT 5;`
         }else{
             console.log('top 5 riderschart()====')

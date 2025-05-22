@@ -135,26 +135,23 @@ router.get('/mtdlocation/:email', async( req, res) =>{
 
         const xmos = getmos()
 
-            console.log('mtd location()====')
+        console.log('mtd location()====')
 
-            sql2 =`select 
-            a.area,
-            a.location,
-            sum(b.parcel) as parcel,
-            sum(b.actual_parcel) as parcel_delivered,
-            round(sum(b.amount),2) as amount,
-            round(sum(b.actual_amount),2) as amount_remitted,
-            concat(round((sum(b.actual_parcel)/sum(b.parcel))*100),'%') as qty_pct
-            from asn_transaction b 
-            left join asn_users c
-            on  b.id = c.id
-            left join asn_hub a
-            on b.hub = a.hub
-            where a.coordinator_email = '${req.params.email}' 
-            and b.created_at like '${xmos}%' 
-            group by a.location
-            order by (sum(b.actual_parcel)) DESC`
-             
+        sql2 =`SELECT 
+                a.location
+                COALESCE(SUM(b.parcel), 0) AS parcel,
+                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+                COALESCE(SUM(b.amount), 0) AS amount,
+                COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                WHERE a.head_email = '${req.params.email}'
+                GROUP BY a.location
+                ORDER by a.location, 
+                parcel_delivered DESC;`
+
         db.query( sql2 , null , (error, results)=>{
             
             closeDb( db )
@@ -179,46 +176,38 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
 
         if(req.params.trans=="hub"){
             console.log('top 5 hub()====')
-            sql2 =`select 
-            a.hub,
-            a.location,
-            a.area,
-            sum(b.parcel) as parcel,
-            sum(b.actual_parcel) as parcel_delivered,
-            round(sum(b.amount),2) as amount,
-            round(sum(b.actual_amount),2) as amount_remitted,
-            concat(round((sum(b.actual_parcel)/sum(b.parcel))*100),'%') as qty_pct
-            from asn_transaction b 
-            left join asn_users c
-            on  b.id = c.id
-            left join asn_hub a
-            on b.hub = a.hub
-            where a.head_email = '${req.params.email}' 
-            and b.created_at like '${xmos}%' 
-            group by a.hub
-            order by (sum(b.actual_parcel)) DESC 
-            LIMIT 5`
+            sql2 =`SELECT 
+                a.hub AS hub,
+                COALESCE(SUM(b.parcel), 0) AS parcel,
+                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+                COALESCE(SUM(b.amount), 0) AS amount,
+                COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                WHERE a.head_email = '${req.params.email}'
+                GROUP BY a.hub
+                ORDER by parcel_delivered DESC, a.hub
+                LIMIT 5;`
         }else{
             console.log('top 5 riderschart()====')
-            sql2 =`select 
-            c.xname,
-            a.location,
-            a.area,
-            sum(b.parcel) as parcel,
-            sum(b.actual_parcel) as parcel_delivered,
-            round(sum(b.amount),2) as amount,
-            round(sum(b.actual_amount),2) as amount_remitted,
-            concat(round((sum(b.actual_parcel)/sum(b.parcel))*100),'%') as qty_pct
-            from asn_transaction b 
-            left join asn_users c
-            on  b.id = c.id
-            left join asn_hub a
-            on b.hub = a.hub
-            where a.head_email = '${req.params.email}' 
-            and b.created_at like '${xmos}%' 
-            group by c.xname
-            order by (sum(b.actual_parcel)) DESC 
-            LIMIT 5`
+            sql2 =`SELECT 
+                c.xname AS xname,
+                COALESCE(SUM(b.parcel), 0) AS parcel,
+                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+                COALESCE(SUM(b.amount), 0) AS amount,
+                COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                WHERE a.head_email = '${req.params.email}'
+                AND c.xname IS NOT NULL 
+                GROUP BY c.xname
+                ORDER by parcel_delivered DESC
+                LIMIT 5;`
+            
             
         }//eif
             
