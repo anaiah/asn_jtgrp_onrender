@@ -192,75 +192,23 @@ router.get('/mtdlocation/:email', async( req, res) =>{
             console.log('mtd location()====')
 
             sql2 =`select 
-                c.area,
-                c.location,
-                ( select  sum(x.parcel) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as parcel,
-                ( select  sum(x.actual_parcel) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as parcel_delivered,
-                ( select  round(sum(x.actual_amount),2) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as amount,
-                ( select  round(sum(x.amount),2) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as amount_remitted,
-                
-                (
-                    round(concat(
-                    ( select  sum(x.actual_parcel) 
-                    from asn_transaction x 
-                        join asn_users y 
-                        on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) /
-                    ( select  sum(x.parcel) 
-                    from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100
-                    ,'%'),0)
-                ) as qty_pct
-
-                from asn_hub  c 
-                left join 
-                asn_users b ON
-                c.hub = b.hub
-                where c.head_email = '${req.params.email}'
-                group by c.area,c.location
-                order by 
-            
-                (
-                    round(
-                    ( select  sum(x.actual_parcel) 
-                    from asn_transaction x 
-                        join asn_users y 
-                        on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) /
-                    ( select  sum(x.parcel) 
-                    from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100,0)
-                ) DESC 
-                 LIMIT 5`
-        
+            a.area,
+            a.location,
+            sum(b.parcel) as parcel,
+            sum(b.actual_parcel) as parcel_delivered,
+            round(sum(b.amount),2) as amount,
+            round(sum(b.actual_amount),2) as amount_remitted,
+            concat(round((sum(b.actual_parcel)/sum(b.parcel))*100),'%') as qty_pct
+            from asn_transaction b 
+            left join asn_users c
+            on  b.id = c.id
+            left join asn_hub a
+            on b.hub = a.hub
+            where a.coordinator_email = '${req.params.email}' 
+            and b.created_at like '${xmos}%' 
+            group by a.location
+            order by (sum(b.actual_parcel)) DESC`
+             
         db.query( sql2 , null , (error, results)=>{
             
             closeDb( db )
@@ -286,144 +234,46 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
         if(req.params.trans=="hub"){
             console.log('top 5 hub()====')
             sql2 =`select 
-                c.hub,
-                ( select  sum(x.parcel) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as parcel,
-                ( select  sum(x.actual_parcel) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as parcel_delivered,
-                ( select  round(sum(x.actual_amount),2) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as amount,
-                ( select  round(sum(x.amount),2) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as amount_remitted,
-                
-                (
-                    round(concat(
-                    ( select  sum(x.actual_parcel) 
-                    from asn_transaction x 
-                        join asn_users y 
-                        on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) /
-                    ( select  sum(x.parcel) 
-                    from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100
-                    ,'%'),0)
-                ) as qty_pct
-
-                from asn_hub  c 
-                left join 
-                asn_users b ON
-                c.hub = b.hub
-                where c.head_email = '${req.params.email}'
-                group by c.hub
-                order by 
-            
-                (
-                    round(
-                    ( select  sum(x.actual_parcel) 
-                    from asn_transaction x 
-                        join asn_users y 
-                        on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) /
-                    ( select  sum(x.parcel) 
-                    from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100,0)
-                ) DESC 
-                 LIMIT 5`
-        
+            a.hub,
+            a.location,
+            a.area,
+            sum(b.parcel) as parcel,
+            sum(b.actual_parcel) as parcel_delivered,
+            round(sum(b.amount),2) as amount,
+            round(sum(b.actual_amount),2) as amount_remitted,
+            concat(round((sum(b.actual_parcel)/sum(b.parcel))*100),'%') as qty_pct
+            from asn_transaction b 
+            left join asn_users c
+            on  b.id = c.id
+            left join asn_hub a
+            on b.hub = a.hub
+            where a.head_email = '${req.params.email}' 
+            and b.created_at like '${xmos}%' 
+            group by a.hub
+            order by (sum(b.actual_parcel)) DESC 
+            LIMIT 5`
         }else{
             console.log('top 5 riderschart()====')
             sql2 =`select 
-                b.xname,
-                 ( select  sum(x.parcel) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id and y.xname = b.xname
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as parcel,
-                ( select  sum(x.actual_parcel) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id and y.xname = b.xname
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as parcel_delivered,
-                ( select  round(sum(x.actual_amount),2) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id and y.xname = b.xname
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as amount,
-                ( select  round(sum(x.amount),2) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id and y.xname = b.xname
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                ) as amount_remitted,
-                
-                (
-                    round(concat(
-                    ( select  sum(x.actual_parcel) 
-                    from asn_transaction x 
-                        join asn_users y 
-                        on x.emp_id = y.id and y.xname = b.xname
-                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) /
-                    ( select  sum(x.parcel) 
-                    from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id and y.xname = b.xname
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100
-                    ,'%'),0)
-                ) as qty_pct
-
-                from asn_hub  c 
-                left join 
-                asn_users b ON
-                c.hub = b.hub
-                where c.head_email = '${req.params.email}'
-                group by b.xname
-                order by 
+            c.xname,
+            a.location,
+            a.area,
+            sum(b.parcel) as parcel,
+            sum(b.actual_parcel) as parcel_delivered,
+            round(sum(b.amount),2) as amount,
+            round(sum(b.actual_amount),2) as amount_remitted,
+            concat(round((sum(b.actual_parcel)/sum(b.parcel))*100),'%') as qty_pct
+            from asn_transaction b 
+            left join asn_users c
+            on  b.id = c.id
+            left join asn_hub a
+            on b.hub = a.hub
+            where a.head_email = '${req.params.email}' 
+            and b.created_at like '${xmos}%' 
+            group by c.xname
+            order by (sum(b.actual_parcel)) DESC 
+            LIMIT 5`
             
-                (
-                    round(
-                    ( select  sum(x.actual_parcel) 
-                    from asn_transaction x 
-                        join asn_users y 
-                        on x.emp_id = y.id and y.xname = b.xname
-                        where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) /
-                    ( select  sum(x.parcel) 
-                    from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id and y.xname = b.xname
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100,0)
-                ) DESC 
-                 LIMIT 5`
         }//eif
             
         //console.log(sql)
