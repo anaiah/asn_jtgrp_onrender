@@ -53,77 +53,21 @@ router.get('/summary/:email', async(req,res)=>{
 
         const xmos = getmos()
         console.log('firing summary()====')
-        sql2 =`select 
-                c.coordinator,
-                c.location,
-                c.hub,
-                ( select  sum(x.parcel) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
-                ) as parcel,
-                ( select  sum(x.actual_parcel) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
-                ) as parcel_delivered,
-                ( select  round(sum(x.actual_amount),2) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
-                ) as amount,
-                ( select  round(sum(x.amount),2) 
-                from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
-                ) as amount_remitted,
-
-                
-                (
-                    round(concat(
-                    ( select  sum(x.actual_parcel) 
-                    from asn_transaction x 
-                        join asn_users y 
-                        on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
-                    ) /
-                    ( select  sum(x.parcel) 
-                    from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100
-                    ,'%'),0)
-                ) as qty_pct
-
-                from asn_hub  c 
-                left join 
-                asn_users b ON
-                c.hub = b.hub
-                where c.coordinator_email = '${req.params.email}'
-                group by c.hub
-                order by 
-                c.location,
-                (
-                    round(
-                    ( select  sum(x.actual_parcel) 
-                    from asn_transaction x 
-                        join asn_users y 
-                        on x.emp_id = y.id 
-                        where  y.hub = c.hub and x.created_at like '2025-05%' group by y.hub
-                    ) /
-                    ( select  sum(x.parcel) 
-                    from asn_transaction x 
-                    join asn_users y 
-                    on x.emp_id = y.id 
-                    where  y.hub = c.hub and x.created_at like '${xmos}%' group by y.hub
-                    ) * 100,0)
-                ) DESC ,
-                 c.hub;`
+        sql2 =`SELECT 
+                a.location,
+                a.hub,
+                COALESCE(SUM(b.parcel), 0) AS parcel,
+                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+                COALESCE(SUM(b.amount), 0) AS amount,
+                COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                WHERE a.coordinator_email = '${req.params.email}'
+                GROUP BY a.hub
+                ORDER by a.location, 
+                parcel_delivered DESC;`
             
         //console.log(sql)
         //console.log(sql2,)
@@ -194,41 +138,18 @@ router.get('/mtdlocation/:email', async( req, res) =>{
             console.log('mtd location()====')
 
             sql2 =`SELECT 
-            b.location,
-            ( 
-                select sum(x.parcel) from asn_transaction x
-                join asn_users y on x.emp_id = y.id
-                join asn_hub z on y.hub = z.hub 
-                and z.location = b.location and x.created_at like '${xmos}%'
-            ) as parcel,
-            ( 
-                select sum(x.actual_parcel) from asn_transaction x
-                join asn_users y on x.emp_id = y.id
-                join asn_hub z on y.hub = z.hub 
-                and z.location = b.location and x.created_at like '${xmos}%'
-            ) as parcel_delivered,
-            ( 
-                select sum(x.amount) from asn_transaction x
-                join asn_users y on x.emp_id = y.id
-                join asn_hub z on y.hub = z.hub 
-                and z.location = b.location and x.created_at like '${xmos}%'
-            ) as amount,
-            ( 
-                select sum(x.actual_amount) from asn_transaction x
-                join asn_users y on x.emp_id = y.id
-                join asn_hub z on y.hub = z.hub 
-                and z.location = b.location and x.created_at like '${xmos}%'
-            ) as amount_remitted
-            from asn_hub b 
-            where  b.coordinator_email = '${req.params.email}'
-            group by b.location
-            order by ( 
-                select sum(x.actual_parcel) from asn_transaction x
-                join asn_users y on x.emp_id = y.id
-                join asn_hub z on y.hub = z.hub 
-                and z.location = b.location and x.created_at like '${xmos}%'
-            ) DESC;
-            `
+                a.location,
+                COALESCE(SUM(b.parcel), 0) AS parcel,
+                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+                COALESCE(SUM(b.amount), 0) AS amount,
+                COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                WHERE a.coordinator_email = '${req.params.email}'
+                GROUP BY a.location
+                ORDER by parcel_delivered DESC`
         
         db.query( sql2 , null , (error, results)=>{
             
@@ -307,7 +228,6 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
                 and b.created_at like '${xmos}%' 
-                
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by parcel_delivered DESC
@@ -324,7 +244,6 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
                 and b.created_at like '${xmos}%' 
-                
                 WHERE a.coordinator_email = '${req.params.email}'
                 AND c.xname IS NOT NULL 
                 GROUP BY c.xname
