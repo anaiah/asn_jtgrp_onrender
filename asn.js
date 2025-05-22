@@ -119,6 +119,8 @@ app.use('/coor', coordRouter);
 const headcoordRouter = require('./routes/headcoor');
 app.use('/headcoor', headcoordRouter);
 
+const opmgrRouter = require('./routes/opmgr');
+app.use('/opmgr', opmgrRouter);
 
 const cookieParser = require('cookie-parser');
 app.use(cookieParser())
