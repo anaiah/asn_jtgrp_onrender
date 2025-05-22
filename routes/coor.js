@@ -199,25 +199,25 @@ router.get('/mtdlocation/:email', async( req, res) =>{
                 select sum(x.parcel) from asn_transaction x
                 join asn_users y on x.emp_id = y.id
                 join asn_hub z on y.hub = z.hub 
-                and z.location = b.location
+                and z.location = b.location and x.created_at like '${xmos}%'
             ) as parcel,
             ( 
                 select sum(x.actual_parcel) from asn_transaction x
                 join asn_users y on x.emp_id = y.id
                 join asn_hub z on y.hub = z.hub 
-                and z.location = b.location
+                and z.location = b.location and x.created_at like '${xmos}%'
             ) as parcel_delivered,
             ( 
                 select sum(x.amount) from asn_transaction x
                 join asn_users y on x.emp_id = y.id
                 join asn_hub z on y.hub = z.hub 
-                and z.location = b.location
+                and z.location = b.location and x.created_at like '${xmos}%'
             ) as amount,
             ( 
                 select sum(x.actual_amount) from asn_transaction x
                 join asn_users y on x.emp_id = y.id
                 join asn_hub z on y.hub = z.hub 
-                and z.location = b.location
+                and z.location = b.location and x.created_at like '${xmos}%'
             ) as amount_remitted
             from asn_hub b 
             where  b.coordinator_email = '${req.params.email}'
@@ -226,7 +226,7 @@ router.get('/mtdlocation/:email', async( req, res) =>{
                 select sum(x.actual_parcel) from asn_transaction x
                 join asn_users y on x.emp_id = y.id
                 join asn_hub z on y.hub = z.hub 
-                and z.location = b.location
+                and z.location = b.location and x.created_at like '${xmos}%'
             ) DESC;
             `
         
