@@ -56,8 +56,8 @@ router.get('/summary/:email', async(req,res)=>{
                 sql2 =`SELECT 
                 a.region,
                 a.area,
-                COALESCE(SUM(b.parcel), 0) AS parcel,
-                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+                COALESCE(round(SUM(b.parcel)), 0) AS parcel,
+                COALESCE(round(SUM(b.actual_parcel)), 0) AS parcel_delivered,
                 COALESCE(round(SUM(b.amount),2), 0) AS amount,
                 COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted,
                 COALESCE(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0),0) as qty_pct
@@ -126,7 +126,47 @@ router.get('/ridersummary/:hub', async(req,res)=>{
     }).catch((error)=>{
         res.status(500).json({error:'x'})
     }) 
+
 })
+
+router.get('/opmgrlocation/:area', async( req, res) =>{
+     connectDb()
+    .then((db)=>{ 
+
+        const xmos = getmos()
+
+        console.log('mtd location()====')
+
+        sql2 =`SELECT 
+                a.location,
+                a.hub,
+                COALESCE(round(SUM(b.parcel)), 0) AS parcel,
+                COALESCE(round(SUM(b.actual_parcel)), 0) AS parcel_delivered,
+                COALESCE(round(SUM(b.amount),2), 0) AS amount,
+                COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                WHERE a.area = '${req.params.area}'
+                GROUP BY a.location,a.hub
+                ORDER by a.location,parcel_delivered DESC;`
+
+        db.query( sql2 , null , (error, results)=>{
+            
+            closeDb( db )
+            //console.log(results)
+            
+            //console.log(  results) 
+            res.status(200).send(results )
+
+        })
+
+    }).catch((error)=>{
+        res.status(500).json({error:'x'})
+    }) 
+})
+
 
 router.get('/mtdlocation/:email', async( req, res) =>{
      connectDb()
