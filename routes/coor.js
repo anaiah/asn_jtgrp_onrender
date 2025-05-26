@@ -95,7 +95,7 @@ router.get('/ridersummary/:hub', async(req,res)=>{
         
         const xmos = getmos()
 
-        sql2 =`select b.id,a.full_name, 
+        sql2 =`select b.id,a.xname as full_name, 
             count(emp_id) as transactions,
             b.emp_id, a.hub,
             sum(b.parcel) as qty,
@@ -253,12 +253,12 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
         }//eif
             
         //console.log(sql)
-        console.log(sql2,)
+        //console.log(sql2,)
 
         db.query( sql2 , null , (error, results)=>{
             
             
-            console.log(results)
+            //console.log(results)
             
             //console.log(  results) 
             res.send(results )

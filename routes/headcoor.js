@@ -86,6 +86,49 @@ router.get('/summary/:email', async(req,res)=>{
     }) 
 })
 
+//===========give location / hub per selection
+router.get('/lochub/:email/:loc', async(req,res)=>{
+    connectDb()
+    .then((db)=>{ 
+
+        const xmos = getmos()
+        console.log('firing location/hub ()====')
+                sql2 =`SELECT 
+                a.location,
+                a.hub,
+                COALESCE(SUM(b.parcel), 0) AS parcel,
+                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+                COALESCE(SUM(b.amount), 0) AS amount,
+                COALESCE(SUM(b.actual_amount), 0) AS amount_remitted,
+                COALESCE(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0),0) as qty_pct
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
+                and b.created_at like '${xmos}%' 
+                WHERE a.head_email = '${req.params.email}'
+                and a.location='${req.params.loc}'
+                
+                GROUP BY a.location, a.hub
+                ORDER by parcel_delivered DESC;`
+    
+        //console.log(sql)
+        //console.log(sql2,)
+
+        db.query( sql2 , null , (error, results)=>{
+            
+            closeDb( db )
+            
+            //console.log(  results) 
+            res.status(200).send(results )
+
+        })
+
+    }).catch((error)=>{
+        res.status(500).json({error:'x'})
+    }) 
+})
+
+
 
 //===============syummary riders
 router.get('/ridersummary/:hub', async(req,res)=>{

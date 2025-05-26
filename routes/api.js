@@ -368,7 +368,7 @@ router.get('/menu/:grpid', async(req,res)=>{
 		//console.log(sql2)
 
 		db.query( sql2 ,  (error, results)=>{
-			console.log( error,results )
+			//console.log( error,results )
 			res.status(200).json( results )
 		})
 
