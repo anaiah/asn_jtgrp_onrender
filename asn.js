@@ -35,8 +35,9 @@ const server_https = http.createServer( app);
 //===setting of socket.io
 //const io = new Server(server_https);
 const io = require("socket.io")( server_https, {
+    transports:['websocket','polling'],
     cors: {
-    //origin: "https://asnencinc-web.onrender.com",
+      origin: "*", //bring back to https://asianowapp.com
       methods: ["GET", "POST","PUT","DELETE"],
       //allowedHeaders: ["vantaztic-header"],
       //credentials: true
@@ -109,7 +110,7 @@ app.get('/test',(req, res)=>{
 */
 
 //===============Main Routes
-const usersRouter = require('./routes/api');
+const usersRouter = require('./routes/api')(io);
 app.use('/', usersRouter);
 
 //===============coordinator/head routes=======

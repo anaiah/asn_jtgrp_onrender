@@ -78,6 +78,8 @@ const xlsx = require('xlsx');
 
 const mysqls = require('mysql2/promise')
 
+
+module.exports = (io) => {
 const dbconfig  ={
 	host: 'srv1759.hstgr.io',
 	user: 'u899193124_asianowjt',
@@ -255,8 +257,42 @@ router.post('/savetransaction', async (req, res) => {
 				req.body.old_amount, 
 				req.body.ff_amount, 
 				req.body.ff_remarks ],
-			(error,result)=>{
-				console.log('inserting result..',result)
+			(err,result)=>{
+		
+			if (err) {
+				console.error("Login INSERT error", err);
+				closeDb(db);  // Close the database connection on error
+				return res.status(500).json({ error: "Login failed" });
+			}
+ 
+			 // After successful INSERT, get the total_count
+        	const sqlSelectCount = `SELECT 
+									COUNT(a.grp_id) as rider,
+									b.total_count as total,
+									COALESCE(ROUND(((b.total_count/COUNT(a.grp_id))*100),0),0) as pct
+									FROM asn_users a
+									CROSS JOIN LOGIN_AUDIT b ON b.id=1
+									WHERE a.grp_id = 1
+									GROUP BY a.grp_id`;
+
+			db.query(sqlSelectCount, (countErr, countResult) => {
+				if (countErr) {
+					console.error("LOGIN_AUDIT SELECT error", countErr);
+					closeDb(db); // Close the database connection on error
+
+					// Decide how to handle this error - maybe still send the original response
+					// For now, we'll send a failure response
+					return res.status(500).json({ error: "Login successful but could not retrieve count" });
+
+				}
+
+				//console.log( countResult )
+
+				// Extract the total_count
+				const totalCount = countResult[0].total; // Access first row of result
+				const totalRider = countResult[0].rider;
+				// Socket emit (assuming io is defined)
+				io.emit('xboss', {  rider: totalRider , total: totalCount, pct : countResult[0].pct });
 
 				//results[0]
 				res.json({
@@ -264,17 +300,19 @@ router.post('/savetransaction', async (req, res) => {
 					voice:"Transaction Added Successfully!",
 					status:true
 				})
-	
-				closeDb(db);//CLOSE connection
-			
-		})
+
+            	closeDb(db);  // Close the database connection
+        	});
+    	});
 		
     }).catch((error)=>{
         res.status(500).json({error:'Error'})
     }) 
 
-
 })
+
+
+
 //=============END ADD RIDER TRANSACTION J&T GRP====//
 
 //===== piechart for rider====//
@@ -2487,4 +2525,6 @@ router.get('/handshake', async(req,res) => {
 	res.json({status:true})
 })
 
-module.exports = router;
+	return router;
+}
+//module.exports = router
