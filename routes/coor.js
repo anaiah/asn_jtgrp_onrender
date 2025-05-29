@@ -61,7 +61,7 @@ router.get('/summary/:email', async(req,res)=>{
                 COALESCE(SUM(b.actual_amount), 0) AS amount_remitted,
                 COALESCE(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0),0) as qty_pct
                 FROM asn_hub a
-                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_users c ON c.hub = a.hub 
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
                 and b.created_at like '${xmos}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
@@ -95,25 +95,24 @@ router.get('/ridersummary/:hub', async(req,res)=>{
         
         const xmos = getmos()
 
-        sql2 =`select b.id,a.xname as full_name, 
-            count(emp_id) as transactions,
-            b.emp_id, a.hub,
-            sum(b.parcel) as qty,
-            sum(b.actual_parcel) as actual_qty,
-            round(sum(b.amount),2) as amt,
-            round(sum(b.actual_amount),2) as actual_amt,
-            round((sum(b.actual_parcel)/sum(b.parcel))*100) as delivered_pct,
-            round(100-(sum(b.actual_parcel)/sum(b.parcel))*100) as undelivered_pct
-            from asn_users a 
-            left join asn_transaction b
-            on  a.id = b.emp_id
-            where b.created_at like '${xmos}%' and a.grp_id =1 and upper(a.hub) = '${req.params.hub}'
-            group by b.emp_id 
-            order by (sum(b.actual_parcel)/sum(b.parcel))*100 desc;
-`
+        sql2 =`select a.xname as full_name,
+                a.id, a.hub,
+                COALESCE(sum(b.parcel),0) as qty,
+                COALESCE(sum(b.actual_parcel),0) as actual_qty,
+                COALESCE(round(sum(b.amount),2),0) as amt,
+                COALESCE(round(sum(b.actual_amount),2),0) as actual_amt,
+                COALESCE(round((sum(b.actual_parcel)/sum(b.parcel))*100),0) as delivered_pct,
+                COALESCE(round(100-(sum(b.actual_parcel)/sum(b.parcel))*100),0) as undelivered_pct
+                from asn_users a
+                left join asn_transaction b 
+                on b.emp_id = a.id
+                and b.created_at like '${xmos}%' 
+                where a.grp_id=1 and a.active= 1 and upper(a.hub) = '${req.params.hub}'
+                group by a.id
+                order by actual_qty DESC, full_name;`
             
         //console.log(sql)
-        //console.log(sql2,)
+        console.log(sql2,)
 
         db.query( sql2 , null , (error, results)=>{
             
