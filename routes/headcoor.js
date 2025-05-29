@@ -139,7 +139,8 @@ router.get('/ridersummary/:hub', async(req,res)=>{
         const xmos = getmos()
 
         sql2 =`select a.xname as full_name,
-                a.id, a.hub,
+                a.id as emp_id,
+                a.hub,
                 COALESCE(sum(b.parcel),0) as qty,
                 COALESCE(sum(b.actual_parcel),0) as actual_qty,
                 COALESCE(round(sum(b.amount),2),0) as amt,
