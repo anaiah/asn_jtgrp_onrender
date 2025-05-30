@@ -65,9 +65,10 @@ connectDb()
 .then((db)=>{
 	console.log("====API.JS ASIANOW  J&T GROUP M YSQL SUCCESS! DATE ADJUST====")
 		try{
-			const cdate = new Date()
-			const indate = new Date('2025-05-30')
-			console.log( indate < cdate, cdate)
+			const offset = 8
+			const malidate = new Date()
+			const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
+			console.log( tamadate)
 
 		}catch (error){
 			// This catch block will handle errors that occur *before* the db.query callback is executed.
