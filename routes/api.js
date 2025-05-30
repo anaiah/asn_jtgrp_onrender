@@ -231,6 +231,11 @@ router.post('/savetologin/:empid', async (req, res) => {
 
 	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
 
+	const offset = 8
+	const malidate = new Date()
+	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
+	//console.log( tamadate)
+
 	connectDb()
     .then((db)=>{
 
@@ -238,7 +243,7 @@ router.post('/savetologin/:empid', async (req, res) => {
 			const result = new Promise((resolve,reject)=>{
 			//save initial data, empid, qty, transnumber
 				db.query( sql ,
-					[req.params.empid, req.body.f_parcel, req.body.transnumber, nugetDate(),nugetDate()],(err,result) => {
+					[req.params.empid, req.body.f_parcel, req.body.transnumber, tamadate,tamadate],(err,result) => {
 					
 					//console.log(err,result)
 
