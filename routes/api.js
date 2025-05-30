@@ -61,6 +61,8 @@ connectPg()
     console.log("*** J&T GROUP ERROR, API.JS CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
 }); 
 
+let nuDate 
+
 connectDb()
 .then((db)=>{
 	console.log("====API.JS ASIANOW  J&T GROUP M YSQL SUCCESS! DATE ADJUST====")
@@ -68,7 +70,8 @@ connectDb()
 			const offset = 8
 			const malidate = new Date()
 			const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
-			console.log( tamadate)
+			nuDate = tamadate.toISOString().slice(0,10)
+			console.log(nuDate)
 
 		}catch (error){
 			// This catch block will handle errors that occur *before* the db.query callback is executed.
@@ -243,7 +246,7 @@ router.post('/savetologin/:empid', async (req, res) => {
 			const result = new Promise((resolve,reject)=>{
 			//save initial data, empid, qty, transnumber
 				db.query( sql ,
-					[req.params.empid, req.body.f_parcel, req.body.transnumber, tamadate,tamadate],(err,result) => {
+					[req.params.empid, req.body.f_parcel, req.body.transnumber, nuDate,tamadate],(err,result) => {
 					
 					//console.log(err,result)
 
@@ -351,7 +354,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 //===get chart data
 const getChartData= (req,res, retdata) =>{
 
-	const xdate = nugetDate()
+	const xdate = nuDate
 
 	//=== GET REALTIME DATA========
 	sql = `SELECT 
