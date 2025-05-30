@@ -135,97 +135,57 @@ router.post('/xlsclaims', upload.single('claims_upload_file'), async (req, res) 
 
 //========login post
 router.get('/loginpost/:uid/:pwd',async(req,res)=>{
-    console.log('login=>',req.params.uid,req.params.pwd)
+    console.log('firing login with Authenticate====== ',req.params.uid,req.params.pwd)
     
-    connectDb()
-    .then((db)=>{
+	connectDb()
+	.then((db)=>{
 
-		let sql =`SELECT a.id,a.full_name, 
-			a.email, a.region, 
-			a.grp_id,a.pic,
-			b.position
-			from asn_users a 
-			join asn_position b
-			on a.grp_id = b.grp_id
-			WHERE a.email='${req.params.uid}' and a.pwd='${req.params.pwd}'` 
+		let sql =`CALL authenticate_user(?,?)` 
         
-			console.log(`${sql}`)
-
-        db.query( sql, (err,data) => { 
-
-			//console.log( data)
-			//console.log(data.length)
-            //console.log(sql)
-			if ( data.length == 0) {  //data = array 
-				console.log('no rec')
-
-				closeDb(db);//CLOSE connection
-                //console.log("===MYSQL CONNECTON CLOSED SUCCESSFULLY===")
-
-                return res.status(400).json({
+		
+        db.query( sql, [ req.params.uid , req.params.pwd], (err,data) => { 
+			//console.log(err,data[0])
+			if( err || data[0].length == 0){
+				console.log('Error in storedproc:',err)
+			    
+				closeDb(db)
+				const xdata=[{
 					message: "No Matching Record!",
 					voice:"No Matching Record!",
 					found:false
-				})  
-				
-				
+				}]
+				return res.status(200).json(xdata)  
 
-            }else{  //=========== ON SUCCESS!!! ============
+			}//eif
 
+			const user = data[0][0]
+
+			//console.log('logindata', user)
+
+			if(user){
+				
 				//get ip address
 				const ipaddress = IP.address()
-
-				/*  ===TAKE OUT TEMP  IP ADDRESS FEB 2. 2024
-				let ipaddress = iprequest.getClientIp(req)
-
-				if (ipaddress.substring(0, 7) == "::ffff:") {
-					ipaddress = ipaddress.substring(7)
-				} 
-				*/
-                console.log('login data ',data[0])
-				//set cookie-parser
-				res.writeHead(200, {
-						"Set-Cookie": `xfname=${data[0].full_name.toUpperCase()}; HttpOnly`,
-						"Access-Control-Allow-Credentials": "true"
-	  			})
-
-			  res.write(JSON.stringify({
-				email	: 	data[0].email,
-				fname   :   data[0].full_name.toUpperCase(),
-				message	: 	`Welcome to Asia Now Enterprise Incorporated System, ${data[0].full_name.toUpperCase()}! `,
-				voice	: 	`Welcome to Asia Now Enterprise Incorporated System, ${data[0].full_name}! `,		
-				grp_id	:	data[0].grp_id,
-				pic 	: 	data[0].pic,
-				ip_addy :   ipaddress,
-				id      :   data[0].id,
-				region  :   data[0].region,
-				position:   data[0].position,
-				found:true
-			}))
-
-			res.send()
-			  /*
-				//res.cookie('fname', data[0].full_name.toUpperCase(), { maxAge: 60*1000, httpOnly: true});
-				res.cookie('grp_id', data[0].grp_id, { maxAge: 60*1000,httpOnly: true});
-				res.cookie('f_email',data[0].email, {maxAge: 60*1000,httpOnly: true});
-				res.cookie('f_voice', `Welcome to Executive Optical, O S N D P System ${data[0].full_name}! `, {maxAge: 60*1000,httpOnly: true});
-				res.cookie('f_pic',data[0].pic, {httpOnly: true});
-				
-				res.status(200).json({
-					email	: 	data[0].email,
-                    fname   :   data[0].full_name.toUpperCase(),
-                    message	: 	`Welcome to EO-OSNDP ${data[0].full_name.toUpperCase()}! `,
-					voice	: 	`Welcome to Executive Optical, O S N D P System ${data[0].full_name}! `,		
-                    grp_id	:	data[0].grp_id,
-					pic 	: 	data[0].pic,
+				let aData = []
+				let obj =
+				{
+					email	: 	user.email,
+					fname   :   user.full_name.toUpperCase(),
+					message	: 	`Welcome to Asia Now Enterprise Incorporated System, ${user.full_name.toUpperCase()}! `,
+					voice	: 	`Welcome to Asia Now Enterprise Incorporated System, ${user.full_name}! `,		
+					grp_id	:	user.grp_id,
+					pic 	: 	user.pic,
 					ip_addy :   ipaddress,
+					id      :   user.id,
+					region  :   user.region,
+					position:   user.position,
 					found:true
-                })
-				*/
-				//=============== CALL FUNCTION, call express method, call func, call router
-				//return res.redirect(`/changepage/${data[0].grp_id}`)
+				}
+				aData.push(obj)
 
-                closeDb(db);//CLOSE connection
+				return res.status(200).json(aData)
+			    
+				closeDb(db);//CLOSE connection
                 //console.log("===MYSQL CONNECTON CLOSED SUCCESSFULLY===")
                 
             }//EIF
@@ -239,81 +199,204 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 
 //=== end html routes
 
-//=============ADD RIDER TRANSACTION J&T GRP====//
-router.post('/savetransaction', async (req, res) => {
-	console.log('==SAVE TRANSACTION INFO',req.body)
-	
-	connectDb()
-    .then((db)=>{
-
-		$sql = `INSERT INTO asn_transaction (emp_id, transaction_number, parcel, actual_parcel, amount, actual_amount, remarks) 
-		VALUES (?, ?, ?, ?, ?, ?, ? ) `
-			
-		db.query( $sql,
-			[	req.body.ff_empid, 
-				req.body.ff_transnumber, 
-				req.body.old_parcel,
-				req.body.ff_parcel,
-				req.body.old_amount, 
-				req.body.ff_amount, 
-				req.body.ff_remarks ],
-			(err,result)=>{
-		
-			if (err) {
-				console.error("Login INSERT error", err);
-				closeDb(db);  // Close the database connection on error
-				return res.status(500).json({ error: "Login failed" });
-			}
- 
-			 // After successful INSERT, get the total_count
-        	const sqlSelectCount = `SELECT 
-									COUNT(a.grp_id) as rider,
-									b.total_count as total,
-									COALESCE(ROUND(((b.total_count/COUNT(a.grp_id))*100),0),0) as pct
-									FROM asn_users a
-									CROSS JOIN LOGIN_AUDIT b ON b.id=1
-									WHERE a.grp_id = 1
-									GROUP BY a.grp_id`;
-
-			db.query(sqlSelectCount, (countErr, countResult) => {
-				if (countErr) {
-					console.error("LOGIN_AUDIT SELECT error", countErr);
-					closeDb(db); // Close the database connection on error
-
-					// Decide how to handle this error - maybe still send the original response
-					// For now, we'll send a failure response
-					return res.status(500).json({ error: "Login successful but could not retrieve count" });
-
-				}
-
-				//console.log( countResult )
-
-				// Extract the total_count
-				const totalCount = countResult[0].total; // Access first row of result
-				const totalRider = countResult[0].rider;
-				// Socket emit (assuming io is defined)
-				io.emit('xboss', {  rider: totalRider , total: totalCount, pct : countResult[0].pct });
-
-				//results[0]
-				res.json({
-					message: "Transaction added Successfully!",
-					voice:"Transaction Added Successfully!",
-					status:true
-				})
-
-            	closeDb(db);  // Close the database connection
-        	});
-    	});
-		
-    }).catch((error)=>{
-        res.status(500).json({error:'Error'})
-    }) 
+//==== GET initial chart data
+router.get('/initialchart', async(req,res)=>{
+	//return res.status(200).json()
+	const retdata = {success:'ok'}
+	//get chart data
+	getChartData(req, res, retdata )
 
 })
 
 
+//============save LOGIN FIRST====
+router.post('/savetologin/:empid', async (req, res) => {
+	console.log('saving to login....', req.body)
+	
+	const logTime = new Date().toISOString().slice(0,19).replace('T',' ');
+
+	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,login_time) VALUES(?,?,?,?)'
+
+	connectDb()
+    .then((db)=>{
+
+		try{
+			const result = new Promise((resolve,reject)=>{
+			//save initial data, empid, qty, transnumber
+				db.query( sql ,
+					[req.params.empid, req.body.f_parcel, req.body.transnumber, logTime],(err,result) => {
+					
+					//console.log(err,result)
+
+					if(err){
+						console.error('Error Login',err)
+						return res.status(500).json({error:"error!"})
+					}else{
+						resolve(result)
+					}
+				})
+			})
+
+			if(result){
+						
+				//return res.status(200).json()
+				const retdata = {success:'ok'}
+				//get chart data
+				getChartData(req, res, retdata )
+
+				console.log("gettingchart data")
+				
+			}else{
+				return res.status(400).json({error:'failed'})
+			}
+
+		}catch (error){
+			console.error('Error Login',err)
+			res.status(500).json({error:"error!"})
+
+		}finally{
+			closeDb(db)
+		
+		}//end try
+
+		
+	
+	}).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    })
+
+})
+//===========END LOGIN SAVE====
+
+//=============ADD RIDER TRANSACTION J&T GRP====//
+router.post('/savetransaction/:empid', async (req, res) => {
+	console.log('==SAVE TRANSACTION INFO',req.body)
+	
+	const sql = ` UPDATE asn_transaction 
+			SET actual_parcel =?, 
+			amount = ?, 
+			actual_amount = ?, 
+			remarks = ? 
+			WHERE emp_id = ? `
+
+	connectDb()
+    .then((db)=>{  
+		
+		try{
+			db.query( sql,
+				[	req.body.ff_parcel,
+					req.body.f_amount, 
+					req.body.ff_amount, 
+					req.body.ff_remarks,
+					req.params.empid
+				],
+				(err,result)=>{
+			
+				if (err) {
+					console.error("UPDATE INSERT error", err);
+					//results[0]
+					return res.json({						
+						status:false
+					})
+				}else{
+
+					//return res.status(200).json()
+					const retdata = {
+						message: "Transaction added Successfully!",
+						voice:"Transaction Added Successfully!",
+						status:true
+					}
+
+					//get chart data
+					getChartData(req, res, retdata )
+				
+				}//eif
+					
+			});//END DB QUERY
+
+		}catch (error){
+			// This catch block will handle errors that occur *before* the db.query callback is executed.
+			// For example, if db.query itself throws an error.
+			console.error("Error during query execution:", error);
+    		return res.status(500).json({ error: 'Unexpected server error' });
+		}finally{
+			closeDb(db)
+		}
+		//end try
+    }).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    }) 
+})
 
 //=============END ADD RIDER TRANSACTION J&T GRP====//
+//===get chart data
+const getChartData= (req,res, retdata) =>{
+
+	const xdate = nugetDate()
+
+	//=== GET REALTIME DATA========
+	sql = `SELECT 
+		a.region,
+		count(c.xname) as reg,
+		count(b.emp_id) as logged,
+		COALESCE(CAST(round( count(b.emp_id)  / count(c.xname) *100,0) AS SIGNED),0)  as attendance_pct,
+		COALESCE(CAST(round(SUM(b.parcel),0)AS SIGNED),0) AS parcel,
+		COALESCE(CAST(round(SUM(b.actual_parcel),0)AS SIGNED), 0) AS parcel_delivered,
+		COALESCE(round(SUM(b.amount),2), 0) AS amount,
+		COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted,
+		COALESCE(CAST(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0)AS SIGNED),0) as qty_pct
+		FROM asn_hub a
+		LEFT JOIN asn_users c 
+		ON c.hub = a.hub
+		LEFT JOIN asn_transaction b 
+		ON b.emp_id = c.id
+		and b.created_at = '${xdate}' 
+		where c.grp_id = 1 and c.active = 1  
+		GROUP BY a.region
+		ORDER by a.region;`
+
+	//console.log(sql )
+	connectDb()
+    .then((db)=>{  
+		
+		try{
+			db.query( sql,
+				(err,result)=>{
+			
+				if (err) {
+					console.error("get data error", err);
+					//results[0].
+					return res.send(500).json({						
+						error:err
+					})
+				}else{
+					//results[0]
+					sendSocket(result)
+					res.status(200).json( retdata )
+
+				}//eif
+					
+			});//END DB QUERY
+
+		}catch (error){
+			// This catch block will handle errors that occur *before* the db.query callback is executed.
+			// For example, if db.query itself throws an error.
+			console.error("Error during query execution:", error);
+    		return res.status(500).json({ error: 'Unexpected server error' });
+		}finally{
+			closeDb(db)
+		}
+		//end try
+	})
+
+}//end func
+
+//===socket emit
+const sendSocket = (xdata) => {
+	io.emit('graph', xdata)
+	console.log('io.emit sakses')
+}
+
 
 //===== piechart for rider====//
 router.get('/getpiedata/:empid', async(req,res)=>{
@@ -354,7 +437,6 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 })
 //===== end piechart for rider====//
 
-
 //===test menu-submenu array->json--->
 router.get('/xmenu/:grpid', async(req,res)=>{
 	connectDb()
@@ -384,8 +466,6 @@ router.get('/xmenu/:grpid', async(req,res)=>{
     }) 
 
 })
-
-
 
 //===test menu-submenu array->json--->
 router.get('/menu/:grpid', async(req,res)=>{
@@ -505,7 +585,6 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
     }) 
 })
 
-
 //============= get monthly transaction riders =======//
 router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 	var series = new Date() 
@@ -599,7 +678,6 @@ router.get('/getmonthlytransaction/:empid', async(req,res)=>{
     }) 
 })
 //============= end get monthly transaction riders =====//
-
 
 //======================ADD NEW EMPLOYEE ====================
 // Create a new employee (CREATE)
@@ -745,8 +823,6 @@ router.post('/postimage/:transnumber',   async (req, res) => {
 	req.pipe(busboy)
 	
 }) //==============end post image =============//
-
-
 
 //==============busboy, scp2  for file uploading============
 
@@ -1626,20 +1702,6 @@ const pdfBatch =  ( emp_id ) =>{
 		})
 	})
 
-
-	 
-	/*
-		var today = new Date()
-    var dd = String(today.getDate()).padStart(2, '0')
-    var mm = String(today.getMonth() + 1).padStart(2, '0') //January is 0!
-    var yyyy = today.getFullYear()
-    var hh = String( today.getHours()).padStart(2,'0')
-    var mmm = String( today.getMinutes()).padStart(2,'0')
-    var ss = String( today.getSeconds()).padStart(2,'0')
-
-    today = `ASN-${yyyy}${mm}${dd}${hh}${mmm}${ss}-${emp_id}`
-    return today
-	*/
 	
 }
 
@@ -2003,378 +2065,6 @@ const addCommas = (nStr) => {
 	return x1 + x2;
 }
 
-//===============get all equipment
-router.get('/getall/:type/:status',   async(req,res) => {
-	//console.log('getall()',req.params.status)
-	const d = new Date();
-	const xmonth = ( d.getMonth()+1 );
-	
-	let sql, br = 0
-	let newdata=[], poList = []
-	if(req.params.status == "0"){ //on hand
-		sql = `select *,
-		trim(replace(substring_index(substring(equipment_value,locate('serial',equipment_value)+ length('serial')+ 2),',',1),'"','')
-		) as 'xserial'
-		from equipment
-		where qty > 0 and type = '${req.params.type}'
-		ORDER BY xserial desc, type`
-	}else if(req.params.status == "2"){ //approved
-		sql = `select distinct(b.po_number)
-		,c.id
-		,b.invoice_number
-		,c.transaction
-		,a.serial
-		,upper(a.eqpt_no) as 'eqpt_no'
-		,upper(a.type) as 'type'
-		,trim(replace(substring_index(substring(a.equipment_value,locate('eqpt_description',a.equipment_value)+ length('eqpt_description')+ 2),',',1),'"',''))
-		as 'description'
-		,sum(b.qty) as 'qty'
-		,b.price as price
-		,a.sale_price 
-		,sum(b.total) as 'total'
-		,b.approved
-		,c.approver_1
-		,c.approver_2
-		,c.client_info
-		,c.date_created
-		,c.grand_total
-		from equipment_sales b
-		join equipment a
-		on a.equipment_id = b.id
-		join equipment_client c
-		on c.po_number = b.po_number
-		where  c.approver_1 = 1 and c.approver_2 = 1 and a.type = '${req.params.type}'
-		and Month(c.date_created) = '${xmonth}'
-		group by b.po_number
-		,c.id
-		,b.invoice_number
-		,c.transaction
-		,a.serial
-		,a.eqpt_no
-		,a.type
-		,trim(replace(substring_index(substring(a.equipment_value,locate('eqpt_description',a.equipment_value)+ length('eqpt_description')+ 2),',',1),'"',''))
-		,b.price
-		,a.sale_price
-		,b.approved
-		,c.approver_1
-		,c.approver_2
-		,c.client_info
-		,c.date_created
-		,c.grand_total 
-		ORDER BY c.id DESC`
-	}else if(req.params.status == "1"){ //for approval
-		sql = `select distinct(b.po_number)
-		,c.id
-		,b.invoice_number
-		,c.transaction
-		,a.serial
-		,upper(a.eqpt_no) as 'eqpt_no'
-		,upper(a.type) as 'type'
-		,trim(replace(substring_index(substring(a.equipment_value,locate('eqpt_description',a.equipment_value)+ length('eqpt_description')+ 2),',',1),'"',''))
-		as 'description'
-		,sum(b.qty) as 'qty'
-		,b.price as price
-		,a.sale_price
-		,sum(b.total) as 'total'
-		,b.approved
-		,c.approver_1
-		,c.approver_2
-		,c.client_info
-		,c.date_created
-		,c.grand_total
-		from equipment_sales b
-		join equipment a
-		on a.equipment_id = b.id
-		join equipment_client c
-		on c.po_number = b.po_number
-		where  ( c.approver_1 = 0 or c.approver_2 = 0 ) and a.type = '${req.params.type}'
-		and Month(c.date_created) = '${xmonth}'
-		group by b.po_number
-		,c.id
-		,b.invoice_number
-		,c.transaction
-		,a.serial
-		,a.eqpt_no
-		,a.type
-		,trim(replace(substring_index(substring(a.equipment_value,locate('eqpt_description',a.equipment_value)+ length('eqpt_description')+ 2),',',1),'"',''))
-		,b.price
-		,a.sale_price
-		,b.approved
-		,c.approver_1
-		,c.approver_2
-		,c.client_info
-		,c.date_created
-		,c.grand_total 
-		ORDER BY c.id DESC`
-	
-	}else if(req.params.status == "3"){ //released
-		sql = `select distinct(b.po_number)
-		,c.id
-		,b.invoice_number
-		,c.transaction
-		,a.serial
-		,upper(a.eqpt_no) as 'eqpt_no'
-		,upper(a.type) as 'type'
-		,trim(replace(substring_index(substring(a.equipment_value,locate('eqpt_description',a.equipment_value)+ length('eqpt_description')+ 2),',',1),'"',''))
-		as 'description'
-		,sum(b.qty) as 'qty'
-		,b.price as price
-		,a.sale_price
-		,sum(b.total) as 'total'
-		,b.approved
-		,c.approver_1
-		,c.approver_2
-		,c.client_info
-		,c.date_created
-		,c.release_date
-		,c.grand_total
-		from equipment_sales b
-		join equipment a
-		on a.equipment_id = b.id
-		join equipment_client c
-		on c.po_number = b.po_number
-		where  not isnull(c.release_date) and a.type = '${req.params.type}'
-		and Month(c.date_created) = '${xmonth}'
-		group by b.po_number
-		,c.id
-		,b.invoice_number
-		,c.transaction
-		,a.serial
-		,a.eqpt_no
-		,a.type
-		,trim(replace(substring_index(substring(a.equipment_value,locate('eqpt_description',a.equipment_value)+ length('eqpt_description')+ 2),',',1),'"',''))
-		,b.price
-		,a.sale_price
-		,b.approved
-		,c.approver_1
-		,c.approver_2
-		,c.client_info
-		,c.date_created
-		,c.release_date
-		,c.grand_total 
-		ORDER BY c.id DESC`
-	
-	}
-/*
-	tanggal muna sa sql
-
-	}else if( req.params.type !=="All" && req.params.status !=="All" ){
-		br = 3
-		sql = `select *,
-		trim(replace(substring_index(substring(equipment_value,locate('serial',equipment_value)+ length('serial')+ 2),',',1),'"','')
-		) as 'xserial'
-		from equipment		
-		where lower(type) = '${req.params.type.toLowerCase()}'
-		and status = ${parseInt(req.params.status)}
-		and qty > 0
-		ORDER BY xserial desc, type`
-*/
-
-	console.log(' ===/getall()/ MY SQL route api.js===')
-
-	connectDb()
-    .then((db)=>{
-        
-        db.query( sql , null ,(err,data) => { 
-			
-			if ( data.length == 0) {  //data = array 
-				console.log('===no rec===')	
-                res.status(400).json({
-					voice:"No Matching Record!",
-					found:false
-				})  
-				
-				closeDb(db);//CLOSE connection
-            
-			}else{
-				console.log('===rec ===', data.length)	
-                 
-				//console.log( '/getAll() *** ',req.params.status, data )
-				let newdata = [], poList = []
-
-				if(req.params.status=="2" || req.params.status=="1" || req.params.status=="3" ){
-					for (let ikey in data){
-						if (!poList.includes(data[ikey].po_number)) {
-							// ✅ only runs if value not in array
-							poList.push(data[ikey].po_number)
-						
-						}//eif
-						
-					}//=======end for
-	
-					//console.log('first step ',poList)
-	
-					//sort first
-					data.sort((a, b) => {
-						return a.po_number - b.po_number;
-					});
-	
-					//console.log(data)
-	
-					for(let x in poList){
-	
-						//new set obj, reset
-						let obj = {}
-						obj.po_number =""
-						obj.invoice_number =""
-						obj.transaction=""
-						obj.eqpt_no=""
-						obj.po_date = ""
-						obj.details = []
-						//check against data
-						//et obj2 ={}
-	
-						for(let i in data){
-							
-							if( poList[x] == data[i].po_number){
-								obj.po_number = data[i].po_number
-								obj.invoice_number = data[i].invoice_number
-								obj.transaction = data[i].transaction
-								obj.eqpt_no = data[i].eqpt_no
-								obj.po_date = data[i].date_created
-
-								if(req.params.status=="3"){ //if released
-									obj.release_date = data[i].release_date
-								
-								}//endif 
-								
-	
-								let client = JSON.parse(data[x].client_info)
-	
-								obj.client_name = client.client_name.toUpperCase()
-								obj.client_company = client.company_name.toUpperCase()
-								obj.client_address = client.delivery_site.toUpperCase()
-								obj.client_phone = client.company_phone
-								obj.client_email = client.company_email
-								obj.client_remarks = client.client_remarks
-								
-								let obj2 ={}
-								
-								if(data[i].po_number.indexOf(poList[x])!=-1){
-									
-									obj2.serial = data[i].serial
-									obj2.type = data[i].type
-									obj2.description = data[i].description
-									
-									obj2.qty = data[i].qty
-									obj2.price = data[i].price
-									obj2.sale = data[i].sale_price
-									obj2.total = data[i].total
-									
-									obj.details.push( JSON.stringify(obj2) )
-								}
-	
-								obj.grand_total = data[i].grand_total
-							
-							}//eif
-						}//endfor
-	
-						newdata.push(obj)
-						//console.log(poList[i])
-					}//=====end for
-					res.status(200).json({
-						result	: 	newdata,
-						found	:	true
-					})
-				}else{
-					//console.log( 'here',data )
-					res.status(200).json({
-						result	: 	data,
-						found	:	true
-					})
-				}
-                closeDb(db);//CLOSE connection
-                
-            }//EIF
-			
-		})//END QUERY 
-	
-	}).catch((error)=>{
-        res.status(500).json({error:'No Fetch Docs'})
-    })		
-})
-
-//===============for super user first batch of data count
-router.get('/fetchinitdata',   async(req,res) => {
-	
-	//clear cookie first
-	res.clearCookie(`Rent`, {path : '/'})
-	res.clearCookie(`Sales`, {path : '/'})
-
-	connectDb()
-    .then((db)=>{
-
-		// Select distinct( b.approve_status  ) as 'status',
-		// count(a.status)  as status_count,
-		// (case
-		//   when b.approve_status = 'FOR RENT APPROVAL' then sum(a.rent_price)
-		//   when b.approve_status = 'FOR SALES APPROVAL' then sum(a.sale_price)
-		//   when b.approve_status = 'RECEIVED' then sum(a.price)
-		// end ) as 'price',
-		// (CASE
-		// 	when b.approve_status = 'FOR SALES APPROVAL' then ( (sum(a.sale_price)-sum(a.price)) )
-		// END
-		// )as sales_profit,
-		// sum(
-		// 	(CASE
-		// 		when b.approve_status = 'FOR RENT APPROVAL' then 
-		// 		(
-		// 		CASE 
-		// 			when a.rent_end<now() then 1
-		// 		END
-		// 		)
-		// 	END
-		// 	)
-		// ) as 'overdue'
-		// from
-		// equipment_status b 
-		// left join equipment a on a.status = b.approve_id
-		// where b.approve_status Not in('status','RELEASED')
-		// group by b.approve_status
-		let sqlt1 = `SELECT Sum(c.price) AS opex 
-					FROM equipment_sales as c 
-					join equipment_client as x
-					on c.po_number = x.po_number 
-					where x.transaction <> 'RENT'`
-					
-        db.query(`SELECT t1.opex, 
-						 t2.profit 
-					FROM ( ${sqlt1}) AS t1, 
-					(SELECT Sum(d.sale_profit) AS profit 
-					FROM   equipment_client  d ) AS t2  `, null ,(err,data) => { 
-			//console.log(data.length,data)
-		   
-			if ( data.length == 0) {  //data = array 
-				console.log('no rec')
-                res.status(400).json({
-					voice:"No Matching Record!",
-					found:false
-				})  
-				
-				closeDb(db);//CLOSE connection
-                //console.log("===MYSQL CONNECTON CLOSED SUCCESSFULLY===")
-
-            }else{ 
-				//console.log( data[0].full_name )
-				//cookie
-				// res.cookie('Rent',`${data[0].status_count}`)
-				// res.cookie('Sales',`${data[1].status_count}`)
-				
-				/////console.log( data[1])
-				res.status(200).json({
-					result	: 	data
-                })
-				
-                closeDb(db);//CLOSE connection
-                //console.log("===MYSQL CONNECTON CLOSED SUCCESSFULLY===")
-            }//EIF
-			
-		})//END QUERY 
-	
-	}).catch((error)=>{
-        res.status(500).json({error:'No Fetch Docs'})
-    })
-})
 
 const getDate = () =>{
 	let today = new Date()
@@ -2385,6 +2075,17 @@ const getDate = () =>{
 	today = mm +'/'+dd+'/'+yyyy
 	return today
 } 
+
+const nugetDate = () =>{
+	let today = new Date()
+	var dd = String(today.getDate()).padStart(2,'0')
+	var mm = String(today.getMonth()+1).padStart(2,'0')
+	var yyyy = today.getFullYear()
+
+	today =yyyy+'-'+mm +'-'+dd
+
+	return today
+}
 
 const strdates = () =>{
 	let today = new Date()
