@@ -228,7 +228,7 @@ router.post('/savetologin/:empid', async (req, res) => {
 	
 	const logTime = new Date().toISOString().slice(0,19).replace('T',' ');
 
-	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,login_time) VALUES(?,?,?,?)'
+	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
 
 	connectDb()
     .then((db)=>{
@@ -237,7 +237,7 @@ router.post('/savetologin/:empid', async (req, res) => {
 			const result = new Promise((resolve,reject)=>{
 			//save initial data, empid, qty, transnumber
 				db.query( sql ,
-					[req.params.empid, req.body.f_parcel, req.body.transnumber, logTime],(err,result) => {
+					[req.params.empid, req.body.f_parcel, req.body.transnumber, logTime,logTime],(err,result) => {
 					
 					//console.log(err,result)
 
