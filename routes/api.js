@@ -63,8 +63,21 @@ connectPg()
 
 connectDb()
 .then((db)=>{
-    console.log("====API.JS ASIANOW  J&T GROUP MYSQL SUCCESS!====")
-    closeDb(db);
+	console.log("====API.JS ASIANOW  J&T GROUP M YSQL SUCCESS! DATE ADJUST====")
+		try{
+			db.query( "SET time_zone = '+08:00'",(err,result)=>{
+				console.log( result )
+			});//END DB QUERY
+
+		}catch (error){
+			// This catch block will handle errors that occur *before* the db.query callback is executed.
+			// For example, if db.query itself throws an error.
+			console.error("Error during query execution:", error);
+    		return res.status(500).json({ error: 'Unexpected server error' });
+		}finally{
+			closeDb(db)
+		}    
+    //closeDb(db);
 })                        
 .catch((error)=>{
     console.log("*** J&T GROUP ERROR, CAN'T CONNECT TO MYSQL DB!****",error.code)
