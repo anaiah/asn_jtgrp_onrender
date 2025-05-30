@@ -377,7 +377,7 @@ const getChartData= (req,res, retdata) =>{
 		GROUP BY a.region
 		ORDER by a.region;`
 
-	//console.log(sql )
+	console.log(sql )
 	connectDb()
     .then((db)=>{  
 		
@@ -416,7 +416,7 @@ const getChartData= (req,res, retdata) =>{
 //===socket emit
 const sendSocket = (xdata) => {
 	io.emit('graph', xdata)
-	console.log('io.emit sakses')
+	console.log('io.emit sakses',xdata)
 }
 
 
