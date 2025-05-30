@@ -420,7 +420,7 @@ const sendSocket = (xdata) => {
 }
 
 
-//===== piechart for rider====//
+//===== piechart for rider====// 
 router.get('/getpiedata/:empid', async(req,res)=>{
 
 	var series = new Date() 
