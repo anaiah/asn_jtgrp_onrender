@@ -65,15 +65,15 @@ connectDb()
 .then((db)=>{
 	console.log("====API.JS ASIANOW  J&T GROUP M YSQL SUCCESS! DATE ADJUST====")
 		try{
-			db.query( "SET time_zone = '+08:00'",(err,result)=>{
-				console.log( result )
-			});//END DB QUERY
+			const cdate = new Date()
+			const indate = new Date('2025-05-30')
+			console.log( indate < cdate, cdate)
 
 		}catch (error){
 			// This catch block will handle errors that occur *before* the db.query callback is executed.
 			// For example, if db.query itself throws an error.
 			console.error("Error during query execution:", error);
-    		return res.status(500).json({ error: 'Unexpected server error' });
+    		//return res.status(500).json({ error: 'Unexpected server error' });
 		}finally{
 			closeDb(db)
 		}    
