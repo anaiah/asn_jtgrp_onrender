@@ -61,7 +61,7 @@ connectPg()
     console.log("*** J&T GROUP ERROR, API.JS CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
 }); 
 
-let nuDate 
+let nuDate , tamadate
 
 connectDb()
 .then((db)=>{
@@ -69,7 +69,7 @@ connectDb()
 		try{
 			const offset = 8
 			const malidate = new Date()
-			const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
+			tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
 			nuDate = tamadate.toISOString().slice(0,10)
 			console.log(nuDate)
 
@@ -230,8 +230,6 @@ router.get('/initialchart', async(req,res)=>{
 router.post('/savetologin/:empid', async (req, res) => {
 	console.log('saving to login....', req.body)
 	
-	//const logTime = new Date().toISOString().slice(0,19).replace('T',' ');
-
 	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
 
 	const offset = 8
@@ -243,34 +241,30 @@ router.post('/savetologin/:empid', async (req, res) => {
     .then((db)=>{
 
 		try{
-			const result = new Promise((resolve,reject)=>{
-			//save initial data, empid, qty, transnumber
-				db.query( sql ,
-					[req.params.empid, req.body.f_parcel, req.body.transnumber, nuDate,tamadate],(err,result) => {
+
+			db.query( sql ,
+				[req.params.empid, req.body.f_parcel, req.body.transnumber, nuDate,tamadate],(err,result) => {
+			
+				if(err){
+					console.error('Error Login',err)
+					return res.status(500).json({error:"error!"})
+				}else{
+					if(result){
 					
-					//console.log(err,result)
+						//return res.status(200).json()
+						const retdata = {success:'ok'} 
+						//get chart data
+						getChartData(req, res, retdata )
 
-					if(err){
-						console.error('Error Login',err)
-						return res.status(500).json({error:"error!"})
-					}else{
-						resolve(result)
-					}
-				})
-			})
-
-			if(result){
+						console.log("SAVING LOGIN gettingchart data")
 						
-				//return res.status(200).json()
-				const retdata = {success:'ok'}
-				//get chart data
-				getChartData(req, res, retdata )
-
-				console.log("gettingchart data")
-				
-			}else{
-				return res.status(400).json({error:'failed'})
-			}
+					}else{
+						return res.status(400).json({error:'failed'})
+					}//eif
+					
+				}//eif
+			})
+			
 
 		}catch (error){
 			console.error('Error Login',err)
@@ -295,7 +289,9 @@ router.post('/savetransaction/:empid', async (req, res) => {
 	console.log('==SAVE TRANSACTION INFO',req.body)
 	
 	const sql = ` UPDATE asn_transaction 
-			SET actual_parcel =?, 
+			SET 
+			parcel=?
+			actual_parcel =?, 
 			amount = ?, 
 			actual_amount = ?, 
 			remarks = ? 
@@ -306,7 +302,10 @@ router.post('/savetransaction/:empid', async (req, res) => {
 		
 		try{
 			db.query( sql,
-				[	req.body.ff_parcel,
+
+				[	
+					req.body.x_parcel,
+					req.body.ff_parcel,
 					req.body.f_amount, 
 					req.body.ff_amount, 
 					req.body.ff_remarks,
@@ -377,7 +376,7 @@ const getChartData= (req,res, retdata) =>{
 		GROUP BY a.region
 		ORDER by a.region;`
 
-	console.log(sql )
+	//console.log(sql )
 	connectDb()
     .then((db)=>{  
 		
@@ -393,8 +392,9 @@ const getChartData= (req,res, retdata) =>{
 					})
 				}else{
 					//results[0]
-					sendSocket(result)
-					res.status(200).json( retdata )
+					//=====SEND TO RIDER
+					//sendSocket(result)
+					res.status(200).json( { success:'ok',data:result} )
 
 				}//eif
 					
@@ -415,7 +415,7 @@ const getChartData= (req,res, retdata) =>{
 
 //===socket emit
 const sendSocket = (xdata) => {
-	io.emit('graph', xdata)
+	io.emit('potek', xdata)
 	console.log('io.emit sakses',xdata)
 }
 

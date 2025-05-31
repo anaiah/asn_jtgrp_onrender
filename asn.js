@@ -162,13 +162,24 @@ io.on('connection', (socket) => {
 		
 	}//============eif
 
-    socket.on('admin', (msg) => {
-        io.emit('admin', msg)
-    })
+    socket.on('sendtoOpMgr', (data) => {
+        let xdata = data
+        
+        const finder = connectedSockets.findIndex( x => x.mode==5)
+        
+        //console.log(finder)
 
-    socket.on('sales', (oMsg) => {
-        io.emit('sales', oMsg)
-    })
+        if(finder >= 0){ //if found
+            //give message to the intended client
+            socket.to( connectedSockets[finder].socketId).emit('loadchart', data )
+            console.log('found opmgr')
+        }
+
+        if(finder ==-1){
+            //if intended client not connected, send back message to user sender
+            socket.emit('noconnect', data)
+        }
+    })//end listener	
 
 	//console.log('*** SOCKET.IO SERVICES STARTED ***')
 
