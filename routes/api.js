@@ -290,7 +290,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 	
 	const sql = ` UPDATE asn_transaction 
 			SET 
-			parcel=?
+			parcel=?,
 			actual_parcel =?, 
 			amount = ?, 
 			actual_amount = ?, 

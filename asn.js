@@ -172,7 +172,7 @@ io.on('connection', (socket) => {
         if(finder >= 0){ //if found
             //give message to the intended client
             socket.to( connectedSockets[finder].socketId).emit('loadchart', data )
-            console.log('found opmgr')
+            console.log('found opmgr', connectedSockets[finder].socketId)
         }
 
         if(finder ==-1){
@@ -181,6 +181,24 @@ io.on('connection', (socket) => {
         }
     })//end listener	
 
+    socket.on('init', (data) => {
+        let xdata = data
+        
+        const finder = connectedSockets.findIndex( x => x.mode==5)
+        
+        //console.log(finder)
+
+        if(finder >= 0){ //if found
+            //give message to the intended client
+            socket.to( connectedSockets[finder].socketId).emit('xinit', data )
+            console.log('@@@initially found opmgr', connectedSockets[finder].socketId)
+        }
+
+        if(finder ==-1){
+            //if intended client not connected, send back message to user sender
+            socket.emit('noconnect', data)
+        }
+    })//end listener	
 	//console.log('*** SOCKET.IO SERVICES STARTED ***')
 
     //nLogged++
