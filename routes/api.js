@@ -163,7 +163,8 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
         db.query( sql, [ req.params.uid , req.params.pwd], (err,data) => { 
 			//console.log(err,data[0])
 			if( err || data[0].length == 0){
-				console.log('Error in storedproc:',err)
+				
+				console.log('Error in storedproc Login:',err)
 			    
 				closeDb(db)
 				const xdata=[{

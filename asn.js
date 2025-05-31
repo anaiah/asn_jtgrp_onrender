@@ -165,20 +165,27 @@ io.on('connection', (socket) => {
     socket.on('sendtoOpMgr', (data) => {
         let xdata = data
         
-        const finder = connectedSockets.findIndex( x => x.mode==5)
+        //loop thru array socket
+        connectedSockets.forEach(socketInfo => {
+            if(parseInt(socketInfo.mode)===5){
+               socket.to( socketInfo.socketId ).emit('loadchart', data ) 
+               console.log(`Fired Event 'loadchart' to USER: ${socketInfo.userName}, ID: ${socketInfo.socketId }`)
+            }//eif
+        })
+        // const finder = connectedSockets.findIndex( x => x.mode===5)
         
-        //console.log(finder)
+        // //console.log(finder)
 
-        if(finder >= 0){ //if found
-            //give message to the intended client
-            socket.to( connectedSockets[finder].socketId).emit('loadchart', data )
-            console.log('found opmgr', connectedSockets[finder].socketId)
-        }
+        // if(finder >= 0){ //if found
+        //     //give message to the intended client
+        //     socket.to( connectedSockets[finder].socketId).emit('loadchart', data )
+        //     console.log('found opmgr', connectedSockets[finder].socketId)
+        // }
 
-        if(finder ==-1){
-            //if intended client not connected, send back message to user sender
-            socket.emit('noconnect', data)
-        }
+        // if(finder ==-1){
+        //     //if intended client not connected, send back message to user sender
+        //     socket.emit('noconnect', data)
+        // }
     })//end listener	
 
     socket.on('init', (data) => {
