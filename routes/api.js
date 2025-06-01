@@ -61,18 +61,12 @@ connectPg()
     console.log("*** J&T GROUP ERROR, API.JS CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
 }); 
 
-let nuDate , tamadate
 
 connectDb()
 .then((db)=>{
-	console.log("====API.JS ASIANOW  J&T GROUP M YSQL SUCCESS! DATE ADJUST====")
 		try{
-			const offset = 8
-			const malidate = new Date()
-			tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
-			nuDate = tamadate.toISOString().slice(0,10)
-			console.log(nuDate)
-
+			console.log("====API.JS ASIANOW  J&T GROUP M YSQL SUCCESS! DATE ADJUST====")
+			
 		}catch (error){
 			// This catch block will handle errors that occur *before* the db.query callback is executed.
 			// For example, if db.query itself throws an error.
@@ -236,10 +230,8 @@ router.post('/savetologin/:empid', async (req, res) => {
 	const offset = 8
 	const malidate = new Date()
 	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
-	//console.log( tamadate)
-	nuDate = tamadate.toISOString().slice(0,10)
-			
-
+	const nuDate = tamadate.toISOString().slice(0,10)
+	
 	connectDb()
     .then((db)=>{
 
@@ -356,6 +348,11 @@ router.post('/savetransaction/:empid', async (req, res) => {
 //===get chart data
 const getChartData= (req,res, retdata) =>{
 
+	const offset = 8
+	const malidate = new Date()
+	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
+	const nuDate = tamadate.toISOString().slice(0,10)
+	
 	const xdate = nuDate
 
 	//=== GET REALTIME DATA========
