@@ -352,7 +352,7 @@ const getChartData= (req,res, retdata) =>{
 	const malidate = new Date()
 	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
 	const nuDate = tamadate.toISOString().slice(0,10)
-	
+
 	const xdate = nuDate
 
 	//=== GET REALTIME DATA========
@@ -395,7 +395,7 @@ const getChartData= (req,res, retdata) =>{
 					//=====SEND TO RIDER
 					//sendSocket(result)
 					res.status(200).json( { success:'ok',data:result} )
-
+ 
 				}//eif
 					
 			});//END DB QUERY
