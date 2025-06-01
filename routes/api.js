@@ -237,6 +237,8 @@ router.post('/savetologin/:empid', async (req, res) => {
 	const malidate = new Date()
 	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
 	//console.log( tamadate)
+	nuDate = tamadate.toISOString().slice(0,10)
+			
 
 	connectDb()
     .then((db)=>{
