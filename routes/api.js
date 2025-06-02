@@ -241,8 +241,13 @@ router.post('/savetologin/:empid', async (req, res) => {
 				[req.params.empid, req.body.f_parcel, req.body.transnumber, nuDate,tamadate],(err,result) => {
 			
 				if(err){
-					console.error('Error Login',err)
-					return res.status(500).json({error:"error!"})
+					//console.error('Error Login',err)
+					if(err.code === 'ER_DUP_ENTRY'){
+						return res.status(200).json({success:'fail',msg:'YOU ALREADY HAVE A DATA SAVED FOR TODAY!!!'})
+					//return res.status(500).json({error:"error!"})
+					}else{
+						return res.status(200).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
+					}
 				}else{
 					if(result){
 					
@@ -269,13 +274,10 @@ router.post('/savetologin/:empid', async (req, res) => {
 			closeDb(db)
 		
 		}//end try
-
-		
 	
 	}).catch((error)=>{
         res.status(500).json({error:'Error'})
     })
-
 })
 //===========END LOGIN SAVE====
 
@@ -376,7 +378,7 @@ const getChartData= (req,res, retdata) =>{
 		GROUP BY a.region
 		ORDER by a.region;`
 
-	console.log('===== ',sql )
+	//console.log('===== ',sql )
 	connectDb()
     .then((db)=>{  
 		
