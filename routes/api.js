@@ -220,17 +220,23 @@ router.get('/initialchart', async(req,res)=>{
 
 })
 
+const nuDate = () =>{
+	const offset = 8
+	const malidate = new Date()
+	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
+	const nuDate = tamadate.toISOString().slice(0,10)
+	
+	return [nuDate, tamadate]
+}
 
 //============save LOGIN FIRST====
 router.post('/savetologin/:empid', async (req, res) => {
 	console.log('saving to login....', req.body)
 	
 	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
+	const xdate = nuDate()
 
-	const offset = 8
-	const malidate = new Date()
-	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
-	const nuDate = tamadate.toISOString().slice(0,10)
+	console.log(xdate)
 	
 	connectDb()
     .then((db)=>{
@@ -238,7 +244,10 @@ router.post('/savetologin/:empid', async (req, res) => {
 		try{
 
 			db.query( sql ,
-				[req.params.empid, req.body.f_parcel, req.body.transnumber, nuDate,tamadate],(err,result) => {
+				[ 
+					parseInt(req.params.empid), 
+					parseInt(req.body.f_parcel), 
+					req.body.transnumber, xdate[0],xdate[1]],(err,result) => {
 			
 				if(err){
 					//console.error('Error Login',err)
@@ -284,12 +293,9 @@ router.post('/savetologin/:empid', async (req, res) => {
 //=============ADD RIDER TRANSACTION J&T GRP====//
 router.post('/savetransaction/:empid', async (req, res) => {
 	console.log('==SAVE TRANSACTION INFO',req.body)
-
-	const offset = 8
-	const malidate = new Date()
-	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
-	const nuDate = tamadate.toISOString().slice(0,10)
 	
+	const xdate = nuDate()
+
 	const sql = ` UPDATE asn_transaction 
 			SET 
 			parcel=?,
@@ -299,7 +305,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 			remarks = ? 
 			WHERE emp_id = ?
 			and created_at = ? `
-
+	console.log(sql, xdate[0],xdate[1])
 	connectDb()
     .then((db)=>{  
 		
@@ -307,13 +313,13 @@ router.post('/savetransaction/:empid', async (req, res) => {
 			db.query( sql,
 
 				[	
-					req.body.x_parcel,
-					req.body.ff_parcel,
-					req.body.f_amount, 
-					req.body.ff_amount, 
+					parseInt(req.body.x_parcel),
+					parseInt(req.body.ff_parcel),
+					parseFloat(req.body.f_amount), 
+					parseFloat(req.body.ff_amount), 
 					req.body.ff_remarks,
-					req.params.empid,
-					nuDate
+					parseInt(req.params.empid),
+					xdate[0]
 				],
 				(err,result)=>{
 			
@@ -323,7 +329,8 @@ router.post('/savetransaction/:empid', async (req, res) => {
 					return res.json({						
 						status:false
 					})
-				}else{
+				}
+				if(result){
 
 					//return res.status(200).json()
 					const retdata = {
@@ -357,12 +364,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 //===get chart data
 const getChartData= (req,res, retdata) =>{
 
-	const offset = 8
-	const malidate = new Date()
-	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
-	const nuDate = tamadate.toISOString().slice(0,10)
-
-	const xdate = nuDate
+	const xdate = nuDate()
 
 	//=== GET REALTIME DATA========
 	sql = `SELECT 
@@ -380,7 +382,7 @@ const getChartData= (req,res, retdata) =>{
 		ON c.hub = a.hub
 		LEFT JOIN asn_transaction b 
 		ON b.emp_id = c.id
-		and b.created_at = '${xdate}' 
+		and b.created_at = '${xdate[0]}' 
 		where c.grp_id = 1 and c.active = 1  
 		GROUP BY a.region
 		ORDER by a.region;`
