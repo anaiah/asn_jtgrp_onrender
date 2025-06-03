@@ -220,13 +220,36 @@ router.get('/initialchart', async(req,res)=>{
 
 })
 
+//=== date funcs====
+const nuDateMysql=(date)=>{
+	const pad=(n)=> n < 10 ? '0' + n : n;
+	
+	return date.getFullYear()+'-'+
+	pad(date.getMonth()+1)+'-'+
+	pad(date.getDate())+'-'+
+	pad(date.getHours())+':'+
+	pad(date.getMinutes())+':'+
+	pad(date.getSeconds());
+}
+
 const nuDate = () =>{
+	const now = new Date()
+	const nuDate = now.toISOString().slice(0,10)
+	
+	const localtime = nuDateMysql(now)
+
+
+	return[ nuDate, localtime]
+	/*
 	const offset = 8
 	const malidate = new Date()
 	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
 	const nuDate = tamadate.toISOString().slice(0,10)
 	
-	return [nuDate, tamadate]
+	const datetimestr = nuDateMysql(tamadate)
+
+	return [nuDate, datetimestr]
+	*/
 }
 
 //============save LOGIN FIRST====
@@ -234,9 +257,10 @@ router.post('/savetologin/:empid', async (req, res) => {
 	console.log('saving to login....', req.body)
 	
 	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
-	const xdate = nuDate()
+	
+	const [datestr, datetimestr] = nuDate()
 
-	console.log(xdate)
+	console.log(datetimestr)
 	
 	connectDb()
     .then((db)=>{
@@ -248,8 +272,8 @@ router.post('/savetologin/:empid', async (req, res) => {
 					parseInt(req.params.empid), 
 					parseInt(req.body.f_parcel), 
 					req.body.transnumber, 
-					xdate[0],
-					xdate[1]
+					datestr,
+					datetimestr
 				],(err,result) => {
 			
 				if(err){
@@ -297,7 +321,7 @@ router.post('/savetologin/:empid', async (req, res) => {
 router.post('/savetransaction/:empid', async (req, res) => {
 	console.log('==SAVE TRANSACTION INFO',req.body)
 	
-	const xdate = nuDate()
+	const [datestr, datetimestr] = nuDate()
 
 	const sql = ` UPDATE asn_transaction 
 			SET 
@@ -309,7 +333,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 			logout_time = ?
 			WHERE emp_id = ?
 			and created_at = ? `
-	console.log(sql, xdate[0],xdate[1])
+	//console.log(sql, xdate[0],xdate[1])
 	connectDb()
     .then((db)=>{  
 		
@@ -322,9 +346,9 @@ router.post('/savetransaction/:empid', async (req, res) => {
 					parseFloat(req.body.f_amount), 
 					parseFloat(req.body.ff_amount), 
 					req.body.ff_remarks,
-					xdate[1],
+					datetimestr,
 					parseInt(req.params.empid),
-					xdate[0]
+					datestr
 				],
 				(err,result)=>{
 			
@@ -369,7 +393,8 @@ router.post('/savetransaction/:empid', async (req, res) => {
 //===get chart data
 const getChartData= (req,res, retdata) =>{
 
-	const xdate = nuDate()
+	const [datestr, datetimestr] = nuDate()
+	
 
 	//=== GET REALTIME DATA========
 	sql = `SELECT 
@@ -387,7 +412,7 @@ const getChartData= (req,res, retdata) =>{
 		ON c.hub = a.hub
 		LEFT JOIN asn_transaction b 
 		ON b.emp_id = c.id
-		and b.created_at = '${xdate[0]}' 
+		and b.created_at = '${datestr}' 
 		where c.grp_id = 1 and c.active = 1  
 		GROUP BY a.region
 		ORDER by a.region;`
@@ -401,7 +426,7 @@ const getChartData= (req,res, retdata) =>{
 				(err,result)=>{
 			
 				if (err) {
-					console.error("get data error", err);
+					console.error("get data error getchartdata()", err);
 					//results[0].
 					return res.send(500).json({						
 						error:err
