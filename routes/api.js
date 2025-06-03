@@ -247,7 +247,10 @@ router.post('/savetologin/:empid', async (req, res) => {
 				[ 
 					parseInt(req.params.empid), 
 					parseInt(req.body.f_parcel), 
-					req.body.transnumber, xdate[0],xdate[1]],(err,result) => {
+					req.body.transnumber, 
+					xdate[0],
+					xdate[1]
+				],(err,result) => {
 			
 				if(err){
 					//console.error('Error Login',err)
@@ -302,7 +305,8 @@ router.post('/savetransaction/:empid', async (req, res) => {
 			actual_parcel =?, 
 			amount = ?, 
 			actual_amount = ?, 
-			remarks = ? 
+			remarks = ? ,
+			logout_time = ?
 			WHERE emp_id = ?
 			and created_at = ? `
 	console.log(sql, xdate[0],xdate[1])
@@ -318,6 +322,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 					parseFloat(req.body.f_amount), 
 					parseFloat(req.body.ff_amount), 
 					req.body.ff_remarks,
+					xdate[1],
 					parseInt(req.params.empid),
 					xdate[0]
 				],
@@ -387,7 +392,7 @@ const getChartData= (req,res, retdata) =>{
 		GROUP BY a.region
 		ORDER by a.region;`
 
-	//console.log('===== ',sql )
+	console.log('===== ',sql )
 	connectDb()
     .then((db)=>{  
 		
@@ -572,7 +577,7 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 		
 		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
 
-			//console.log(results[0],results[1])
+			console.log(results[0],results[1])
 			
 			let trans, tick
 
