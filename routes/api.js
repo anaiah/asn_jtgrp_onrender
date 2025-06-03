@@ -284,6 +284,11 @@ router.post('/savetologin/:empid', async (req, res) => {
 //=============ADD RIDER TRANSACTION J&T GRP====//
 router.post('/savetransaction/:empid', async (req, res) => {
 	console.log('==SAVE TRANSACTION INFO',req.body)
+
+	const offset = 8
+	const malidate = new Date()
+	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
+	const nuDate = tamadate.toISOString().slice(0,10)
 	
 	const sql = ` UPDATE asn_transaction 
 			SET 
@@ -292,7 +297,8 @@ router.post('/savetransaction/:empid', async (req, res) => {
 			amount = ?, 
 			actual_amount = ?, 
 			remarks = ? 
-			WHERE emp_id = ? `
+			WHERE emp_id = ?
+			and created_at = ? `
 
 	connectDb()
     .then((db)=>{  
@@ -306,7 +312,8 @@ router.post('/savetransaction/:empid', async (req, res) => {
 					req.body.f_amount, 
 					req.body.ff_amount, 
 					req.body.ff_remarks,
-					req.params.empid
+					req.params.empid,
+					nuDate
 				],
 				(err,result)=>{
 			
