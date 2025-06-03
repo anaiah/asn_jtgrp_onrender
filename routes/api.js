@@ -183,8 +183,8 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 				{
 					email	: 	user.email,
 					fname   :   user.full_name.toUpperCase(),
-					message	: 	`Welcome to Asia Now Enterprise Incorporated System, ${user.full_name.toUpperCase()}! PLEASE WAIT SYSTEM DETECTING LOCATION!!! `,
-					voice	: 	`Welcome to Asia Now Enterprise Incorporated System, ${user.full_name}! PLEASE WAIT SYSTEM DETECTING LOCATION!!!`,		
+					message	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name.toUpperCase()}!!! `,
+					voice	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name}!!`,		
 					grp_id	:	user.grp_id,
 					pic 	: 	user.pic,
 					ip_addy :   ipaddress,
@@ -421,7 +421,7 @@ const getChartData= (req,res, retdata) =>{
 		GROUP BY a.region
 		ORDER by a.region;`
 
-	console.log('===== ',sql )
+	//console.log('===== ',sql )
 	connectDb()
     .then((db)=>{  
 		
