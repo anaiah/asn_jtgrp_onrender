@@ -183,8 +183,8 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 				{
 					email	: 	user.email,
 					fname   :   user.full_name.toUpperCase(),
-					message	: 	`Welcome to Asia Now Enterprise Incorporated System, ${user.full_name.toUpperCase()}! `,
-					voice	: 	`Welcome to Asia Now Enterprise Incorporated System, ${user.full_name}! `,		
+					message	: 	`Welcome to Asia Now Enterprise Incorporated System, ${user.full_name.toUpperCase()}! PLEASE WAIT SYSTEM DETECTING LOCATION!!! `,
+					voice	: 	`Welcome to Asia Now Enterprise Incorporated System, ${user.full_name}! PLEASE WAIT SYSTEM DETECTING LOCATION!!!`,		
 					grp_id	:	user.grp_id,
 					pic 	: 	user.pic,
 					ip_addy :   ipaddress,
@@ -582,10 +582,8 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 			let trans, tick
 
 			for(let zkey in results[0]){
-
 				
 				trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
-
 				
 				results[0][zkey].Dates=`${results[0][zkey].Dates}`
 
