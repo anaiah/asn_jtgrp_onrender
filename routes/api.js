@@ -601,12 +601,12 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 				and emp_id =${req.params.empid} 
 				GROUP BY DATE_FORMAT(created_at,'%Y-%m-%d') `	 
 
-		console.log(sql)
-		console.log(sql2)
+		//console.log(sql)
+		//console.log(sql2)
 		
 		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
 
-			console.log(results[0],results[1])
+			//console.log(results[0],results[1])
 			
 			let trans, tick
 
