@@ -233,23 +233,27 @@ const nuDateMysql=(date)=>{
 }
 
 const nuDate = () =>{
-	const now = new Date()
-	const nuDate = now.toISOString().slice(0,10)
+
+	//*** USE THIS FOR LOCALHOST NODEJS */
+
+	// const now = new Date()
+	// const nuDate = now.toISOString().slice(0,10)
 	
-	const localtime = nuDateMysql(now)
+	// const localtime = nuDateMysql(now)
 
+	// return[ nuDate, localtime]
 
-	return[ nuDate, localtime]
-	/*
+	/* === WE USE THIS FOR RENDER.COM VERSION
+	*/
 	const offset = 8
 	const malidate = new Date()
 	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
 	const nuDate = tamadate.toISOString().slice(0,10)
 	
-	const datetimestr = nuDateMysql(tamadate)
+	//const datetimestr = nuDateMysql(tamadate)
 
-	return [nuDate, datetimestr]
-	*/
+	return [nuDate, tamadate]
+	
 }
 
 //============save LOGIN FIRST====
@@ -566,7 +570,7 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
 	var yyyy = series.getFullYear()
 
-	series = yyyy+'-'+mm +'-01'
+	const xseries = yyyy+'-'+mm +'-01'
 	const series2 = yyyy+'-'+mm
 
 	//console.log( 'series2 ',series2 )
@@ -578,11 +582,11 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 		//DATE_FORMAT(a.Dates,'%d-%b %Y, %a') as Dates
 		sql = `
 			select DATE_FORMAT(a.Dates,'%Y-%m-%d') as Dates
-			from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
+			from ( select last_day('${xseries}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
 			from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
 			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
-			where a.Dates between '${series}' and last_day('${series}') order by a.Dates`
+			where a.Dates between '${xseries}' and last_day('${xseries}') order by a.Dates`
 
 		sql2 =`SELECT id,emp_id,
 				transaction_number,
@@ -597,8 +601,8 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 				and emp_id =${req.params.empid} 
 				GROUP BY DATE_FORMAT(created_at,'%Y-%m-%d') `	 
 
-		// console.log(sql)
-		//console.log(sql2)
+		console.log(sql)
+		console.log(sql2)
 		
 		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
 
