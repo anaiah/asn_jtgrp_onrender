@@ -258,8 +258,9 @@ const nuDate = () =>{
 
 //============save LOGIN FIRST====
 router.post('/savetologin/:empid', async (req, res) => {
-	console.log('saving to login....', req.body)
-	
+	//console.log('saving to login....', req.body)
+	console.log('=========SAVING TO LOGIN()============',req.params.empid)
+
 	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
 	
 	const [datestr, datetimestr] = nuDate()
@@ -318,12 +319,14 @@ router.post('/savetologin/:empid', async (req, res) => {
 	}).catch((error)=>{
         res.status(500).json({error:'Error'})
     })
+	
 })
 //===========END LOGIN SAVE====
 
 //=============ADD RIDER TRANSACTION J&T GRP====//
 router.post('/savetransaction/:empid', async (req, res) => {
-	console.log('==SAVE TRANSACTION INFO',req.body)
+	//console.log('==SAVE TRANSACTION INFO',req.body)
+	console.log('=========SAVE TRANSACTION INFO========',req.params.empid,', ',req.body.ff_transnumber)
 	
 	const [datestr, datetimestr] = nuDate()
 
@@ -336,7 +339,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 			remarks = ? ,
 			logout_time = ?
 			WHERE emp_id = ?
-			and created_at = ? `
+			and transaction_number = ? `
 	//console.log(sql, xdate[0],xdate[1])
 	connectDb()
     .then((db)=>{  
@@ -352,7 +355,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 					req.body.ff_remarks,
 					datetimestr,
 					parseInt(req.params.empid),
-					datestr
+					req.body.ff_transnumber
 				],
 				(err,result)=>{
 			
