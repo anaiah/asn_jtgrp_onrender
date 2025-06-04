@@ -610,6 +610,13 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 			
 			let trans, tick
 
+			if(!results[0]){
+				
+				closeDb(db)
+
+				res.status(500).json({error:'Error'})
+			}
+
 			for(let zkey in results[0]){
 				
 				trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
