@@ -573,6 +573,10 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 	const xseries = yyyy+'-'+mm +'-01'
 	const series2 = yyyy+'-'+mm
 
+	if(typeof req.params.empid === 'undefined'){
+		return res.status(500).json({error:'Error! Please Try Again!'})
+	}
+
 	//console.log( 'series2 ',series2 )
 
 	connectDb()
