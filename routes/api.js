@@ -146,7 +146,7 @@ router.post('/xlsclaims', upload.single('claims_upload_file'), async (req, res) 
 
 //========login post
 router.get('/loginpost/:uid/:pwd',async(req,res)=>{
-    console.log('firing login with Authenticate====== ',req.params.uid,req.params.pwd)
+    console.log('firing login with Authenticate====== ',req.params.uid,req.params.pwd,' ========')
     
 	connectDb()
 	.then((db)=>{
@@ -184,7 +184,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 					email	: 	user.email,
 					fname   :   user.full_name.toUpperCase(),
 					message	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name.toUpperCase()}!!! `,
-					voice	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name}!!`,		
+					voice	: 	`${user.full_name}!!`,		
 					grp_id	:	user.grp_id,
 					pic 	: 	user.pic,
 					ip_addy :   ipaddress,
