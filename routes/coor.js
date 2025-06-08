@@ -256,16 +256,17 @@ router.post('/adduser', async( req, res ) => {
 				if(err){
 					//console.error('Error Login',err)
 					if(err.code === 'ER_DUP_ENTRY'){
-						return res.status(500).json({success:'fail',msg:'EMAIL ALREADY EXIST!!!'})
+						return res.status(400).json({success:'fail',msg:'EMAIL ALREADY EXIST!!!'})
 					//return res.status(500).json({error:"error!"})
 					}else{
-						return res.status(500).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
+						return res.status(400).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
 					}
                 }
     
                 if(result){
                 
-                    return res.status(200).json({msg:'RECORD SUCCESSFULLY SAVED!'})
+                    return res.status(200).json({success:'ok', msg:'RECORD SUCCESSFULLY SAVED!'})
+               
                 }//eif
             	//eif
 			})
