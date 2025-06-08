@@ -260,16 +260,13 @@ router.post('/adduser', async( req, res ) => {
 					}else{
 						return res.status(200).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
 					}
-				}else{
-					if(result){
-					
-						return res.status(200).json({msg:'RECORD SUCCESSFULLY SAVED!'})
-				
-					}else{
-						return res.status(400).json({error:'failed'})
-					}//eif
-					
-				}//eif
+                }
+    
+                if(result){
+                
+                    return res.status(200).json({msg:'RECORD SUCCESSFULLY SAVED!'})
+                }//eif
+            	//eif
 			})
 			
 
