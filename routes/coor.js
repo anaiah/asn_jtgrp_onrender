@@ -252,6 +252,7 @@ router.post('/adduser', async( req, res ) => {
                     1
 				],(err,result) => {
 			
+                    console.log(err,result)
 				if(err){
 					//console.error('Error Login',err)
 					if(err.code === 'ER_DUP_ENTRY'){
