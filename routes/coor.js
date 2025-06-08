@@ -168,6 +168,125 @@ router.get('/mtdlocation/:email', async( req, res) =>{
 })
 const mysqls = require('mysql2/promise')
 
+router.get('/getlocation/:email',async(req, res)=>{
+    connectDb()
+    .then((db)=>{ 
+
+        const xmos = getmos()
+
+            console.log('get all location()====')
+
+            sql2 =`SELECT 
+                a.id,
+                a.location
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                WHERE a.coordinator_email = '${req.params.email}'
+                GROUP BY a.location
+                ORDER by a.location`
+        
+        db.query( sql2 , null , (error, results)=>{
+            
+            closeDb( db )
+            res.status(200).send(results )
+
+        })
+
+    }).catch((error)=>{
+        res.status(500).json({error:'x'})
+    })
+})
+
+router.get('/gethub/:location/:email',async(req, res)=>{
+    connectDb()
+    .then((db)=>{ 
+
+        const xmos = getmos()
+
+            console.log('get all hub()====')
+
+            sql2 =`SELECT 
+                a.id,
+                a.hub
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                WHERE a.coordinator_email = '${req.params.email}'
+                and lower(a.location) = '${req.params.location}'
+                GROUP BY a.hub
+                ORDER by a.hub`
+        
+        //console.log(sql2)
+        db.query( sql2 , null , (error, results)=>{
+            
+            closeDb( db )
+            res.status(200).send(results )
+
+        })
+
+    }).catch((error)=>{
+        res.status(500).json({error:'x'})
+    })
+})
+
+//==============ADD USER =====
+router.post('/adduser', async( req, res ) => {
+    console.log('=========SAVING TO user ============')
+
+	const sql = `INSERT into asn_users (full_name,xname,grp_id,email,pwd,pic,hub,active) 
+                    VALUES(?,?,?,?,?,?,?,?)`
+
+    connectDb()
+    .then((db)=>{
+
+		try{
+
+			db.query( sql ,
+				[ 
+					req.body.name.toUpperCase(), 
+					req.body.name.toUpperCase(), 
+                    1,
+					req.body.email, 
+					'123',
+					'guestmale.jpg',
+                    req.body.hub.toUpperCase(),
+                    1
+				],(err,result) => {
+			
+				if(err){
+					//console.error('Error Login',err)
+					if(err.code === 'ER_DUP_ENTRY'){
+						return res.status(200).json({success:'fail',msg:'EMAIL ALREADY EXIST!!!'})
+					//return res.status(500).json({error:"error!"})
+					}else{
+						return res.status(200).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
+					}
+				}else{
+					if(result){
+					
+						return res.status(200).json({msg:'RECORD SUCCESSFULLY SAVED!'})
+				
+					}else{
+						return res.status(400).json({error:'failed'})
+					}//eif
+					
+				}//eif
+			})
+			
+
+		}catch (error){
+			console.error('Error Login',err)
+			res.status(500).json({error:"error!"})
+
+		}finally{
+			closeDb(db)
+		
+		}//end try
+	
+	}).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    })
+
+})
 
 router.get('/five/:email/:trans',async(req,res)=>{
     try{
