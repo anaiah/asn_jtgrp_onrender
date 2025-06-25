@@ -123,6 +123,10 @@ app.use('/headcoor', headcoordRouter);
 const opmgrRouter = require('./routes/opmgr');
 app.use('/opmgr', opmgrRouter);
 
+//test paymongo
+const payRouter = require('./routes/paymongo');
+app.use('/luap', payRouter);
+
 const cookieParser = require('cookie-parser');
 app.use(cookieParser())
 
