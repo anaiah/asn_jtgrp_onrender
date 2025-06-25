@@ -420,9 +420,33 @@ const getChartData= (req,res, retdata) =>{
 		LEFT JOIN asn_transaction b 
 		ON b.emp_id = c.id
 		and b.created_at = '${datestr}' 
-		where c.grp_id = 1 and c.active = 1  
+		and c.grp_id = 1 and c.active = 1  
 		GROUP BY a.region
-		ORDER by a.region;`
+		ORDER by a.region;
+		
+		
+		`
+
+		
+		// SELECT a.region, 
+		// a.area, 
+		// COALESCE(round(SUM(b.parcel)), 0) AS parcel, 
+		// COALESCE(round(SUM(b.actual_parcel)), 0) AS parcel_delivered, 
+		// COALESCE(round(SUM(b.amount),2), 0) AS amount, 
+		// COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted, 
+		// COALESCE(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0),0) as qty_pct 
+		// FROM asn_hub a 
+		// LEFT JOIN asn_users c 
+		// ON c.hub = a.hub 
+		// LEFT JOIN asn_transaction b 
+		// ON b.emp_id = c.id 
+		// and b.created_at like '2025-06%' 
+		// where c.grp_id=1 and c.active=1
+		// GROUP BY a.region,a.area O
+		// ORDER by parcel_delivered DESC, a.region;
+		
+
+
 
 	//console.log('===== ',sql )
 	connectDb()

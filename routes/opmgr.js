@@ -37,12 +37,14 @@ connectDb()
 
 const getmos = () => {
     var series = new Date() 
+    var dd = String( series.getDate()).padStart(2, '0')
 	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
 	var yyyy = series.getFullYear()
 
-	series = yyyy+'-'+mm 
+	const series1 = yyyy+'-'+mm 
+    const series2 = yyyy+'-'+mm+'-'+dd
 
-    return series
+    return [series1, series2]
 }
 
 
@@ -51,7 +53,8 @@ router.get('/summary/:email', async(req,res)=>{
     connectDb()
     .then((db)=>{ 
 
-        const xmos = getmos()
+        const [ xmos, ymos ] = getmos()
+
         console.log('firing summary()====')
                 sql2 =`SELECT 
                 a.region,
@@ -92,7 +95,7 @@ router.get('/ridersummary/:hub', async(req,res)=>{
     .then((db)=>{ 
         console.log('firing rider-summary()====')
         
-        const xmos = getmos()
+        const [xmos,ymos] = getmos()
 
         sql2 =`select a.xname as full_name,
                 a.id as emp_id, 
@@ -133,7 +136,7 @@ router.get('/opmgrlocation/:area', async( req, res) =>{
      connectDb()
     .then((db)=>{ 
 
-        const xmos = getmos()
+        const [xmos,ymos] = getmos()
 
         console.log('mtd location()====')
 
@@ -172,7 +175,7 @@ router.get('/mtdlocation/:email', async( req, res) =>{
      connectDb()
     .then((db)=>{ 
 
-        const xmos = getmos()
+        const [xmos,ymos] = getmos()
 
         console.log('mtd location()====')
 
@@ -210,7 +213,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
     connectDb()
     .then((db)=>{ 
 
-        const xmos = getmos()
+        const [xmos,ymos] = getmos()
 
         if(req.params.trans=="hub"){
             console.log('top 5 hub()====')
@@ -266,5 +269,38 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
         res.status(500).json({error:'x'})
     }) 
 })
+
+router.get('/getperhour', async(req,res)=>{
+    
+    const [xmos,ymos] = getmos()
+    connectDb()
+    .then((db)=>{
+
+
+        sql = `SELECT 
+            DATE_FORMAT(login_time,'%H:00 %p') as hr_start,
+            (SUM(sum(parcel)) OVER (ORDER BY HOUR(login_time))) AS parcel_taken,
+            round(SUM(sum(actual_parcel)) OVER (ORDER BY HOUR(login_time)),0) AS hourly_delivered,
+            round(SUM(sum(actual_amount)) OVER (ORDER BY HOUR(login_time)),2) AS hourly_remit
+            FROM asn_transaction
+            WHERE created_at='${ymos}'
+            GROUP BY HOUR(login_time);`
+
+        console.log('firing getperhour()==')
+        db.query( sql , null , (error, results)=>{
+            
+            closeDb( db )
+            //console.log(results)
+            
+            //console.log(  results) 
+            res.status(200).send(results )
+
+        })    
+    }).catch((error)=>{
+        res.status(500).json({error:'x'})
+    }) 
+
+})
+
 
 module.exports = router;
