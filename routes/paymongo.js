@@ -29,7 +29,7 @@ connectDb()
 });
 
 //=================================START HERE ============================
-const PAYMONGO_SECRET_KEY = 'sk_test_tkqCg9szjZAD19cGD73rZY2d'; // Store your secret key in environment variables
+const PAYMONGO_SECRET_KEY = 'sk_test_3ZwTCPvB3ZQmcHUybmvScoyG'; // Store your secret key in environment variables
 
 router.post('/pay', async(req,res)=>{
 
