@@ -12,18 +12,9 @@ const querystring = require("querystring")
 
 const { connectPg, closePg, closeDb, connectDb}  = require('../db')
 
-
 const cookieParser = require('cookie-parser')
 app.use( cookieParser() )
 
-connectPg() 
-.then((pg)=>{
-    console.log("====coor.js ASIANOW  J&T GROUP POSTGRESQL CONNECTION SUCCESS!====")
-    closePg(pg);
-})                        
-.catch((error)=>{
-    console.log("*** coor.js J&T GROUP ERROR, API.JS CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
-}); 
 
 connectDb()
 .then((db)=>{
@@ -45,6 +36,39 @@ const getmos = () => {
     return series
 }
 
+const nuDate = () =>{
+
+	//*** USE THIS FOR LOCALHOST NODEJS */
+
+	// const now = new Date()
+	// const nuDate = now.toISOString().slice(0,10)
+	
+	// const localtime = nuDateMysql(now)
+
+	// return[ nuDate, localtime]
+
+	/* === WE USE THIS FOR RENDER.COM VERSION
+	*/
+	const offset = 8
+	const malidate = new Date()
+	const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
+	const nuDate = tamadate.toISOString().slice(0,10)
+	
+    //monthly
+    var series = new Date() 
+	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
+	var yyyy = series.getFullYear()
+
+	series = yyyy+'-'+mm 
+
+	//const datetimestr = nuDateMysql(tamadate)
+
+	return [nuDate, series]
+	
+}
+
+const {daily, monthly} = nuDate()
+
 //==========SUMMARY OF COORDS
 router.get('/summary/:email', async(req,res)=>{
     connectDb()
@@ -63,7 +87,7 @@ router.get('/summary/:email', async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub 
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${daily}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by a.location, 
@@ -107,7 +131,7 @@ router.get('/ridersummary/:hub', async(req,res)=>{
                 from asn_users a
                 left join asn_transaction b 
                 on b.emp_id = a.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${daily}%' 
                 where a.grp_id=1 and a.active= 1 and upper(a.hub) = '${req.params.hub}'
                 group by a.id
                 order by actual_qty DESC, full_name;`
@@ -135,22 +159,23 @@ router.get('/mtdlocation/:email', async( req, res) =>{
 
         const xmos = getmos()
 
-            console.log('mtd location()====')
+        console.log('mtd location()====')
+        //before its monthly now daily
 
-            sql2 =`SELECT 
-                a.location,
-                COALESCE(SUM(b.parcel), 0) AS parcel,
-                COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
-                COALESCE(SUM(b.amount), 0) AS amount,
-                COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
-                FROM asn_hub a
-                LEFT JOIN asn_users c ON c.hub = a.hub
-                LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
-                WHERE a.coordinator_email = '${req.params.email}'
-                GROUP BY a.location
-                ORDER by parcel_delivered DESC`
-        
+        sql2 =`SELECT 
+            a.location,
+            COALESCE(SUM(b.parcel), 0) AS parcel,
+            COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
+            COALESCE(SUM(b.amount), 0) AS amount,
+            COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
+            FROM asn_hub a
+            LEFT JOIN asn_users c ON c.hub = a.hub
+            LEFT JOIN asn_transaction b ON b.emp_id = c.id
+            and b.created_at like '${daily}%' 
+            WHERE a.coordinator_email = '${req.params.email}'
+            GROUP BY a.location
+            ORDER by parcel_delivered DESC`
+    
         db.query( sql2 , null , (error, results)=>{
             
             closeDb( db )
@@ -298,7 +323,7 @@ router.get('/five/:email/:trans',async(req,res)=>{
     }
 
     const xmos = getmos()
-    console.log(xmos)
+    //console.log(xmos)
     sql2 =`SELECT 
                 a.hub AS hub,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
@@ -308,7 +333,7 @@ router.get('/five/:email/:trans',async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${daily}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by parcel_delivered DESC`
@@ -318,7 +343,7 @@ router.get('/five/:email/:trans',async(req,res)=>{
     const [results, fields] = await conn.execute( sql2 )
     
     
-    console.log('tokwa',results)
+    //console.log('tokwa',results)
     res.json( results)
     await conn.end()
 
@@ -345,7 +370,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${daily}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by parcel_delivered DESC, a.hub
@@ -361,7 +386,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${daily}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 AND c.xname IS NOT NULL 
                 GROUP BY c.xname
