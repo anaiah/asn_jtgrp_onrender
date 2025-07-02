@@ -4,6 +4,10 @@ const app = express()
 
 const bodyParser = require('body-parser')
 
+// in some file
+const EventEmitter = require('events');
+const bus = new EventEmitter();  // or perhaps your class
+bus.setMaxListeners(20)
 //======== for db connection
 const db  = require('./db')
 

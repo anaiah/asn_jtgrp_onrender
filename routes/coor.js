@@ -164,7 +164,6 @@ router.get('/mtdlocation/:email', async( req, res) =>{
   
 
 })
-const mysqls = require('mysql/promise')
 
 router.get('/getlocation/:email',async(req, res)=>{
 
@@ -193,16 +192,6 @@ router.get('/getlocation/:email',async(req, res)=>{
 
 router.get('/gethub/:location/:email',async(req, res)=>{
     try {
-        const [rows, fields] = await db.query(sql);
-        res.json(rows);
-    } catch (err) {
-        console.error('Error:', err);
-        res.status(500).send('Error occurred');
-    }
-
-    connectDb()
-    .then((db)=>{ 
-
         const xmos = getmos()
 
         console.log('get all hub()====')
@@ -217,17 +206,15 @@ router.get('/gethub/:location/:email',async(req, res)=>{
             GROUP BY a.hub
             ORDER by a.hub`
         
-        //console.log(sql)
-        db.query( sql , null , (error, results)=>{
-            
-            closeDb( db )
-            res.status(200).send(results )
+        const [rows, fields] = await db.query(sql);
+        res.json(rows);
 
-        })
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
 
-    }).catch((error)=>{
-        res.status(500).json({error:'x'})
-    })
+   
 })
 
 //==============ADD USER =====

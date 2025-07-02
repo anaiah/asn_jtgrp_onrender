@@ -50,7 +50,7 @@ router.get('/summary/:email', async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${ymos}%' 
                 GROUP BY a.region,a.area
                 ORDER by parcel_delivered DESC, a.region;`
     
@@ -85,7 +85,7 @@ router.get('/ridersummary/:hub', async(req,res)=>{
                 from asn_users a
                 left join asn_transaction b 
                 on b.emp_id = a.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${ymos}%' 
                 where a.grp_id=1 and a.active= 1 and upper(a.hub) = '${req.params.hub}'
                 group by a.id
                 order by actual_qty DESC, full_name;`
@@ -118,7 +118,7 @@ router.get('/opmgrlocation/:area', async( req, res) =>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${ymos}%' 
                 WHERE a.area = '${req.params.area}'
                 GROUP BY a.location,a.hub
                 ORDER by a.location,parcel_delivered DESC;`
@@ -149,7 +149,7 @@ router.get('/mtdlocation/:email', async( req, res) =>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${ymos}%' 
                 WHERE a.head_email = '${req.params.email}'
                 GROUP BY a.location
                 ORDER by parcel_delivered DESC;`
@@ -182,7 +182,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${ymos}%' 
                 WHERE a.head_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by parcel_delivered DESC, a.hub
@@ -198,7 +198,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 FROM asn_hub a
                 LEFT JOIN asn_users c ON c.hub = a.hub
                 LEFT JOIN asn_transaction b ON b.emp_id = c.id
-                and b.created_at like '${xmos}%' 
+                and b.created_at like '${ymos}%' 
                 WHERE a.head_email = '${req.params.email}'
                 AND c.xname IS NOT NULL 
                 GROUP BY c.xname
