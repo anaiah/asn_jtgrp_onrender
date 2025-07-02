@@ -50,36 +50,11 @@ const ftpclient = require('scp2')
 const app = express()
 
 app.use( cookieParser() )
-const { connectPg, closePg, closeDb, connectDb}  = require('../db')
 
-connectPg() 
-.then((pg)=>{
-    console.log("====api.js ASIANOW  J&T GROUP POSTGRESQL CONNECTION SUCCESS!====")
-    closePg(pg);
-})                        
-.catch((error)=>{
-    console.log("*** J&T GROUP ERROR, API.JS CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
-}); 
+const db  = require('../db')// your pool module
 
+const { connectDb, closeDb } = require('../db')
 
-connectDb()
-.then((db)=>{
-		try{
-			console.log("====API.JS ASIANOW  J&T GROUP M YSQL SUCCESS! DATE ADJUST====")
-			
-		}catch (error){
-			// This catch block will handle errors that occur *before* the db.query callback is executed.
-			// For example, if db.query itself throws an error.
-			console.error("Error during query execution:", error);
-    		//return res.status(500).json({ error: 'Unexpected server error' });
-		}finally{
-			closeDb(db)
-		}    
-    //closeDb(db);
-})                        
-.catch((error)=>{
-    console.log("*** J&T GROUP ERROR, CAN'T CONNECT TO MYSQL DB!****",error.code)
-});  
 //=====CLAIMS UPLOAD
 // Set up multer for file uploads
 const storage = multer.memoryStorage();
@@ -148,65 +123,59 @@ router.post('/xlsclaims', upload.single('claims_upload_file'), async (req, res) 
 router.get('/loginpost/:uid/:pwd',async(req,res)=>{
     console.log('firing login with Authenticate====== ',req.params.uid,req.params.pwd,' ========')
     
-	connectDb()
-	.then((db)=>{
+	const{uid,pwd}= req.params
 
+	try {
 		let sql =`CALL authenticate_user(?,?)` 
         
+    	const [data, fields] = await db.query(sql,[uid,pwd]);
+    	
+		const user = data[0][0]
+
+		//console.log('logindata', user)
+
+		if(user){
+			
+			//get ip address
+			//const ipaddress = IP.address()
+			let aData = []
+			let obj =
+			{
+				email	: 	user.email,
+				fname   :   user.full_name.toUpperCase(),
+				message	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name.toUpperCase()}!!! `,
+				voice	: 	`${user.full_name}!!`,		
+				grp_id	:	user.grp_id,
+				pic 	: 	user.pic,
+				ip_addy :   '',
+				id      :   user.id,
+				region  :   user.region,
+				position:   user.position,
+				found:true
+			}
+			aData.push(obj)
+
+			return res.status(200).json(aData)
+			
+		}//EIF
 		
-        db.query( sql, [ req.params.uid , req.params.pwd], (err,data) => { 
-			//console.log(err,data[0])
-			if( err || data[0].length == 0){
-				
-				console.log('Error in storedproc Login:',err)
-			    
-				closeDb(db)
-				const xdata=[{
-					message: "No Matching Record!",
-					voice:"No Matching Record!",
-					found:false
-				}]
-				return res.status(200).json(xdata)  
+  	} catch (err) {
 
-			}//eif
-
-			const user = data[0][0]
-
-			//console.log('logindata', user)
-
-			if(user){
-				
-				//get ip address
-				const ipaddress = IP.address()
-				let aData = []
-				let obj =
-				{
-					email	: 	user.email,
-					fname   :   user.full_name.toUpperCase(),
-					message	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name.toUpperCase()}!!! `,
-					voice	: 	`${user.full_name}!!`,		
-					grp_id	:	user.grp_id,
-					pic 	: 	user.pic,
-					ip_addy :   ipaddress,
-					id      :   user.id,
-					region  :   user.region,
-					position:   user.position,
-					found:true
-				}
-				aData.push(obj)
-
-				return res.status(200).json(aData)
-			    
-				closeDb(db);//CLOSE connection
-                //console.log("===MYSQL CONNECTON CLOSED SUCCESSFULLY===")
-                
-            }//EIF
-           
-	   })//END QUERY 
-       
-    }).catch((error)=>{
-        res.status(500).json({error:'No Fetch Docs'})
-    }) 
+		console.log('Error in storedproc Login:',err)
+			
+		const xdata=[{
+			message: "No Matching Record!",
+			voice:"No Matching Record!",
+			found:false
+		}]
+		
+		console.error('Error:', err);
+    	
+		return res.status(200).json(xdata)  
+    	//res.status(500).send('Error occurred');
+  	}
+	
+	 
 })//== end loginpost
 
 //=== end html routes
@@ -260,66 +229,38 @@ const nuDate = () =>{
 router.post('/savetologin/:empid', async (req, res) => {
 	//console.log('saving to login....', req.body)
 	console.log('=========SAVING TO LOGIN()============',req.params.empid)
-
-	const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
 	
-	const [datestr, datetimestr] = nuDate()
-
-	console.log(datetimestr)
+	try {
+		const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
 	
-	connectDb()
-    .then((db)=>{
+		const [datestr, datetimestr] = nuDate()
 
-		try{
-
-			db.query( sql ,
-				[ 
+    	const [rows, fields] = await db.query(sql, [ 
 					parseInt(req.params.empid), 
 					parseInt(req.body.f_parcel), 
 					req.body.transnumber, 
 					datestr,
 					datetimestr
-				],(err,result) => {
-			
-				if(err){
-					//console.error('Error Login',err)
-					if(err.code === 'ER_DUP_ENTRY'){
-						return res.status(200).json({success:'fail',msg:'YOU ALREADY HAVE A DATA SAVED FOR TODAY!!!'})
-					//return res.status(500).json({error:"error!"})
-					}else{
-						return res.status(200).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
-					}
-				}else{
-					if(result){
-					
-						//return res.status(200).json()
-						const retdata = {success:'ok'} 
-						//get chart data
-						getChartData(req, res, retdata )
+				]);
 
-						console.log("SAVING LOGIN gettingchart data")
-						
-					}else{
-						return res.status(400).json({error:'failed'})
-					}//eif
-					
-				}//eif
-			})
-			
+		const retdata = {success:'ok'} 
+		//get chart data
+		getChartData(req, res, retdata )
 
-		}catch (error){
-			console.error('Error Login',err)
-			res.status(500).json({error:"error!"})
+		console.log("SAVING LOGIN gettingchart data")
 
-		}finally{
-			closeDb(db)
+	} catch (err) {
+		console.error('Error:', err);
+
+		if(err.code === 'ER_DUP_ENTRY'){
+			return res.status(200).json({success:'fail',msg:'YOU ALREADY HAVE A DATA SAVED FOR TODAY!!!'})
+		//return res.status(500).json({error:"error!"})
+		}else{
+			return res.status(200).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
+		}
 		
-		}//end try
-	
-	}).catch((error)=>{
-        res.status(500).json({error:'Error'})
-    })
-	
+	}
+
 })
 //===========END LOGIN SAVE====
 
@@ -328,9 +269,10 @@ router.post('/savetransaction/:empid', async (req, res) => {
 	//console.log('==SAVE TRANSACTION INFO',req.body)
 	console.log('=========SAVE TRANSACTION INFO========',req.params.empid,', ',req.body.ff_transnumber)
 	
-	const [datestr, datetimestr] = nuDate()
+ 	try {
+		const [datestr, datetimestr] = nuDate()
 
-	const sql = ` UPDATE asn_transaction 
+		const sql = ` UPDATE asn_transaction 
 			SET 
 			parcel=?,
 			actual_parcel =?, 
@@ -340,14 +282,9 @@ router.post('/savetransaction/:empid', async (req, res) => {
 			logout_time = ?
 			WHERE emp_id = ?
 			and transaction_number = ? `
-	//console.log(sql, xdate[0],xdate[1])
-	connectDb()
-    .then((db)=>{  
-		
-		try{
-			db.query( sql,
 
-				[	
+
+		const [rows, fields] = await db.query(sql , [	
 					parseInt(req.body.x_parcel),
 					parseInt(req.body.ff_parcel),
 					parseFloat(req.body.f_amount), 
@@ -356,132 +293,70 @@ router.post('/savetransaction/:empid', async (req, res) => {
 					datetimestr,
 					parseInt(req.params.empid),
 					req.body.ff_transnumber
-				],
-				(err,result)=>{
-			
-				if (err) {
-					console.error("UPDATE INSERT error", err);
-					//results[0]
-					return res.json({						
-						status:false
-					})
-				}
-				if(result){
+				]);
 
-					//return res.status(200).json()
-					const retdata = {
-						message: "Transaction added Successfully!",
-						voice:"Transaction Added Successfully!",
-						status:true
-					}
-
-					//get chart data
-					getChartData(req, res, retdata )
-				
-				}//eif
-					
-			});//END DB QUERY
-
-		}catch (error){
-			// This catch block will handle errors that occur *before* the db.query callback is executed.
-			// For example, if db.query itself throws an error.
-			console.error("Error during query execution:", error);
-    		return res.status(500).json({ error: 'Unexpected server error' });
-		}finally{
-			closeDb(db)
+		const retdata = {
+			message: "Transaction added Successfully!",
+			voice:"Transaction Added Successfully!",
+			status:true
 		}
-		//end try
-    }).catch((error)=>{
-        res.status(500).json({error:'Error'})
-    }) 
+
+		//get chart data
+		getChartData(req, res, retdata )
+
+	} catch (err) {
+		console.error("UPDATE INSERT error", err);
+		//results[0]
+		return res.status(200).json({						
+			status:false
+		})	
+	
+	}
+ 
 })
 
 //=============END ADD RIDER TRANSACTION J&T GRP====//
 //===get chart data
-const getChartData= (req,res, retdata) =>{
+const getChartData = async(req,res, retdata) =>{
 
-	const [datestr, datetimestr] = nuDate()
-	
+	try {
 
-	//=== GET REALTIME DATA========
-	sql = `SELECT 
-		a.region,
-		count(c.xname) as reg,
-		count(b.emp_id) as logged,
-		COALESCE(CAST(round( count(b.emp_id)  / count(c.xname) *100,0) AS SIGNED),0)  as attendance_pct,
-		COALESCE(CAST(round(SUM(b.parcel),0)AS SIGNED),0) AS parcel,
-		COALESCE(CAST(round(SUM(b.actual_parcel),0)AS SIGNED), 0) AS parcel_delivered,
-		COALESCE(round(SUM(b.amount),2), 0) AS amount,
-		COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted,
-		COALESCE(CAST(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0)AS SIGNED),0) as qty_pct
-		FROM asn_hub a
-		LEFT JOIN asn_users c 
-		ON c.hub = a.hub
-		LEFT JOIN asn_transaction b 
-		ON b.emp_id = c.id
-		and b.created_at = '${datestr}' 
-		and c.grp_id = 1 and c.active = 1  
-		GROUP BY a.region
-		ORDER by a.region;
+		const [datestr, datetimestr] = nuDate()
 		
+		//=== GET REALTIME DATA========
+		sql = `SELECT 
+			a.region,
+			count(c.xname) as reg,
+			count(b.emp_id) as logged,
+			COALESCE(CAST(round( count(b.emp_id)  / count(c.xname) *100,0) AS SIGNED),0)  as attendance_pct,
+			COALESCE(CAST(round(SUM(b.parcel),0)AS SIGNED),0) AS parcel,
+			COALESCE(CAST(round(SUM(b.actual_parcel),0)AS SIGNED), 0) AS parcel_delivered,
+			COALESCE(round(SUM(b.amount),2), 0) AS amount,
+			COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted,
+			COALESCE(CAST(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0)AS SIGNED),0) as qty_pct
+			FROM asn_hub a
+			LEFT JOIN asn_users c 
+			ON c.hub = a.hub
+			LEFT JOIN asn_transaction b 
+			ON b.emp_id = c.id
+			and b.created_at = '${datestr}' 
+			and c.grp_id = 1 and c.active = 1  
+			GROUP BY a.region
+			ORDER by a.region;`
+
+		const [result, fields] = await db.query(sql);
 		
-		`
-
-		
-		// SELECT a.region, 
-		// a.area, 
-		// COALESCE(round(SUM(b.parcel)), 0) AS parcel, 
-		// COALESCE(round(SUM(b.actual_parcel)), 0) AS parcel_delivered, 
-		// COALESCE(round(SUM(b.amount),2), 0) AS amount, 
-		// COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted, 
-		// COALESCE(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0),0) as qty_pct 
-		// FROM asn_hub a 
-		// LEFT JOIN asn_users c 
-		// ON c.hub = a.hub 
-		// LEFT JOIN asn_transaction b 
-		// ON b.emp_id = c.id 
-		// and b.created_at like '2025-06%' 
-		// where c.grp_id=1 and c.active=1
-		// GROUP BY a.region,a.area O
-		// ORDER by parcel_delivered DESC, a.region;
-		
+		res.status(200).json( { success:'ok',data:result} )
 
 
+	} catch (err) {
+		console.error("get data error getchartdata()", err);
+		//results[0].
+		return res.send(500).json({						
+			error:err
+		})
+	}
 
-	//console.log('===== ',sql )
-	connectDb()
-    .then((db)=>{  
-		
-		try{
-			db.query( sql,
-				(err,result)=>{
-			
-				if (err) {
-					console.error("get data error getchartdata()", err);
-					//results[0].
-					return res.send(500).json({						
-						error:err
-					})
-				}else{
-					//results[0]
-					//=====SEND TO RIDER
-					//sendSocket(result)
-					res.status(200).json( { success:'ok',data:result} )
- 
-				}//eif
-					
-			});//END DB QUERY
-
-		}catch (error){
-			// This catch block will handle errors that occur *before* the db.query callback is executed.
-			// For example, if db.query itself throws an error.
-			console.error("Error during query execution:", error);
-    		return res.status(500).json({ error: 'Unexpected server error' });
-		}finally{
-			closeDb(db)
-		}
-		//end try
-	})
 
 }//end func
 
@@ -494,18 +369,17 @@ const sendSocket = (xdata) => {
 
 //===== piechart for rider====// 
 router.get('/getpiedata/:empid', async(req,res)=>{
+	try {
 
-	var series = new Date() 
-	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
-	var yyyy = series.getFullYear()
+		var series = new Date() 
+		var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
+		var yyyy = series.getFullYear()
 
-	series = yyyy+'-'+mm
-	
-	console.log('/getpiedata()')
-
-	connectDb()
-    .then((db)=>{
-		let sql =`select 
+		series = yyyy+'-'+mm
+		
+		console.log('/getpiedata()')
+		
+		const sql =`select 
 			round( ( sum(actual_parcel) / sum(parcel) )   * 100 ) as delivered_pct,
 			round( 100 - ( sum(actual_parcel) / sum(parcel) ) * 100 ) as undelivered_pct,
 			created_at,
@@ -514,19 +388,14 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 			where SUBSTRING(created_at,1,7) like '${series}%' 
 			and emp_id ='${req.params.empid}' `
 	
-		//console.log( sql )
+		const [results, fields] = await db.query( sql );
+		
+		res.status(200).json({data:results})
 
-		db.query( sql, (error, results)=>{
-			//console.log(error,results)	 
-
-			closeDb(db)
-
-			res.status(200).json({data:results})
-		})
-
-	}).catch((error)=>{
-		res.status(500).json({error:'Error'})
-	}) 
+	} catch (err) {
+		console.error('Error:', err);
+		res.status(500).send('Error occurred');
+	}
 
 })
 //===== end piechart for rider====//
@@ -563,11 +432,9 @@ router.get('/xmenu/:grpid', async(req,res)=>{
 
 //===test menu-submenu array->json--->
 router.get('/menu/:grpid', async(req,res)=>{
-	console.log('=== menu()')
-	connectDb()
-	.then((db)=>{ 
 
-		sql2 = `SELECT menu,
+	try {
+		sql = `SELECT menu,
 			menu_icon,
 			grouplist, 
 			JSON_ARRAYAGG( 
@@ -576,23 +443,23 @@ router.get('/menu/:grpid', async(req,res)=>{
 			WHERE FIND_IN_SET('${req.params.grpid}', grouplist)> 0 
 			GROUP BY menu 
 			ORDER BY sequence;`
-		//console.log(sql)
-		//console.log(sql2)
+		
+		const [results, fields] = await db.query(sql);
+		
+		res.status(200).json( results )
 
-		db.query( sql2 ,  (error, results)=>{
-			//console.log( error,results )
-			res.status(200).json( results )
-		})
-
-	}).catch((error)=>{
-		res.status(500).json({error:'Error'})
-	}) 
+	} catch (err) {
+		console.error('Error:', err);
+		res.status(500).send('Error occurred');
+	}
 
 })
 
 
 //==== for grid monthly transaction riders =======//
 router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
+
+	let connection;
 	var series = new Date() 
 	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
 	var yyyy = series.getFullYear()
@@ -604,13 +471,11 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 		return res.status(500).json({error:'Error! Please Try Again!'})
 	}
 
-	//console.log( 'series2 ',series2 )
+	try {
+		// Get a connection from the pool
+		connection = await db.getConnection();
 
-	connectDb()
-    .then((db)=>{ 
-
-		//====take-out comma after sql statement it will error if multiple statements is set to true
-		//DATE_FORMAT(a.Dates,'%d-%b %Y, %a') as Dates
+		// Set your SQL statements
 		sql = `
 			select DATE_FORMAT(a.Dates,'%Y-%m-%d') as Dates
 			from ( select last_day('${xseries}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
@@ -632,60 +497,49 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 				and emp_id =${req.params.empid} 
 				GROUP BY DATE_FORMAT(created_at,'%Y-%m-%d') `	 
 
-		//console.log(sql)
-		//console.log(sql2)
-		
-		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
+		// Execute the queries
+		const [results] = await connection.query(`${sql}; ${sql2}`, [null, null]);
 
-			//console.log(results[0],results[1])
-			
-			let trans, tick
+		// Process results
+		const results0 = results[0];
+		const results1 = results[1];
 
-			if(!results[0]){
-				
-				closeDb(db)
+		for (let zkey in results0) {
+		try {
+			const transIdx = results1.findIndex(x => x.created_at === results0[zkey].Dates);
+			results0[zkey].Dates = `${results0[zkey].Dates}`;
 
-				res.status(500).json({error:'Error'})
+			if (transIdx < 0) {
+			// no record
+			results0[zkey].parcel = 0;
+			results0[zkey].delivered = 0;
+			results0[zkey].total_amount = 0;
+			results0[zkey].amount_remitted = 0;
+			results0[zkey].remarks = "";
+			} else {
+			results0[zkey].parcel = results1[transIdx].parcel;
+			results0[zkey].delivered = `${results1[transIdx].actual_parcel}`;
+			results0[zkey].total_amount = parseFloat(results1[transIdx].amount);
+			results0[zkey].amount_remitted = parseFloat(results1[transIdx].actual_amount);
+			results0[zkey].remarks = results1[transIdx].remarks;
 			}
+		} catch (innerErr) {
+			// handle processing errors
+			throw innerErr; // propagate
+		}
+		}
 
-			for(let zkey in results[0]){
-				
-				trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
-				
-				results[0][zkey].Dates=`${results[0][zkey].Dates}`
-
-				if(trans<0){ //no record
-					tick= ""	
-					results[0][zkey].parcel = 0
-					results[0][zkey].delivered = 0
-					results[0][zkey].total_amount = 0
-					results[0][zkey].amount_remitted = 0
-					results[0][zkey].remarks = ""
-					//results[0][zkey].Dates = null
-				}else{
-
-					tick=`${results[1][trans].actual_parcel}`
-					
-					results[0][zkey].parcel = results[1][trans].parcel
-					results[0][zkey].delivered = tick
-					results[0][zkey].total_amount = parseFloat(results[1][trans].amount)
-					results[0][zkey].amount_remitted = parseFloat(results[1][trans].actual_amount)
-					results[0][zkey].remarks = results[1][trans].remarks
-					//results[0][zkey].Dates = results[1][trans].created_at
-
-				}//eif
-			}//endfor
-
-			///console.log( results[0])
-
-			closeDb(db);//CLOSE connection
-			//console.log(xtable)
-			res.status(200).json( results[0] )
-		})
-	
-	}).catch((error)=>{
-        res.status(500).json({error:'Error'})
-    }) 
+		// Done, send response
+		res.status(200).json(results0);
+		
+	} catch (err) {
+		console.error('Error in route:', err);
+		res.status(500).json({ error: 'Server Error' });
+	} finally {
+		if (connection) {
+		connection.release(); // release back to pool
+		}
+	}
 })
 
 //============= get monthly transaction riders =======//

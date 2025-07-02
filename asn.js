@@ -5,25 +5,7 @@ const app = express()
 const bodyParser = require('body-parser')
 
 //======== for db connection
-const { connectPg, closePg, connectDb, closeDb }  = require('./db')
-
-connectPg() 
-.then((pg)=>{
-    console.log("====ASN.JS ASIANOW J&T GROUP POSTGRESQL CONNECTION SUCCESS!====")
-    closePg(pg);
-})                        
-.catch((error)=>{
-    console.log("*** J&T GROUP ERROR, CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
-});  
-
-connectDb()
-.then((db)=>{
-    console.log("====ASN.JS ASIANOW  J&T GROUP MYSQL CONNECTION SUCCESS!====")
-    closeDb(db);
-})                        
-.catch((error)=>{
-    console.log("*** J&T GROUP ERROR, ASN.JS CAN'T CONNECT TO MYSQL DB!****",error.code)
-});  
+const db  = require('./db')
 
 const http = require('http')
 
@@ -122,10 +104,6 @@ app.use('/headcoor', headcoordRouter);
 
 const opmgrRouter = require('./routes/opmgr');
 app.use('/opmgr', opmgrRouter);
-
-//test paymongo
-const payRouter = require('./routes/paymongo');
-app.use('/luap', payRouter);
 
 const cookieParser = require('cookie-parser');
 app.use(cookieParser())

@@ -29,3 +29,7 @@ routes/api_bak02252k25.js
 .env
 Dockerfile
 routes/Dockerfile
+routes/api_bak06302k25.js
+routes/api_postgresql_version.js
+routes/coor_postgresql_version.js
+routes/template.js

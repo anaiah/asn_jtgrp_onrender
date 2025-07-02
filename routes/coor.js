@@ -10,20 +10,13 @@ const cors = require('cors')
 const path = require('path')
 const querystring = require("querystring")
 
-const { connectPg, closePg, closeDb, connectDb}  = require('../db')
+const {closeDb, connectDb}  = require('../db')
+const db = require('../db')
+
 
 const cookieParser = require('cookie-parser')
 app.use( cookieParser() )
 
-
-connectDb()
-.then((db)=>{
-    console.log("====coor.js API.JS ASIANOW  J&T GROUP MYSQL SUCCESS!====")
-    closeDb(db);
-})                        
-.catch((error)=>{
-    console.log("*** coor.js J&T GROUP ERROR, CAN'T CONNECT TO MYSQL DB!****",error.code)
-});  
 //=================================START HERE ============================
 
 const getmos = () => {
@@ -67,16 +60,16 @@ const nuDate = () =>{
 	
 }
 
-const {daily, monthly} = nuDate()
+const [daily, monthly] = nuDate()
 
 //==========SUMMARY OF COORDS
 router.get('/summary/:email', async(req,res)=>{
-    connectDb()
-    .then((db)=>{ 
+    console.log('firing summary()====')
 
+    try {
         const xmos = getmos()
-        console.log('firing summary()====')
-        sql2 =`SELECT 
+        
+        sql =`SELECT 
                 a.location,
                 a.hub,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
@@ -92,34 +85,22 @@ router.get('/summary/:email', async(req,res)=>{
                 GROUP BY a.hub
                 ORDER by a.location, 
                 parcel_delivered DESC;`
-            
-        //console.log(sql)
-        //console.log(sql2,)
 
-        db.query( sql2 , null , (error, results)=>{
-            
-            closeDb( db )
-            
-            //console.log(  results) 
-            res.status(200).send(results )
+        const [rows, fields] = await db.query(sql);
+        res.json(rows);
 
-        })
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
 
-    }).catch((error)=>{
-        res.status(500).json({error:'x'})
-    }) 
 })
 
 
 //===============syummary riders
 router.get('/ridersummary/:hub', async(req,res)=>{
-    connectDb()
-    .then((db)=>{ 
-        console.log('firing rider-summary()====')
-        
-        const xmos = getmos()
-
-        sql2 =`select a.xname as full_name,
+    try {
+        sql =`select a.xname as full_name,
                 a.id as emp_id, 
                 a.hub,
                 COALESCE(sum(b.parcel),0) as qty,
@@ -135,34 +116,29 @@ router.get('/ridersummary/:hub', async(req,res)=>{
                 where a.grp_id=1 and a.active= 1 and upper(a.hub) = '${req.params.hub}'
                 group by a.id
                 order by actual_qty DESC, full_name;`
-            
-        //console.log(sql)
-        console.log(sql2,)
 
-        db.query( sql2 , null , (error, results)=>{
-            
-            closeDb( db )
-            
-            //console.log(  results) 
-            res.status(200).send(results )
+        const [rows, fields] = await db.query(sql);
+        res.json(rows);
 
-        })
 
-    }).catch((error)=>{
-        res.status(500).json({error:'x'})
-    }) 
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
+
+
 })
 
 router.get('/mtdlocation/:email', async( req, res) =>{
-     connectDb()
-    .then((db)=>{ 
+
+    try {
 
         const xmos = getmos()
 
         console.log('mtd location()====')
         //before its monthly now daily
 
-        sql2 =`SELECT 
+        sql =`SELECT 
             a.location,
             COALESCE(SUM(b.parcel), 0) AS parcel,
             COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
@@ -175,73 +151,74 @@ router.get('/mtdlocation/:email', async( req, res) =>{
             WHERE a.coordinator_email = '${req.params.email}'
             GROUP BY a.location
             ORDER by parcel_delivered DESC`
-    
-        db.query( sql2 , null , (error, results)=>{
-            
-            closeDb( db )
-            //console.log(results)
-            
-            //console.log(  results) 
-            res.status(200).send(results )
 
-        })
+        const [rows, fields] = await db.query(sql);
+        res.json(rows);
 
-    }).catch((error)=>{
-        res.status(500).json({error:'x'})
-    }) 
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
+
+
+  
 
 })
-const mysqls = require('mysql2/promise')
+const mysqls = require('mysql/promise')
 
 router.get('/getlocation/:email',async(req, res)=>{
-    connectDb()
-    .then((db)=>{ 
 
+    try {
         const xmos = getmos()
 
-            console.log('get all location()====')
+        console.log('get all location()====')
 
-            sql2 =`SELECT 
-                a.id,
-                a.location
-                FROM asn_hub a
-                LEFT JOIN asn_users c ON c.hub = a.hub
-                WHERE a.coordinator_email = '${req.params.email}'
-                GROUP BY a.location
-                ORDER by a.location`
-        
-        db.query( sql2 , null , (error, results)=>{
-            
-            closeDb( db )
-            res.status(200).send(results )
+        sql =`SELECT 
+            a.id,
+            a.location
+            FROM asn_hub a
+            LEFT JOIN asn_users c ON c.hub = a.hub
+            WHERE a.coordinator_email = '${req.params.email}'
+            GROUP BY a.location
+            ORDER by a.location`
 
-        })
+        const [rows, fields] = await db.query(sql);
+        res.json(rows);
 
-    }).catch((error)=>{
-        res.status(500).json({error:'x'})
-    })
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
 })
 
 router.get('/gethub/:location/:email',async(req, res)=>{
+    try {
+        const [rows, fields] = await db.query(sql);
+        res.json(rows);
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
+
     connectDb()
     .then((db)=>{ 
 
         const xmos = getmos()
 
-            console.log('get all hub()====')
+        console.log('get all hub()====')
 
-            sql2 =`SELECT 
-                a.id,
-                a.hub
-                FROM asn_hub a
-                LEFT JOIN asn_users c ON c.hub = a.hub
-                WHERE a.coordinator_email = '${req.params.email}'
-                and lower(a.location) = '${req.params.location}'
-                GROUP BY a.hub
-                ORDER by a.hub`
+        sql =`SELECT 
+            a.id,
+            a.hub
+            FROM asn_hub a
+            LEFT JOIN asn_users c ON c.hub = a.hub
+            WHERE a.coordinator_email = '${req.params.email}'
+            and lower(a.location) = '${req.params.location}'
+            GROUP BY a.hub
+            ORDER by a.hub`
         
-        //console.log(sql2)
-        db.query( sql2 , null , (error, results)=>{
+        //console.log(sql)
+        db.query( sql , null , (error, results)=>{
             
             closeDb( db )
             res.status(200).send(results )
@@ -255,18 +232,15 @@ router.get('/gethub/:location/:email',async(req, res)=>{
 
 //==============ADD USER =====
 router.post('/adduser', async( req, res ) => {
-    console.log('=========SAVING TO user ============')
 
-	const sql = `INSERT into asn_users (full_name,xname,grp_id,email,pwd,pic,hub,active) 
+
+    try {
+        console.log('=========SAVING TO user ============')
+
+	    const sql = `INSERT into asn_users (full_name,xname,grp_id,email,pwd,pic,hub,active) 
                     VALUES(?,?,?,?,?,?,?,?)`
 
-    connectDb()
-    .then((db)=>{
-
-		try{
-
-			db.query( sql ,
-				[ 
+        const [rows, fields] = await db.query(sql,[ 
 					req.body.name.toUpperCase(), 
 					req.body.name.toUpperCase(), 
                     1,
@@ -275,56 +249,29 @@ router.post('/adduser', async( req, res ) => {
 					'guestmale.jpg',
                     req.body.hub.toUpperCase(),
                     1
-				],(err,result) => {
-			
-                    //console.log(err,result)
-				if(err){
-					//console.error('Error Login',err)
-					if(err.code === 'ER_DUP_ENTRY'){
-						return res.status(400).json({success:'fail',msg:'EMAIL ALREADY EXIST!!!'})
-					//return res.status(500).json({error:"error!"})
-					}else{
-						return res.status(400).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
-					}
-                }
+				],);
+
+        return res.status(200).json({success:'ok', msg:'RECORD SUCCESSFULLY SAVED!'})
+
+    } catch (err) {
+        console.error('Error:', err);//console.error('Error Login',err)
+        if(err.code === 'ER_DUP_ENTRY'){
+            return res.status(400).json({success:'fail',msg:'EMAIL ALREADY EXIST!!!'})
+        //return res.status(500).json({error:"error!"})
+        }else{
+            return res.status(400).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
+        }
+
+    }
     
-                if(result){
-                
-                    return res.status(200).json({success:'ok', msg:'RECORD SUCCESSFULLY SAVED!'})
-               
-                }//eif
-            	//eif
-			})
-			
-
-		}catch (error){
-			console.error('Error Login',err)
-			res.status(500).json({error:"error!"})
-
-		}finally{
-			closeDb(db)
-		
-		}//end try
-	
-	}).catch((error)=>{
-        res.status(500).json({error:'Error'})
-    })
-
 })
 
 router.get('/five/:email/:trans',async(req,res)=>{
-    try{
-    console.log('five')
-    const dbconfig  ={
-	host: 'srv1759.hstgr.io',
-	user: 'u899193124_asianowjt',
-	password: 'M312c4@g125c3',
-	database: 'u899193124_asianowjt'
-    }
 
-    const xmos = getmos()
-    //console.log(xmos)
-    sql2 =`SELECT 
+    try {
+        const xmos = getmos()
+        //console.log(xmos)
+        sql =`SELECT 
                 a.hub AS hub,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
@@ -337,31 +284,28 @@ router.get('/five/:email/:trans',async(req,res)=>{
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by parcel_delivered DESC`
-                
-    const conn = await mysqls.createConnection(dbconfig);
-    
-    const [results, fields] = await conn.execute( sql2 )
-    
-    
-    //console.log('tokwa',results)
-    res.json( results)
-    await conn.end()
 
-    }catch (err){
-        console.log(err)
-        res.status(500).json({error:'serror'})
+        const [rows, fields] = await db.query(sql);
+        
+        res.json(rows);
+
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
     }
+
+
 })
 
 router.get('/topfivehub/:email/:trans', async(req,res)=>{
-    connectDb()
-    .then((db)=>{ 
+
+    try {
 
         const xmos = getmos()
 
-       if(req.params.trans=="hub"){
+        if(req.params.trans=="hub"){
             console.log('top 5 hub()====')
-            sql2 =`SELECT 
+            sql =`SELECT 
                 a.hub AS hub,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
@@ -377,7 +321,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 LIMIT 5;`
         }else{
             console.log('top 5 riderschart()====')
-            sql2 =`SELECT 
+            sql =`SELECT 
                 c.xname AS xname,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
@@ -394,23 +338,15 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
                 LIMIT 5;`
             
         }//eif
-            
-        //console.log(sql)
-        //console.log(sql2,)
 
-        db.query( sql2 , null , (error, results)=>{
-            
-            
-            //console.log(results)
-            
-            //console.log(  results) 
-            res.send(results )
-            closeDb( db )
-        })
+        const [rows, fields] = await db.query(sql);
+        res.json(rows);
 
-    }).catch((error)=>{
-        res.status(500).json({error:'x'})
-    }) 
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
+ 
 })
 
 module.exports = router;
