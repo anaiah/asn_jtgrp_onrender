@@ -9,6 +9,9 @@ const pool = mysql.createPool({
     password: 'M312c4@g125c3',
     database: 'u899193124_asianowjt',
     port:3306,
+    waitForConnections: true, // default
+    connectionLimit: 200,       // <-- Set your pool size here
+    queueLimit: 0,      
     multipleStatements: true
 });
 
