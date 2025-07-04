@@ -89,9 +89,10 @@ router.get('/ridersummary/:hub', async(req,res)=>{
                 where a.grp_id=1 and a.active= 1 and upper(a.hub) = '${req.params.hub}'
                 group by a.id
                 order by actual_qty DESC, full_name;`
-
+        console.log(sql, ymos)
         const [rows, fields] = await db.query(sql);
         res.json(rows);
+
 
     } catch (err) {
         console.error('Error:', err);
