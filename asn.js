@@ -8,8 +8,11 @@ const bodyParser = require('body-parser')
 const EventEmitter = require('events');
 const bus = new EventEmitter();  // or perhaps your class
 bus.setMaxListeners(20)
+
 //======== for db connection
 const db  = require('./db')
+const { connectDb, closeDb } = require('../db')
+
 
 const http = require('http')
 
@@ -94,20 +97,16 @@ app.get('/', async(req, res)=>{
     const ip = await axios.get('https://api.ipify.org?format=json')
     console.log('i am blessed', ip)
 
-    connectDb()
-    .then((xdb)=>{ 
-        closeDb(xdb)
-        
-        console.log('connected')
+connectDb() 
+.then((pg)=>{
+    console.log("====api.js BRDIGE HOPE POSTGRESQL CONNECTION SUCCESS!====")
     res.send(ip.data)
+    closeDb(pg);
+})                        
+.catch((error)=>{
+    console.log("***ERROR, CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
+});  
 
-    }).catch((error)=>{
-        closeDb(xdb)
-    
-        res.status(500).json({error:'Error'})
-    
-    }) 
-    
     //res.sendFile(path.join(__dirname , 'index.html'))
 })
 
