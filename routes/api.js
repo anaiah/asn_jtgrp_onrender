@@ -64,14 +64,37 @@ const xlsx = require('xlsx');
 
 const mysqls = require('mysql2/promise')
 
+connectDb() 
+.then((pg)=>{
+    console.log("====asn.js MYSQL CONNECTION SUCCESS!====")
+    res.send(ip.data.ip)
+    closeDb(pg);
+})                        
+.catch((error)=>{
+    console.log("***ERROR, CAN'T CONNECT TO MYSQLS DB!****",error.code)
+});  
+
 
 module.exports = (io) => {
 const dbconfig  ={
-	host: 'srv1759.hstgr.io',
+	host: '153.92.15.50',//'srv1759.hstgr.io',
+	//host: 'srv1759.hstgr.io',
 	user: 'u899193124_asianowjt',
 	password: 'M312c4@g125c3',
 	database: 'u899193124_asianowjt'
 }
+
+
+
+connectDb() 
+.then((pg)=>{
+    console.log("====API CONNECTED MYSQL CONNECTION SUCCESS!====")
+    res.send(ip.data.ip)
+    closeDb(pg);
+})                        
+.catch((error)=>{
+    console.log("***ERROR, API.JS CAN'T CONNECT TO MYSQLS DB!****",error.code)
+});  
 
 // Upload endpoint
 router.post('/xlsclaims', upload.single('claims_upload_file'), async (req, res) => {
