@@ -193,7 +193,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 		
   	} catch (err) {
 
-		console.log('Error in storedproc Login:',err)
+		console.log('Error in Login')
 			
 		const xdata=[{
 			message: "No Matching Record!",
@@ -201,7 +201,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 			found:false
 		}]
 		
-		console.error('Error:', err);
+		//console.error('Error:', err);
     	
 		return res.status(200).json(xdata)  
     	//res.status(500).send('Error occurred');

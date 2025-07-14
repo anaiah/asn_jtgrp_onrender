@@ -99,12 +99,12 @@ app.get('/', async(req, res)=>{
 
 connectDb() 
 .then((pg)=>{
-    console.log("====api.js BRDIGE HOPE POSTGRESQL CONNECTION SUCCESS!====")
+    console.log("====asn.js MYSQL CONNECTION SUCCESS!====")
     res.send(ip.data.ip)
     closeDb(pg);
 })                        
 .catch((error)=>{
-    console.log("***ERROR, CAN'T CONNECT TO POSTGRESQL DB!****",error.code)
+    console.log("***ERROR, CAN'T CONNECT TO MYSQLS DB!****",error.code)
 });  
 
     //res.sendFile(path.join(__dirname , 'index.html'))
