@@ -4,7 +4,7 @@ const {Client} = require('pg');
 let client
 
 const pool = mysql.createPool({
-    host: 'srv1759.hstgr.io',
+    host: '153.92.15.50',//'srv1759.hstgr.io',
     user: 'u899193124_asianowjt',
     password: 'M312c4@g125c3',
     database: 'u899193124_asianowjt',
@@ -29,8 +29,9 @@ module.exports={
 
         return new Promise((resolve,reject)=>{
             const con = mysql.createConnection( { 
-                host: 'srv1759.hstgr.io',
-                user: 'u899193124_asianowjt',
+                //host: 'srv1759.hstgr.io',
+                host: '153.92.15.50',//'srv1759.hstgr.io',
+                    user: 'u899193124_asianowjt',
                 password: 'M312c4@g125c3',
                 database: 'u899193124_asianowjt',
                 port:3306,

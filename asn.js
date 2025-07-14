@@ -95,12 +95,12 @@ app.get('/',(req, res)=>{
 const axios = require('axios')
 app.get('/', async(req, res)=>{
     const ip = await axios.get('https://api.ipify.org?format=json')
-    console.log('i am blessed', ip)
+    console.log('i am blessed',ip.data.ip)
 
 connectDb() 
 .then((pg)=>{
     console.log("====api.js BRDIGE HOPE POSTGRESQL CONNECTION SUCCESS!====")
-    res.send(ip.data)
+    res.send(ip.data.ip)
     closeDb(pg);
 })                        
 .catch((error)=>{
