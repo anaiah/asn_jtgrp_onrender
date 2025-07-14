@@ -90,7 +90,7 @@ router.get('/summary/:email', async(req,res)=>{
         res.json(rows);
 
     } catch (err) {
-        console.error('Error:', err);
+        console.error('Error:', err); 
         res.status(500).send('Error occurred');
     }
 

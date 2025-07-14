@@ -28,7 +28,7 @@ module.exports={
     connectDb :async()=>{
 
         return new Promise((resolve,reject)=>{
-            const con = mysql.createConnection( {
+            const con = mysql.createConnection( { 
                 host: 'srv1759.hstgr.io',
                 user: 'u899193124_asianowjt',
                 password: 'M312c4@g125c3',
