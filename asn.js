@@ -89,8 +89,10 @@ app.get('/',(req, res)=>{
     //res.sendFile(path.join(__dirname , 'index.html'))
 })
 */
-app.get('/myip', async(req, res)=>{
+const axios = require('axios')
+app.get('/', async(req, res)=>{
     const ip = await axios.get('https://api.ipify.org?format=json')
+    console.log('i am blessed', ip)
     res.send(ip.data)
     //res.sendFile(path.join(__dirname , 'index.html'))
 })
