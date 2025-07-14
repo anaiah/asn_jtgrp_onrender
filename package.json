@@ -1,7 +1,7 @@
 {
-  "name": "vantaztic",
+  "name": "asianowapp-jtx",
   "version": "1.0.1",
-  "description": "Vantaztic API onrender.com",
+  "description": "https://asianowapp.com/jtx",
   "main": "asn.js",
   "dependencies": {
     "axios": "^1.4.0",
@@ -38,12 +38,12 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "build": "nodemon --exec node --env-file=.env asn.js",
+    "build": "node asn.js",
     "dev": "nodemon --exec node --env-file=.env asn.js",
     "test": "node asn.js"
   },
   "keywords": [
-    "Vantaztic"
+    "ASN J&T"
   ],
   "author": "Carlo O. Dominguez",
   "license": "ISC"

@@ -117,7 +117,7 @@ router.get('/ridersummary/:hub', async(req,res)=>{
                 group by a.id
                 order by actual_qty DESC, full_name;`
 
-                console.log( sql )
+                //console.log( sql )
         const [rows, fields] = await db.query(sql);
         res.json(rows);
 
