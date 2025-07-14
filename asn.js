@@ -88,12 +88,13 @@ app.get('/',(req, res)=>{
     res.send('API ready to serve!')
     //res.sendFile(path.join(__dirname , 'index.html'))
 })
-
-app.get('/test',(req, res)=>{
-    res.send(`Enuff with the test it's working fine!`)
+*/
+app.get('/myip', async(req, res)=>{
+    const ip = await axios.get('https://api.ipify.org?format=json')
+    res.send(ip.data)
     //res.sendFile(path.join(__dirname , 'index.html'))
 })
-*/
+
 
 //===============Main Routes
 const usersRouter = require('./routes/api')(io);
