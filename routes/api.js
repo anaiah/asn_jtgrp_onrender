@@ -126,18 +126,17 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 	const{uid,pwd}= req.params
 
 	try {
-		let sql =`CALL authenticate_user(?,?)` 
-        
-    	const [data, fields] = await db.query(sql,[uid,pwd]);
-    	
-		const user = data[0][0]
 
-		//console.log('logindata', user)
 
-		if(user){
-			
-			//get ip address
-			//const ipaddress = IP.address()
+		const sql =`select * from asn_users where email=? and pwd=?` 
+							
+		const result = await db.query(sql, [ uid, pwd ]);
+		
+		console.log('logindata', result)
+
+		if(result.length>0){
+			const user = result[0][0]
+
 			let aData = []
 			let obj =
 			{
@@ -156,8 +155,41 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 			aData.push(obj)
 
 			return res.status(200).json(aData)
+		}
+
+		//res.json(result.rows[0]);
+		// let sql =`CALL authenticate_user(?,?)` 
+        
+    	// const [data, fields] = await db.query(sql,[uid,pwd]);
+    	
+		// const user = data[0][0]
+
+		// //console.log('logindata', user)
+
+		// if(user){
 			
-		}//EIF
+		// 	//get ip address
+		// 	//const ipaddress = IP.address()
+		// 	let aData = []
+		// 	let obj =
+		// 	{
+		// 		email	: 	user.email,
+		// 		fname   :   user.full_name.toUpperCase(),
+		// 		message	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name.toUpperCase()}!!! `,
+		// 		voice	: 	`${user.full_name}!!`,		
+		// 		grp_id	:	user.grp_id,
+		// 		pic 	: 	user.pic,
+		// 		ip_addy :   '',
+		// 		id      :   user.id,
+		// 		region  :   user.region,
+		// 		position:   user.position,
+		// 		found:true
+		// 	}
+		// 	aData.push(obj)
+
+		// 	return res.status(200).json(aData)
+			
+		// }//EIF
 		
   	} catch (err) {
 
