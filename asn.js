@@ -93,7 +93,21 @@ const axios = require('axios')
 app.get('/', async(req, res)=>{
     const ip = await axios.get('https://api.ipify.org?format=json')
     console.log('i am blessed', ip)
+
+    connectDb()
+    .then((xdb)=>{ 
+        closeDb(xdb)
+        
+        console.log('connected')
     res.send(ip.data)
+
+    }).catch((error)=>{
+        closeDb(xdb)
+    
+        res.status(500).json({error:'Error'})
+    
+    }) 
+    
     //res.sendFile(path.join(__dirname , 'index.html'))
 })
 
