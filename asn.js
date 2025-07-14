@@ -11,7 +11,7 @@ bus.setMaxListeners(20)
 
 //======== for db connection
 const db  = require('./db')
-const { connectDb, closeDb } = require('../db')
+const { connectDb, closeDb } = require('./db')
 
 
 const http = require('http')
