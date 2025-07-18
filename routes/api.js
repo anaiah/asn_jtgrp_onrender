@@ -396,7 +396,7 @@ const getChartData = async(req,res, retdata) =>{
 			ON b.emp_id = c.id
 			and b.created_at = '${datestr}' 
 			and c.grp_id = 1 and c.active = 1  
-			GROUP BY a.region
+			GROUP BY a.region 
 			ORDER by a.region;`
 
 		const [result, fields] = await db.query(sql);

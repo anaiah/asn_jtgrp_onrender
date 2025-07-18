@@ -167,7 +167,7 @@ io.on('connection', (socket) => {
     socket.on('sendtoOpMgr', (data) => {
         let xdata = data
         
-        //loop thru array socket
+        //loop thru array socket 
         connectedSockets.forEach(socketInfo => {
             if(parseInt(socketInfo.mode)===5){
                socket.to( socketInfo.socketId ).emit('loadchart', data ) 
