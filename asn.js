@@ -147,11 +147,14 @@ io.on('connection', (socket) => {
 		userName = userNamex.token
 		
 		userMode = userNamex.mode
+        userId = userNamex.emp_id
+
 		console.log('mode==', userMode)
 				
 		connectedSockets.push({
 				socketId: socket.id,
 				mode: userMode,
+                emp_id: userId,
 				userName
 		})		
 				
