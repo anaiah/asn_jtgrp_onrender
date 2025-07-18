@@ -112,12 +112,12 @@ router.get('/ridersummary/:hub', async(req,res)=>{
                 from asn_users a
                 left join asn_transaction b 
                 on b.emp_id = a.id
-                and b.created_at like '${daily}%' 
+                and b.created_at = '${daily}' 
                 where a.grp_id=1 and a.active= 1 and upper(a.hub) = '${req.params.hub}'
                 group by a.id
                 order by actual_qty DESC, full_name;`
 
-                //console.log( sql )
+                console.log( `====RIDER DAILY ${daily}` )
         const [rows, fields] = await db.query(sql);
         res.json(rows);
 

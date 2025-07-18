@@ -155,7 +155,7 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 							
 		const result = await db.query(sql, [ uid, pwd ]);
 		
-		console.log('logindata', result)
+		console.log('logindata', result[0])
 
 		if(result.length>0){
 			const user = result[0][0]
