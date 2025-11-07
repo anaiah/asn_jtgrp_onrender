@@ -1,0 +1,41 @@
+CHECKING IF HUB IS IN  ASN_HUB.HUB
+SELECT
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM asn_users au
+            WHERE EXISTS (
+                SELECT 1
+                FROM asn_hub ah
+                WHERE ah.hub = au.hub
+            )
+        ) THEN 'Exists'
+        ELSE 'Does Not Exist'
+    END AS HubExistence;
+
+
+
+SELECT
+    CASE
+        WHEN COUNT(au.hub) > 0 THEN 'Exists'
+        ELSE 'Does Not Exist'
+    END AS HubExistence
+FROM asn_users au
+INNER JOIN asn_hub ah ON au.hub = ah.hub;
+
+
+SELECT DISTINCT hub
+FROM asn_users au
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM asn_hub ah
+    WHERE ah.hub = au.hub
+);
+
+
+SELECT DISTINCT au.hub
+FROM asn_users au
+LEFT JOIN asn_hub ah ON au.hub = ah.hub
+WHERE ah.hub IS NULL;
+
+

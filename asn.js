@@ -93,18 +93,19 @@ app.get('/',(req, res)=>{
 })
 */
 const axios = require('axios')
+
 app.get('/', async(req, res)=>{
     const ip = await axios.get('https://api.ipify.org?format=json')
     console.log('i am blessed',ip.data.ip)
 
 connectDb() 
-.then((pg)=>{
+.then((db)=>{
     console.log("====asn.js MYSQL CONNECTION SUCCESS!====")
     res.send(ip.data.ip)
-    closeDb(pg);
+    closeDb(db);
 })                        
 .catch((error)=>{
-    console.log("***ERROR, CAN'T CONNECT TO MYSQLS DB!****",error.code)
+    console.log("***ERROR, CAN'T CONNECT TO MYSQL DB!****",error.code)
 });  
 
     //res.sendFile(path.join(__dirname , 'index.html'))

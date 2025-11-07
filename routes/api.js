@@ -64,82 +64,254 @@ const xlsx = require('xlsx');
 
 const mysqls = require('mysql2/promise')
 
-connectDb() 
-.then((pg)=>{
-    console.log("====asn.js MYSQL CONNECTION SUCCESS!====")
-    res.send(ip.data.ip)
-    closeDb(pg);
-})                        
-.catch((error)=>{
-    console.log("***ERROR, CAN'T CONNECT TO MYSQLS DB!****",error.code)
-});  
 
 
 module.exports = (io) => {
-const dbconfig  ={
-	host: '153.92.15.50',//'srv1759.hstgr.io',
-	//host: 'srv1759.hstgr.io',
+
+	const dbconfig  ={
+	//host: '153.92.15.50',//'srv1759.hstgr.io',
+	host: 'srv1759.hstgr.io',
 	user: 'u899193124_asianowjt',
 	password: 'M312c4@g125c3',
 	database: 'u899193124_asianowjt'
 }
 
 
+const formatDate = (dateValue) => {
+  if (!dateValue) return null;
 
-connectDb() 
-.then((pg)=>{
-    console.log("====API CONNECTED MYSQL CONNECTION SUCCESS!====")
-    res.send(ip.data.ip)
-    closeDb(pg);
-})                        
-.catch((error)=>{
-    console.log("***ERROR, API.JS CAN'T CONNECT TO MYSQLS DB!****",error.code)
-});  
+  if (typeof dateValue === 'number') {
+    // Convert Excel serial date to JS Date
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel's epoch
+    const date = new Date(excelEpoch.getTime() + dateValue * 86400 * 1000);
+    const year = date.getUTCFullYear();
+    const month = ('0' + (date.getUTCMonth() + 1)).slice(-2);
+    const day = ('0' + date.getUTCDate()).slice(-2);
+    return `${year}-${month}-${day}`;
+  } else {
+    // handle string date
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return null;
+    const year = date.getFullYear();
+    const month = ('0' + (date.getMonth() + 1)).slice(-2);
+    const day = ('0' + date.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
+  }
+};
 
-// Upload endpoint
-router.post('/xlsclaims', upload.single('claims_upload_file'), async (req, res) => {
+// === HRIS UPLOAD EXCEL ===
+router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
+  console.log('==FIRING hris XLS for region:', req.body.hrisload_region);
+  try {
+    const regionCode = req.body.hrisload_region; // e.g., SMNL
+    const poscode = req.body.hrisload_position; // '01', '02', etc.
+    const regionLower = regionCode.toLowerCase();
+
+    const xtable = `besi_users_${regionLower}`;
+    const seriesTable = `besi_${regionCode.toLowerCase()}_series`;
+
+    const conn = await mysqls.createConnection(dbconfig);
+
+    // Fetch current series JSON once
+    const [seriesRows] = await conn.execute(`SELECT series_data FROM ${seriesTable} WHERE id=1`);
+
+	let seriesData;
+	if (seriesRows.length && seriesRows[0]?.series_data) {
+		try {
+			seriesData = JSON.parse(seriesRows[0].series_data);
+		} catch (e) {
+			console.error('Failed to parse series_data JSON', e);
+			seriesData = [
+			{ "code": "01", "series": 1 },
+			{ "code": "02", "series": 1 }
+			];
+		}
+		} else {
+		seriesData = [
+			{ "code": "01", "series": 1 },
+			{ "code": "02", "series": 1 }
+		];
+	}
+
+    // Find the current series for this position, or initialize
+    let seriesObj = seriesData.find(s => s.code === poscode);
+    if (!seriesObj) {
+      seriesObj = { code: poscode, series: 1 };
+      seriesData.push(seriesObj);
+    }
+
+    let lastSeriesNumber = seriesObj.series; // get the latest series number store in var
+
+    // Helper: get date string as yymmdd
+    const getDateString = (date) => {
+      if (!date) return '';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '';
+      const y = d.getFullYear().toString().slice(-2);
+      const m = ('0' + (d.getMonth() + 1)).slice(-2);
+      const day = ('0' + d.getDate()).slice(-2);
+      return `${m}${day}${y}`;
+    };
+
+    // Read Excel
+    const workbook = xlsx.read(req.file.buffer);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(worksheet);
+
+    for (const record of data) {
+		if (!record || Object.values(record).every(val => val === null || val === '')) {
+			continue; // skip empty
+		}
+
+		// Destructure fields
+		const {
+			ocw_id,
+			jms_id,
+			first_name,
+			middle_name,
+			last_name,
+			full_name,
+			date_hired,
+			email,
+			hub,
+			position_code
+		} = record;
+
+		const formattedDateHired = formatDate(date_hired);
+		const emailLower = (email ?? '').toLowerCase();
+
+		// Generate emp_id using lastSeriesNumber
+		const datePart = getDateString(formattedDateHired) || getDateString(new Date());
+		const seqStr = ('0000' + lastSeriesNumber).slice(-4); // pad 4 digits
+
+		const emp_id = `BE-${regionCode.toUpperCase()}-${datePart}-${poscode}${seqStr}`;
+
+		// Insert user
+		const query = `INSERT INTO ${xtable} (besi_id, ocw_id, jms_id, first_name, middle_name, last_name, full_name, date_hired, email, hub, position_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+		
+		// Replace undefined with null
+		const params = [
+			emp_id,
+			ocw_id ?? null,
+			jms_id ?? null,
+			first_name ?? null,
+			middle_name ?? null,
+			last_name ?? null,
+			full_name ?? null,
+			formattedDateHired , // use formatted date here
+			emailLower,
+			hub ?? null,
+			position_code ?? null
+		];
+
+		await conn.execute(query, params);
+
+		// Increment for next record
+		lastSeriesNumber += 1;
+	}
+
+	// Now update the series table with latest number
+	seriesObj.series = lastSeriesNumber; // update the object
+	await conn.execute(`UPDATE ${seriesTable} SET series_data = ? WHERE id=1`, [JSON.stringify(seriesData)]);
+
+	await conn.end();
+
+	console.log('SUCCESS: Excel uploaded and data inserted. Series updated.');
+	res.status(200).json({ message: 'H.R.I.S. Excel File uploaded and data saved!', status: true });
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+router.post('/xlshriszzzzzzz', upload.single('hris_upload_file'), async (req, res) => {
 	
-	console.log('==FIRING XLS CLAIMS===')
-    try {
-        // Read the file buffer
-        const workbook = xlsx.read(req.file.buffer);
-        
-        // Assuming the data is in the first sheet
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        
-        // Convert the sheet to JSON
-        const data = xlsx.utils.sheet_to_json(worksheet);
-		
-		//console.log('json value ', data)
-		const insertPromises =[]
- 
-		
+	console.log('==FIRING hris XLS ===', req.body.hrisload_region)
+
+	try {
+
+		const poscode = req.body.hrisload_position; //01, 02 or 08
+
+		let xtable = `besi_users_${req.body.hrisload_region.toLowerCase()}`; //region is 'SMNL','CMNVA' OR 'CMNL'
+		console.log('inserting to table ', xtable);
+
+		// Read the file buffer
+		const workbook = xlsx.read(req.file.buffer);
+		// Assuming the data is in the first sheet
+		const sheetName = workbook.SheetNames[0];
+		const worksheet = workbook.Sheets[sheetName];
+
+		// Convert the sheet to JSON
+		const data = xlsx.utils.sheet_to_json(worksheet);
+
+		const insertPromises = [];
 		const conn = await mysqls.createConnection(dbconfig);
 
-			for( const record of data){
-				//onst { batch_id,emp_id,full_name, track_number, claims_reason, hubs_location, amt } = record;
-				const { batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, batch_file, amt } = record ;
-				const query = `INSERT INTO asn_claims (batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, batch_file, amount) 
-							VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-				
-				insertPromises.push( await conn.execute( query , [batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, batch_file, amt]))
-				console.log(query,batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, batch_file, amt)
-			}
-			await Promise.all(insertPromises)
-			await conn.end()
-		
-			console.log('CLOSING STREAM.. EXCEL FILE UPLOADED SUCCESSFULLY!')
-			return res.status(200).json({message:'Claims Excel File Upload Successfully!',status:true})
+		for (const record of data) {
 
-		
-		
-    } catch (error) {  //end try
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-		
-});
+			// Skip empty objects
+			if (!record || Object.values(record).every(val => val === null || val === '')) {
+				continue; // Skip this empty record
+			}
+
+			// Destructure fields
+			const {
+				ocw_id,
+				jms_id,
+				first_name,
+				middle_name,
+				last_name,
+				full_name,
+				date_hired,
+				email,
+				hub,
+				position_code
+			} = record;
+
+            //console.log(date_hired)
+
+			// Parse and format date_hired
+        	const formattedDateHired = formatDate(date_hired);
+			const emailLower = (email ?? '').toLowerCase();
+
+			// Replace undefined with null
+			const params = [
+				ocw_id ?? null,
+				jms_id ?? null,
+				first_name ?? null,
+				middle_name ?? null,
+				last_name ?? null,
+				full_name ?? null,
+				formattedDateHired , // use formatted date here
+				emailLower,
+				hub ?? null,
+				position_code ?? null
+			];
+			
+			const query = `INSERT INTO ${xtable} (ocw_id, jms_id, first_name, middle_name, last_name, full_name, date_hired, email, hub, position_code) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+			// Execute insertion with try-catch for each row if needed
+			await conn.execute(query, params);
+			
+			console.log(query, ...params);
+		}
+
+		await conn.end();
+
+		console.log('CLOSING STREAM.. EXCEL FILE UPLOADED SUCCESSFULLY!');
+		return res.status(200).json({ message: 'H.R.I.S. Excel File Uploaded Successfully!!!', status: true });
+
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: 'Internal Server Error' });
+	}
+
+})
+
 
 
 //========login post
@@ -338,13 +510,14 @@ router.post('/savetransaction/:empid', async (req, res) => {
 			WHERE emp_id = ?
 			and transaction_number = ? `
 
-
+		const escapedText = req.body.ff_remarks.replace(/\r\n|\r|\n/g, ','); // Replace all newline variations with <br>
+					
 		const [rows, fields] = await db.query(sql , [	
 					parseInt(req.body.x_parcel),
 					parseInt(req.body.ff_parcel),
 					parseFloat(req.body.f_amount), 
 					parseFloat(req.body.ff_amount), 
-					req.body.ff_remarks,
+					escapedText	,
 					datetimestr,
 					parseInt(req.params.empid),
 					req.body.ff_transnumber
