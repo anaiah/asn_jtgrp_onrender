@@ -63,6 +63,7 @@ const upload = multer({ storage });
 const xlsx = require('xlsx');
 
 const mysqls = require('mysql2/promise')
+const { emitWarning } = require('process')
 
 
 
@@ -98,6 +99,79 @@ const formatDate = (dateValue) => {
     return `${year}-${month}-${day}`;
   }
 };
+
+//=====Search Employee====//
+router.post('/searchemp', upload.none(), async (req, res) => {
+	//console.log( req.body )
+	const filters = {
+        name: req.body.filter_name,
+        id: req.body.filter_id,
+        region: req.body.filter_region,
+        position: req.body.filter_position
+    };
+
+    try {
+        const { sql, params } = buildPersonnelSearchQuery(filters);
+        console.log('Generated SQL:', sql);
+        console.log('Parameters:', params);
+
+        // =====================================================================
+        // Execute the query using the mysql2 connection pool
+        const [rows] = await db.query(sql, params); // pool.execute returns [rows, fields]
+        // =====================================================================
+		console.log(rows)
+		return res.status(200).json({success:'true',msg:'SUCCESS',xdata:rows})
+        //res.json(rows); // Send the query results back to the frontend
+
+    } catch (error) {
+        console.error('Error executing search query:', error.message);
+        // Send a user-friendly error message
+        res.status(400).json({ success: false, message: error.message });
+    }
+	
+});
+
+function buildPersonnelSearchQuery(filters) {
+    const { name, id, region, position } = filters;
+    const params = [];
+    const conditions = [];
+
+    
+    // Assuming your table names are like `besi_users_ncr_cmnl`
+    const tableName = `besi_users_${region.trim().toLowerCase().replace(/-/g, '_')}`;
+
+    // Quote table name with backticks for MySQL
+    let sql = `SELECT * FROM \`${tableName}\``;
+
+    // 2. Add optional conditions if values are provided
+    if (name && name.trim() !== '') {
+        // Use LOWER() for explicit case-insensitive matching in MySQL, or rely on collation
+        // LIKE %?% for partial match.
+        conditions.push(`LOWER(full_name) LIKE LOWER(?)`);
+        params.push(`%${name.trim()}%`);
+    }
+
+    if (id && id.trim() !== '') {
+        // Assuming besi_id is an exact match and typically not case-sensitive
+        conditions.push(`besi_id = ?`);
+        params.push(id.trim());
+    }
+
+    if (position && position.trim() !== '') {
+        conditions.push(`position = ?`);
+        params.push(position.trim());
+    }
+
+    // 3. Combine conditions into the WHERE clause
+    if (conditions.length > 0) {
+        sql += ` WHERE ` + conditions.join(' AND '); // Combine conditions with AND
+    }
+
+    // Add ORDER BY for consistent results (optional)
+    sql += ` ORDER BY full_name ASC;`;
+
+    return { sql, params };
+}
 
 // === HRIS UPLOAD EXCEL ===
 router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
@@ -227,93 +301,6 @@ router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
 });
 
 
-router.post('/xlshriszzzzzzz', upload.single('hris_upload_file'), async (req, res) => {
-	
-	console.log('==FIRING hris XLS ===', req.body.hrisload_region)
-
-	try {
-
-		const poscode = req.body.hrisload_position; //01, 02 or 08
-
-		let xtable = `besi_users_${req.body.hrisload_region.toLowerCase()}`; //region is 'SMNL','CMNVA' OR 'CMNL'
-		console.log('inserting to table ', xtable);
-
-		// Read the file buffer
-		const workbook = xlsx.read(req.file.buffer);
-		// Assuming the data is in the first sheet
-		const sheetName = workbook.SheetNames[0];
-		const worksheet = workbook.Sheets[sheetName];
-
-		// Convert the sheet to JSON
-		const data = xlsx.utils.sheet_to_json(worksheet);
-
-		const insertPromises = [];
-		const conn = await mysqls.createConnection(dbconfig);
-
-		for (const record of data) {
-
-			// Skip empty objects
-			if (!record || Object.values(record).every(val => val === null || val === '')) {
-				continue; // Skip this empty record
-			}
-
-			// Destructure fields
-			const {
-				ocw_id,
-				jms_id,
-				first_name,
-				middle_name,
-				last_name,
-				full_name,
-				date_hired,
-				email,
-				hub,
-				position_code
-			} = record;
-
-            //console.log(date_hired)
-
-			// Parse and format date_hired
-        	const formattedDateHired = formatDate(date_hired);
-			const emailLower = (email ?? '').toLowerCase();
-
-			// Replace undefined with null
-			const params = [
-				ocw_id ?? null,
-				jms_id ?? null,
-				first_name ?? null,
-				middle_name ?? null,
-				last_name ?? null,
-				full_name ?? null,
-				formattedDateHired , // use formatted date here
-				emailLower,
-				hub ?? null,
-				position_code ?? null
-			];
-			
-			const query = `INSERT INTO ${xtable} (ocw_id, jms_id, first_name, middle_name, last_name, full_name, date_hired, email, hub, position_code) 
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-			// Execute insertion with try-catch for each row if needed
-			await conn.execute(query, params);
-			
-			console.log(query, ...params);
-		}
-
-		await conn.end();
-
-		console.log('CLOSING STREAM.. EXCEL FILE UPLOADED SUCCESSFULLY!');
-		return res.status(200).json({ message: 'H.R.I.S. Excel File Uploaded Successfully!!!', status: true });
-
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: 'Internal Server Error' });
-	}
-
-})
-
-
-
 //========login post
 router.get('/loginpost/:uid/:pwd',async(req,res)=>{
     console.log('firing login with Authenticate====== ',req.params.uid,req.params.pwd,' ========')
@@ -321,7 +308,6 @@ router.get('/loginpost/:uid/:pwd',async(req,res)=>{
 	const{uid,pwd}= req.params
 
 	try {
-
 
 		const sql =`select * from asn_users where email=? and pwd=?` 
 							
