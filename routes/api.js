@@ -158,7 +158,7 @@ function buildPersonnelSearchQuery(filters) {
     }
 
     if (position && position.trim() !== '') {
-        conditions.push(`position = ?`);
+        conditions.push(`position_code = ?`);
         params.push(position.trim());
     }
 
