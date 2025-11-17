@@ -432,12 +432,26 @@ router.post('/timekeep', upload.none(), async (req, res) => {
 router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
     console.log('firing login with Authenticate====== ', req.params.uid, req.params.pwd, req.params.region, ' ========')
 
-    const { uid, pwd, region } = req.params;
+    let  { uid, pwd, region } = req.params;
     let result; // Declare 'result' in a higher scope so it's accessible after the if/else
     let user;   // Declare 'user' here as well, to ensure scope if no user is found
+ 
+	// console.log('Value of region:', region);
+	// console.log('Type of region:', typeof region);
+	// console.log('Is region truthy?', !!region); // Converts to boolean
+	// console.log('Is region.trim() empty?', (region && region.trim() === '')); // Only if region is truthy
+
+	if (typeof region === 'string' && region.toLowerCase() === 'null') {
+		region = null; // Convert the string "null" to the actual null value
+	}
+	// Or handle empty string inputs similarly if they might come as "undefined" string
+	if (typeof region === 'string' && region.toLowerCase() === 'undefined') {
+		region = undefined;
+	}
 
     try {
-        if (region !== "") {
+         // Check if region is valid
+        if (region && region.trim() !== "") {
             //console.log(region, uid);
             const sql = `select * from besi_users_${region} where email=? `;
             result = await db.query(sql, [uid]); // Assign to the already declared 'result'
