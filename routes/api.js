@@ -301,95 +301,205 @@ router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
 });
 
 
-//========login post
-router.get('/loginpost/:uid/:pwd',async(req,res)=>{
-    console.log('firing login with Authenticate====== ',req.params.uid,req.params.pwd,' ========')
-    
-	const{uid,pwd}= req.params
+// --- Make sure your nuDate() function is defined and accessible ---
+// Example nuDate() function (adjust if yours is different):
+const hrisDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
 
-	try {
+    const datestr = `${year}-${month}-${day}`; // YYYY-MM-DD
+    const datetimestr = `${datestr} ${hours}:${minutes}:${seconds}`; // YYYY-MM-DD HH:MM:SS
+    return [datestr, datetimestr];
+};
+// --- End nuDate() definition ---
 
-		const sql =`select * from asn_users where email=? and pwd=?` 
-							
-		const result = await db.query(sql, [ uid, pwd ]);
-		
-		console.log('logindata', result[0])
 
-		if(result.length>0){
-			const user = result[0][0]
+router.post('/timekeep', upload.none(), async (req, res) => {
+    // Get current date and datetime strings
+    const [today_date_str, now_datetime_str] = hrisDate();
+    const xtable = `besi_timekeep_${req.body.region}`;
+    const userId = parseInt(req.body.user_id);
+    const actionType = req.body.action_type; // Expects "1" for login, "2" for logout
 
-			let aData = []
-			let obj =
-			{
-				email	: 	user.email,
-				fname   :   user.full_name.toUpperCase(),
-				message	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name.toUpperCase()}!!! `,
-				voice	: 	`${user.full_name}!!`,		
-				grp_id	:	user.grp_id,
-				pic 	: 	user.pic,
-				ip_addy :   '',
-				id      :   user.id,
-				region  :   user.region,
-				position:   user.position,
-				found:true
-			}
-			aData.push(obj)
+    try {
+        // --- Step 1: Check for existing entry for this user and today's date ---
+        // We select the 'id' (primary key) to use for subsequent UPDATE statements
+        const checkEntrySql = `
+            SELECT id, login_time, logout_time
+            FROM ${xtable}
+            WHERE user_id = ? AND entry_date = ?;
+        `;
+        const [existingEntries] = await db.query(checkEntrySql, [userId, today_date_str]);
+        const existingEntry = existingEntries[0]; // Will be undefined if no entry exists
 
-			return res.status(200).json(aData)
-		}
+        // --- Logic for Login Action (actionType === "1") ---
+        if (actionType === "1") {
+            if (existingEntry) {
+                // An entry for this user and date already exists
+                if (existingEntry.login_time) {
+                    // User has already logged in today
+                    console.log(`Duplicate login attempt for user ${userId} on ${today_date_str}.`);
+                    return res.status(200).json({ // 409 Conflict indicates a duplicate action
+                        success: true,
+                        msg: `You have already logged in today at ${new Date(existingEntry.login_time).toLocaleTimeString()}!`,
+                        errCode: 'ERR_DUP_LOGIN' // Custom error code for client-side handling
+                    });
+                } else {
+                    // Entry exists, but login_time is NULL (e.g., a logout was recorded first, or pre-created entry)
+                    // UPDATE the existing record to set login_time
+                    const updateLoginSql = `
+                        UPDATE ${xtable}
+                        SET login_time = ?
+                        WHERE id = ?;
+                    `;
+                    await db.query(updateLoginSql, [now_datetime_str, existingEntry.id]);
+                    console.log(`User ${userId} login updated for ${today_date_str}.`);
+                }
+            } else {
+                // No entry for today, INSERT a brand new one with login_time
+                const insertLoginSql = `
+                    INSERT INTO ${xtable} (user_id, entry_date, login_time)
+                    VALUES (?, ?, ?);
+                `;
+                await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str]);
+                console.log(`User ${userId} logged in for the first time today.`);
+            }
 
-		//res.json(result.rows[0]);
-		// let sql =`CALL authenticate_user(?,?)` 
+            const retdata = { success: true, time: now_datetime_str, msg: 'Login recorded successfully!' };
+            return res.status(200).json(retdata);
+
+        }
+        // --- Logic for Logout Action (actionType === "2") ---
+        else if (actionType === "2") {
+            if (!existingEntry || !existingEntry.login_time) {
+                // No entry for today, or login_time is NULL (user hasn't logged in yet)
+                console.log(`Logout attempt without prior login for user ${userId} on ${today_date_str}.`);
+                return res.status(200).json({ // 400 Bad Request indicates an invalid action sequence
+                    success: true,
+                    msg: 'You must log in first before logging out!',
+                    errCode: 'ERR_NO_LOGIN'
+                });
+            } else if (existingEntry.logout_time) {
+                // User has already logged out today
+                console.log(`Duplicate logout attempt for user ${userId} on ${today_date_str}.`);
+                return res.status(200).json({ // 409 Conflict
+                    success: true,
+                    msg: `You have already logged out today at ${new Date(existingEntry.logout_time).toLocaleTimeString()}!`,
+                    errCode: 'ERR_DUP_LOGOUT'
+                });
+            } else {
+                // All good: User logged in, hasn't logged out yet. UPDATE the existing record.
+                const updateLogoutSql = `
+                    UPDATE ${xtable}
+                    SET logout_time = ?
+                    WHERE id = ?;
+                `;
+                await db.query(updateLogoutSql, [now_datetime_str, existingEntry.id]);
+                console.log(`User ${userId} logged out for ${today_date_str}.`);
+            }
+
+            const retdata = { success: true, time: now_datetime_str, msg: 'Logout recorded successfully!' };
+            return res.status(200).json(retdata);
+        }
+        // --- Logic for Invalid Action Type ---
+        else {
+            console.log(`Invalid action type received: ${actionType} for user ${userId}.`);
+            return res.status(400).json({
+                success: false,
+                msg: 'Invalid action type. Expected "1" for login or "2" for logout.',
+                errCode: 'ERR_INVALID_ACTION'
+            });
+        }
+
+    } catch (err) {
+        console.error('Error in /timekeep route:', err);
+        // This catch block handles unexpected database errors (e.g., connection issues, schema mismatches).
+        // If a UNIQUE constraint (like `user_id`, `entry_date`) is violated during the INSERT (which the logic above tries to prevent explicitly)
+        // you might still catch ER_DUP_ENTRY (MySQL error code 1062 or SQLSTATE 23000), but the explicit checks should minimize this.
         
-    	// const [data, fields] = await db.query(sql,[uid,pwd]);
-    	
-		// const user = data[0][0]
+        // General server error response
+        return res.status(500).json({ success: false, msg: 'DATABASE ERROR, PLEASE TRY AGAIN!!!', errCode: 'ERR_SERVER' });
+    }
+});
 
-		// //console.log('logindata', user)
 
-		// if(user){
-			
-		// 	//get ip address
-		// 	//const ipaddress = IP.address()
-		// 	let aData = []
-		// 	let obj =
-		// 	{
-		// 		email	: 	user.email,
-		// 		fname   :   user.full_name.toUpperCase(),
-		// 		message	: 	`Welcome to A.S.N. onRoute App!, ${user.full_name.toUpperCase()}!!! `,
-		// 		voice	: 	`${user.full_name}!!`,		
-		// 		grp_id	:	user.grp_id,
-		// 		pic 	: 	user.pic,
-		// 		ip_addy :   '',
-		// 		id      :   user.id,
-		// 		region  :   user.region,
-		// 		position:   user.position,
-		// 		found:true
-		// 	}
-		// 	aData.push(obj)
+//========login post
+router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
+    console.log('firing login with Authenticate====== ', req.params.uid, req.params.pwd, req.params.region, ' ========')
 
-		// 	return res.status(200).json(aData)
-			
-		// }//EIF
-		
-  	} catch (err) {
+    const { uid, pwd, region } = req.params;
+    let result; // Declare 'result' in a higher scope so it's accessible after the if/else
+    let user;   // Declare 'user' here as well, to ensure scope if no user is found
 
-		console.log('Error in Login')
-			
-		const xdata=[{
-			message: "No Matching Record!",
-			voice:"No Matching Record!",
-			found:false
-		}]
-		
-		//console.error('Error:', err);
-    	
-		return res.status(200).json(xdata)  
-    	//res.status(500).send('Error occurred');
-  	}
-	
-	 
-})//== end loginpost
+    try {
+        if (region !== "") {
+            //console.log(region, uid);
+            const sql = `select * from besi_users_${region} where email=? `;
+            result = await db.query(sql, [uid]); // Assign to the already declared 'result'
+            //console.log(sql, result[0]);
+        } else {
+            const sql = `select * from asn_users where email=? and pwd=?`;
+            result = await db.query(sql, [uid, pwd]); // Assign to the already declared 'result'
+        }
+
+        // db.query typically returns an array like [[rows], [fields]].
+        // We need to check if result[0] (the array of rows) exists and has length > 0.
+        if (result && result[0] && result[0].length > 0) {
+            user = result[0][0]; // Get the first user object from the rows array
+            console.log('User found:', user.email); // Log for debugging
+
+            let aData = [];
+            let obj = {
+                email: user.email,
+                fname: user.full_name.toUpperCase(),
+                message: `Welcome!, ${user.full_name.toUpperCase()}!!! `,
+                voice: `${user.full_name}!!`,
+                grp_id: user.grp_id || user.position_code,
+                pic: user.pic || null,
+                ip_addy: '',
+				besi_id: user.besi_id || null,
+				ocw_id: user.ocw_id ||  null,
+				jms_id: user.jms_id || null,
+                id: user.id,
+                region: user.region || region,
+                position: user.position || user.position_code,
+                found: true
+            };
+            aData.push(obj);
+			console.log(aData)
+            return res.status(200).json(aData);
+        } else {
+            // No user found, or query returned empty array
+            console.log('No matching record found for provided credentials.');
+            const xdata = [{
+                message: "No Matching Record!",
+                voice: "No Matching Record!",
+                found: false
+            }];
+            // Use 401 Unauthorized for authentication failure (no matching record)
+            return res.status(401).json(xdata);
+        }
+
+    } catch (err) {
+        // Log the actual error for better debugging
+        console.error('Error in Login:', err);
+
+        const xdata = [{
+            message: "An unexpected error occurred during login!", // More generic for actual server errors
+            voice: "Login Error!",
+            found: false
+        }];
+
+        // Use 500 Internal Server Error for unexpected errors caught in the try/catch
+        return res.status(500).json(xdata);
+    }
+});
+
 
 //=== end html routes
 
