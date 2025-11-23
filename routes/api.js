@@ -321,8 +321,15 @@ const hrisDate = () => {
 
 router.post('/timekeep', upload.none(), async (req, res) => {
     // Get current date and datetime strings
+
+	console.log( req.body)
+
+	const region = req.body.region
+
+	console.log('TIMEKEEP for region:', region);
+
     const [today_date_str, now_datetime_str] = hrisDate();
-    const xtable = `besi_timekeep_${req.body.region}`;
+    const xtable = `besi_timekeep_${region}`;
     const userId = parseInt(req.body.user_id);
     const actionType = req.body.action_type; // Expects "1" for login, "2" for logout
 
@@ -331,7 +338,7 @@ router.post('/timekeep', upload.none(), async (req, res) => {
         // We select the 'id' (primary key) to use for subsequent UPDATE statements
         const checkEntrySql = `
             SELECT id, login_time, logout_time
-            FROM ${xtable}
+            FROM ${xtable.toLowerCase()}
             WHERE user_id = ? AND entry_date = ?;
         `;
         const [existingEntries] = await db.query(checkEntrySql, [userId, today_date_str]);
@@ -465,7 +472,7 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
         // We need to check if result[0] (the array of rows) exists and has length > 0.
         if (result && result[0] && result[0].length > 0) {
             user = result[0][0]; // Get the first user object from the rows array
-            console.log('User found:', user.email); // Log for debugging
+            console.log('User found:', user.email, user.region); // Log for debugging
 
             let aData = [];
             let obj = {
