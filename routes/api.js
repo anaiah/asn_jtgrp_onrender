@@ -111,7 +111,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
     };
 
     try {
-        const { sql, params } = buildPersonnelSearchQuery(filters);
+        const { sql, params } = buildPersonnelSearchQuery(filters,false);
         console.log('Generated SQL:', sql);
         console.log('Parameters:', params);
 
@@ -131,47 +131,325 @@ router.post('/searchemp', upload.none(), async (req, res) => {
 	
 });
 
-function buildPersonnelSearchQuery(filters) {
-    const { name, id, region, position } = filters;
+
+// --- HELPER FUNCTIONS (Place these outside your router.post or in a utility file) ---
+
+// Helper function to format date to MM-DD-YY
+function formatDateToMMDDYY(dateString) {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    return `${month}-${day}-${year}`;
+}
+
+// Helper function to format datetime to MM-DD-YY HH:MM (24-hour)
+function formatDateTimeToMMDDYYHHMM(dateTimeString) {
+    if (!dateTimeString) return null;
+    const date = new Date(dateTimeString);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${month}-${day}-${year} ${hours}:${minutes}`;
+}
+
+// Helper function to generate an array of YYYY-MM-DD date strings within a range
+function getDatesInRange(startDateStr, endDateStr) {
+    const dates = [];
+    let currentDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+
+    while (currentDate.getTime() <= endDate.getTime()) {
+        const year = currentDate.getFullYear();
+        const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = currentDate.getDate().toString().padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    return dates;
+}
+
+
+// --- EXPRESS ROUTE (Updated) ---
+
+// Assuming 'db' is your mysql2 connection pool and 'upload' is your multer setup
+router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
+    // console.log( req.body ) // Uncomment for debugging request body
+    const filters = {
+        name: req.body.filter_name,
+        id: req.body.filter_id,
+        region: req.body.filter_region,
+        position: req.body.filter_position,
+        date_from: req.body.filter_date_from,
+        date_to: req.body.filter_date_to
+    };
+
+    if (!filters.region || filters.region.trim() === '') {
+        return res.status(400).json({ success: false, message: 'Region filter is required to identify the correct tables.' });
+    }
+
+    try {
+        const { sql, params, dateRange } = buildPersonnelSearchQuery(filters, true);
+        console.log('Generated SQL:', sql);
+        console.log('Parameters:', params);
+
+        const [rawRows] = await db.query(sql, params);
+
+        const { from: finalDateFrom, to: finalDateTo } = dateRange;
+        const allDatesInPeriod_YYYYMMDD = getDatesInRange(finalDateFrom, finalDateTo);
+
+        const employeesMap = new Map();
+
+        // First pass: Populate employee base data and store raw timekeeping records by date
+        rawRows.forEach(row => {
+            const besiId = row.besi_id;
+
+            if (!employeesMap.has(besiId)) {
+                employeesMap.set(besiId, {
+                    id: row.id,
+                    email: row.email,
+                    besi_id: row.besi_id,
+                    ocw_id: row.ocw_id,
+                    jms_id: row.jms_id,
+                    full_name: row.full_name,
+                    position_code: row.position_code,
+                    total_worked_hours: 0, // Initialized
+                    total_overtime_hours: 0, // Initialized
+                    first_login_time_in_period: null,
+                    last_logout_time_in_period: null,
+                    _raw_first_login_time_in_period: null,
+                    _raw_last_logout_time_in_period: null,
+                    timekeeping_records_by_date: new Map()
+                });
+            }
+
+            const employee = employeesMap.get(besiId);
+
+            let dateKey_YYYYMMDD = null;
+
+            // --- FIX FOR XDATE MISMATCH ---
+            if (row.tk_entry_date instanceof Date) {
+                // If it's a Date object, get its LOCAL date components (year, month, day)
+                const year = row.tk_entry_date.getFullYear();
+                const month = (row.tk_entry_date.getMonth() + 1).toString().padStart(2, '0');
+                const day = row.tk_entry_date.getDate().toString().padStart(2, '0');
+                dateKey_YYYYMMDD = `${year}-${month}-${day}`;
+            } else if (typeof row.tk_entry_date === 'string' && row.tk_entry_date.trim() !== '') {
+                // If it's a non-empty string, extract 'YYYY-MM-DD' part
+                dateKey_YYYYMMDD = row.tk_entry_date.split(' ')[0].split('T')[0];
+            }
+
+            if (dateKey_YYYYMMDD) {
+                employee.timekeeping_records_by_date.set(dateKey_YYYYMMDD, {
+                    xdate: formatDateToMMDDYY(dateKey_YYYYMMDD), // Use the correctly derived YYYY-MM-DD string
+                    login: formatDateTimeToMMDDYYHHMM(row.tk_login_time),
+                    logout: formatDateTimeToMMDDYYHHMM(row.tk_logout_time),
+                    total_hours: parseFloat(row.tk_total_hours || 0),
+                    ot_hours: parseFloat(row.tk_ot_hours || 0),
+                    _raw_login_time: row.tk_login_time,
+                    _raw_logout_time: row.tk_logout_time
+                });
+
+                if (row.tk_login_time) {
+                    if (!employee._raw_first_login_time_in_period || new Date(row.tk_login_time) < new Date(employee._raw_first_login_time_in_period)) {
+                        employee._raw_first_login_time_in_period = row.tk_login_time;
+                    }
+                }
+                if (row.tk_logout_time) {
+                    if (!employee._raw_last_logout_time_in_period || new Date(row.tk_logout_time) > new Date(employee._raw_last_logout_time_in_period)) {
+                        employee._raw_last_logout_time_in_period = row.tk_logout_time;
+                    }
+                }
+            }
+        });
+
+        // Second pass: Build `login_details` with all dates in the range, and finalize summaries
+        const formattedResults = [];
+        employeesMap.forEach(employee => {
+            const loginDetailsArray = [];
+            employee.total_worked_hours = 0; // Explicitly reset again before recalculation
+            employee.total_overtime_hours = 0; // Explicitly reset again before recalculation
+
+            allDatesInPeriod_YYYYMMDD.forEach(currentDate_YYYYMMDD => {
+                const record = employee.timekeeping_records_by_date.get(currentDate_YYYYMMDD);
+
+                if (record) {
+                    loginDetailsArray.push({
+                        xdate: record.xdate,
+                        login: record.login,
+                        logout: record.logout,
+                        total_hours: record.total_hours,
+                        ot_hours: record.ot_hours,
+                    });
+                    // Aggregate totals from actual records that were found
+                    employee.total_worked_hours += record.total_hours;
+                    employee.total_overtime_hours += record.ot_hours;
+                } else {
+                    // No record for this date, push an empty one with the date
+                    loginDetailsArray.push({
+                        xdate: formatDateToMMDDYY(currentDate_YYYYMMDD),
+                        login: null,
+                        logout: null,
+                        total_hours: 0,
+                        ot_hours: 0
+                    });
+                }
+            });
+
+            employee.login_details = loginDetailsArray;
+
+            // Format final summary times
+            if (employee._raw_first_login_time_in_period) {
+                employee.first_login_time_in_period = formatDateTimeToMMDDYYHHMM(employee._raw_first_login_time_in_period);
+            }
+            if (employee._raw_last_logout_time_in_period) {
+                employee.last_logout_time_in_period = formatDateTimeToMMDDYYHHMM(employee._raw_last_logout_time_in_period);
+            }
+
+            // Clean up temporary fields
+            delete employee._raw_first_login_time_in_period;
+            delete employee._raw_last_logout_time_in_period;
+            delete employee.timekeeping_records_by_date;
+
+            formattedResults.push(employee);
+        });
+
+        formattedResults.sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+        // --- FINAL CHECK BEFORE SENDING RESPONSE ---
+        // console.log('\n--- FINAL FORMATTED RESULTS (first item) ---');
+        // if (formattedResults.length > 0) {
+        //     console.log(JSON.stringify(formattedResults[0], null, 2));
+        // }
+        // console.log('-------------------------------------------\n');
+        // --- END FINAL CHECK ---
+
+        return res.status(200).json({success: true, msg: 'SUCCESS', xdata: formattedResults});
+
+    } catch (error) {
+        console.error('Error executing search query:', error.message);
+        res.status(500).json({ success: false, message: 'An error occurred while fetching data. Please try again later.' });
+    }
+});
+
+// --- buildPersonnelSearchQuery Function (unchanged and should be placed below the route) ---
+// (Your buildPersonnelSearchQuery function should be exactly as in the previous full update)
+// It was correct in using tk.entry_date AS tk_entry_date and tk.entry_date BETWEEN ? AND ?
+
+// --- buildPersonnelSearchQuery function (remains the same as previous perfect version) ---
+
+/**
+ * Builds an SQL query for personnel search, optionally including detailed timekeeping data.
+ * @param {object} filters - An object containing various filters (name, id, region, position, date_from, date_to).
+ * @param {boolean} isTimeKeep - If true, joins with timekeeping table and selects individual daily entries. If false, only queries the users table.
+ * @returns {{sql: string, params: Array, dateRange?: {from: string, to: string}}} An object containing the generated SQL query, its parameters, and the effective date range if timekeeping data is requested.
+ */
+function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
+    let { name, id, region, position, date_from, date_to } = filters;
     const params = [];
     const conditions = [];
 
-    
-    // Assuming your table names are like `besi_users_ncr_cmnl`
-    const tableName = `besi_users_${region.trim().toLowerCase().replace(/-/g, '_')}`;
+    const regionClean = region.trim().toLowerCase().replace(/-/g, '_');
+    const userTableName = `besi_users_${regionClean}`;
 
-    // Quote table name with backticks for MySQL
-    let sql = `SELECT * FROM \`${tableName}\``;
+    let sql = '';
+    let effectiveDateRange = null;
 
-    // 2. Add optional conditions if values are provided
-    if (name && name.trim() !== '') {
-        // Use LOWER() for explicit case-insensitive matching in MySQL, or rely on collation
-        // LIKE %?% for partial match.
-        conditions.push(`LOWER(full_name) LIKE LOWER(?)`);
-        params.push(`%${name.trim()}%`);
+    if (isTimeKeep) {
+        // --- Timekeeping Query Logic (Detailed Daily Entries) ---
+        const timekeepTableName = `besi_timekeep_${regionClean}`;
+
+        let finalDateFrom, finalDateTo;
+        if (date_from && date_from.trim() !== '' && date_to && date_to.trim() !== '') {
+            finalDateFrom = date_from.trim();
+            finalDateTo = date_to.trim();
+        } else {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = (today.getMonth() + 1).toString().padStart(2, '0');
+
+            finalDateFrom = `${year}-${month}-01`;
+            const lastDay = new Date(year, today.getMonth() + 1, 0).getDate();
+            finalDateTo = `${year}-${month}-${lastDay.toString().padStart(2, '0')}`;
+        }
+        effectiveDateRange = { from: finalDateFrom, to: finalDateTo };
+
+        sql = `
+            SELECT
+                u.id,
+                u.email,
+                u.besi_id,
+                u.ocw_id,
+                u.jms_id,
+                u.full_name,
+                u.position_code,
+                tk.entry_date AS tk_entry_date,
+                tk.login_time AS tk_login_time,
+                tk.logout_time AS tk_logout_time,
+                tk.total_hours AS tk_total_hours,
+                tk.ot_hours AS tk_ot_hours
+            FROM
+                \`${userTableName}\` AS u
+            LEFT JOIN
+                \`${timekeepTableName}\` AS tk
+                ON u.id = tk.user_id AND tk.entry_date BETWEEN ? AND ?
+        `;
+        params.push(finalDateFrom, finalDateTo);
+
+        if (name && name.trim() !== '') {
+            conditions.push(`LOWER(u.full_name) LIKE LOWER(?)`);
+            params.push(`%${name.trim()}%`);
+        }
+
+        if (id && id.trim() !== '') {
+            conditions.push(`u.besi_id = ?`);
+            params.push(id.trim());
+        }
+
+        if (position && position.trim() !== '') {
+            conditions.push(`u.position_code = ?`);
+            params.push(position.trim());
+        }
+
+        if (conditions.length > 0) {
+            sql += ` WHERE ` + conditions.join(' AND ');
+        }
+
+        sql += ` ORDER BY u.besi_id ASC, tk.entry_date ASC;`;
+
+    } else {
+        // --- Standard Personnel Search (No Timekeeping) Logic ---
+        sql = `SELECT id, email, besi_id, ocw_id, jms_id, full_name, position_code FROM \`${userTableName}\``;
+
+        if (name && name.trim() !== '') {
+            conditions.push(`LOWER(full_name) LIKE LOWER(?)`);
+            params.push(`%${name.trim()}%`);
+        }
+
+        if (id && id.trim() !== '') {
+            conditions.push(`besi_id = ?`);
+            params.push(id.trim());
+        }
+
+        if (position && position.trim() !== '') {
+            conditions.push(`position_code = ?`);
+            params.push(position.trim());
+        }
+
+        if (conditions.length > 0) {
+            sql += ` WHERE ` + conditions.join(' AND ');
+        }
+
+        sql += ` ORDER BY full_name ASC;`;
     }
 
-    if (id && id.trim() !== '') {
-        // Assuming besi_id is an exact match and typically not case-sensitive
-        conditions.push(`besi_id = ?`);
-        params.push(id.trim());
-    }
-
-    if (position && position.trim() !== '') {
-        conditions.push(`position_code = ?`);
-        params.push(position.trim());
-    }
-
-    // 3. Combine conditions into the WHERE clause
-    if (conditions.length > 0) {
-        sql += ` WHERE ` + conditions.join(' AND '); // Combine conditions with AND
-    }
-
-    // Add ORDER BY for consistent results (optional)
-    sql += ` ORDER BY full_name ASC;`;
-
-    return { sql, params };
+    return { sql, params, dateRange: effectiveDateRange };
 }
+
+
 
 // === HRIS UPLOAD EXCEL ===
 router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
@@ -318,7 +596,149 @@ const hrisDate = () => {
 };
 // --- End nuDate() definition ---
 
+//timekeeping
+// Assume 'router' is an Express Router instance and 'db' is your database connection pool
+// Assume 'upload' is configured correctly (e.g., from multer as upload.none())
+// Assume 'hrisDate' is a helper function that returns an array [today_date_str, now_datetime_str]
 
+router.post('/timekeep', upload.none(), async (req, res) => {
+    console.log(req.body);
+
+    const region = req.body.region;
+    console.log('TIMEKEEP for region:', region);
+
+    const [today_date_str, now_datetime_str] = nuDate(); //hrisDate();
+    const xtable = `besi_timekeep_${region}`;
+    const userId = parseInt(req.body.user_id);
+    const actionType = req.body.action_type; // Expects "1" for login, "2" for logout
+
+    try {
+        // --- Step 1: Check for existing entry for this user and today's date ---
+        // We select 'id', 'login_time', 'logout_time' to use for subsequent logic and calculations
+        const checkEntrySql = `
+            SELECT id, login_time, logout_time
+            FROM ${xtable.toLowerCase()}
+            WHERE user_id = ? AND entry_date = ?;
+        `;
+        const [existingEntries] = await db.query(checkEntrySql, [userId, today_date_str]);
+        const existingEntry = existingEntries[0]; // Will be undefined if no entry exists
+
+        // --- Logic for Login Action (actionType === "1") ---
+        if (actionType === "1") {
+            if (existingEntry) {
+                // An entry for this user and date already exists
+                if (existingEntry.login_time) {
+                    // User has already logged in today
+                    console.log(`Duplicate login attempt for user ${userId} on ${today_date_str}.`);
+                    return res.status(200).json({
+                        success: true,
+                        msg: `You have already logged in today at ${new Date(existingEntry.login_time).toLocaleTimeString()}!`,
+                        errCode: 'ERR_DUP_LOGIN'
+                    });
+                } else {
+                    // Entry exists, but login_time is NULL (e.g., a logout was recorded first, or pre-created entry)
+                    // UPDATE the existing record to set login_time
+                    const updateLoginSql = `
+                        UPDATE ${xtable}
+                        SET login_time = ?
+                        WHERE id = ?;
+                    `;
+                    await db.query(updateLoginSql, [now_datetime_str, existingEntry.id]);
+                    console.log(`User ${userId} login updated for ${today_date_str}.`);
+                }
+            } else {
+                // No entry for today, INSERT a brand new one with login_time
+                const insertLoginSql = `
+                    INSERT INTO ${xtable} (user_id, entry_date, login_time)
+                    VALUES (?, ?, ?);
+                `;
+                await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str]);
+                console.log(`User ${userId} logged in for the first time today.`);
+            }
+
+            const retdata = { success: true, time: now_datetime_str, msg: 'Login recorded successfully!' };
+            return res.status(200).json(retdata);
+
+        }
+        // --- Logic for Logout Action (actionType === "2") ---
+        else if (actionType === "2") {
+            if (!existingEntry || !existingEntry.login_time) {
+                // No entry for today, or login_time is NULL (user hasn't logged in yet)
+                console.log(`Logout attempt without prior login for user ${userId} on ${today_date_str}.`);
+                return res.status(200).json({
+                    success: true,
+                    msg: 'You must log in first before logging out!',
+                    errCode: 'ERR_NO_LOGIN'
+                });
+            } else if (existingEntry.logout_time) {
+                // User has already logged out today
+                console.log(`Duplicate logout attempt for user ${userId} on ${today_date_str}.`);
+                return res.status(200).json({
+                    success: true,
+                    msg: `You have already logged out today at ${new Date(existingEntry.logout_time).toLocaleTimeString()}!`,
+                    errCode: 'ERR_DUP_LOGOUT'
+                });
+            } else {
+                // All good: User logged in, hasn't logged out yet. Calculate hours and update the record.
+
+                // Parse times into Date objects for calculation
+                const loginTime = new Date(existingEntry.login_time);
+                const logoutTime = new Date(now_datetime_str);
+
+                // Basic validation: ensure logout is not before login (shouldn't happen with normal flow)
+                if (logoutTime < loginTime) {
+                    console.warn(`Logout time (${logoutTime}) is before login time (${loginTime}) for user ${userId}.`);
+                    return res.status(200).json({
+                        success: true,
+                        msg: 'Logout time cannot be before login time.',
+                        errCode: 'ERR_INVALID_LOGOUT_TIME'
+                    });
+                }
+
+                // Calculate total_hours in milliseconds, then convert to hours
+                const timeDiffMs = logoutTime.getTime() - loginTime.getTime();
+                const calculatedTotalHours = parseFloat((timeDiffMs / (1000 * 60 * 60)).toFixed(2)); // Convert ms to hours, round to 2 decimal places
+
+                // Calculate ot_hours (overtime hours, assuming 9 hours is regular)
+                const regularHoursThreshold = 9;
+                const calculatedOtHours = parseFloat(Math.max(0, calculatedTotalHours - regularHoursThreshold).toFixed(2));
+
+                const updateLogoutSql = `
+                    UPDATE ${xtable}
+                    SET logout_time = ?, total_hours = ?, ot_hours = ?
+                    WHERE id = ?;
+                `;
+                await db.query(updateLogoutSql, [now_datetime_str, calculatedTotalHours, calculatedOtHours, existingEntry.id]);
+                console.log(`User ${userId} logged out for ${today_date_str}. Total Hours: ${calculatedTotalHours}, OT Hours: ${calculatedOtHours}`);
+
+                const retdata = {
+                    success: true,
+                    time: now_datetime_str,
+                    msg: 'Logout recorded successfully!',
+                    total_hours: calculatedTotalHours,
+                    ot_hours: calculatedOtHours
+                };
+                return res.status(200).json(retdata);
+            }
+        }
+        // --- Logic for Invalid Action Type ---
+        else {
+            console.log(`Invalid action type received: ${actionType} for user ${userId}.`);
+            return res.status(400).json({
+                success: false,
+                msg: 'Invalid action type. Expected "1" for login or "2" for logout.',
+                errCode: 'ERR_INVALID_ACTION'
+            });
+        }
+
+    } catch (err) {
+        console.error('Error in /timekeep route:', err);
+        return res.status(500).json({ success: false, msg: 'DATABASE ERROR, PLEASE TRY AGAIN!!!', errCode: 'ERR_SERVER' });
+    }
+});
+
+
+/*
 router.post('/timekeep', upload.none(), async (req, res) => {
     // Get current date and datetime strings
 
@@ -434,7 +854,7 @@ router.post('/timekeep', upload.none(), async (req, res) => {
     }
 });
 
-
+*/
 //========login post
 router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
     console.log('firing login with Authenticate====== ', req.params.uid, req.params.pwd, req.params.region, ' ========')
