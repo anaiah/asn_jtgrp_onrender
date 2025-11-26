@@ -177,7 +177,7 @@ function getDatesInRange(startDateStr, endDateStr) {
 
 // Assuming 'db' is your mysql2 connection pool and 'upload' is your multer setup
 router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
-    // console.log( req.body ) // Uncomment for debugging request body
+    // console.log( req.body) // Uncomment for debugging request body
     const filters = {
         name: req.body.filter_name,
         id: req.body.filter_id,
@@ -193,8 +193,8 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
 
     try {
         const { sql, params, dateRange } = buildPersonnelSearchQuery(filters, true);
-        console.log('Generated SQL:', sql);
-        console.log('Parameters:', params);
+        // console.log('Generated SQL:', sql); // Uncomment for debugging SQL
+        // console.log('Parameters:', params); // Uncomment for debugging params
 
         const [rawRows] = await db.query(sql, params);
 
@@ -218,6 +218,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     position_code: row.position_code,
                     total_worked_hours: 0, // Initialized
                     total_overtime_hours: 0, // Initialized
+                    total_worked_days: 0, // <--- NEW: Initialize TOTAL_WORKED_DAYS
                     first_login_time_in_period: null,
                     last_logout_time_in_period: null,
                     _raw_first_login_time_in_period: null,
@@ -231,20 +232,21 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
             let dateKey_YYYYMMDD = null;
 
             // --- FIX FOR XDATE MISMATCH ---
+            // This logic ensures dateKey_YYYYMMDD is always a 'YYYY-MM-DD' string
             if (row.tk_entry_date instanceof Date) {
-                // If it's a Date object, get its LOCAL date components (year, month, day)
                 const year = row.tk_entry_date.getFullYear();
                 const month = (row.tk_entry_date.getMonth() + 1).toString().padStart(2, '0');
                 const day = row.tk_entry_date.getDate().toString().padStart(2, '0');
                 dateKey_YYYYMMDD = `${year}-${month}-${day}`;
             } else if (typeof row.tk_entry_date === 'string' && row.tk_entry_date.trim() !== '') {
                 // If it's a non-empty string, extract 'YYYY-MM-DD' part
+                // Handles 'YYYY-MM-DD HH:MM:SS' or 'YYYY-MM-DDTHH:MM:SS.sssZ'
                 dateKey_YYYYMMDD = row.tk_entry_date.split(' ')[0].split('T')[0];
             }
 
             if (dateKey_YYYYMMDD) {
                 employee.timekeeping_records_by_date.set(dateKey_YYYYMMDD, {
-                    xdate: formatDateToMMDDYY(dateKey_YYYYMMDD), // Use the correctly derived YYYY-MM-DD string
+                    xdate: formatDateToMMDDYY(dateKey_YYYYMMDD), // Uses the derived YYYY-MM-DD string
                     login: formatDateTimeToMMDDYYHHMM(row.tk_login_time),
                     logout: formatDateTimeToMMDDYYHHMM(row.tk_logout_time),
                     total_hours: parseFloat(row.tk_total_hours || 0),
@@ -253,13 +255,16 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     _raw_logout_time: row.tk_logout_time
                 });
 
+                // Update first/last login/logout for the period using raw times
                 if (row.tk_login_time) {
-                    if (!employee._raw_first_login_time_in_period || new Date(row.tk_login_time) < new Date(employee._raw_first_login_time_in_period)) {
+                    const currentLoginTime = new Date(row.tk_login_time);
+                    if (!employee._raw_first_login_time_in_period || currentLoginTime < new Date(employee._raw_first_login_time_in_period)) {
                         employee._raw_first_login_time_in_period = row.tk_login_time;
                     }
                 }
                 if (row.tk_logout_time) {
-                    if (!employee._raw_last_logout_time_in_period || new Date(row.tk_logout_time) > new Date(employee._raw_last_logout_time_in_period)) {
+                    const currentLogoutTime = new Date(row.tk_logout_time);
+                    if (!employee._raw_last_logout_time_in_period || currentLogoutTime > new Date(employee._raw_last_logout_time_in_period)) {
                         employee._raw_last_logout_time_in_period = row.tk_logout_time;
                     }
                 }
@@ -268,10 +273,12 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
 
         // Second pass: Build `login_details` with all dates in the range, and finalize summaries
         const formattedResults = [];
+
         employeesMap.forEach(employee => {
             const loginDetailsArray = [];
             employee.total_worked_hours = 0; // Explicitly reset again before recalculation
             employee.total_overtime_hours = 0; // Explicitly reset again before recalculation
+            employee.total_worked_days = 0; // <--- NEW: Reset before counting for each employee
 
             allDatesInPeriod_YYYYMMDD.forEach(currentDate_YYYYMMDD => {
                 const record = employee.timekeeping_records_by_date.get(currentDate_YYYYMMDD);
@@ -287,6 +294,11 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     // Aggregate totals from actual records that were found
                     employee.total_worked_hours += record.total_hours;
                     employee.total_overtime_hours += record.ot_hours;
+
+                    // <--- NEW LOGIC: Check for complete login/logout for this day
+                    if (record.login !== null && record.login !== '' && record.logout !== null && record.logout !== '') {
+                        employee.total_worked_days ++;
+                    }
                 } else {
                     // No record for this date, push an empty one with the date
                     loginDetailsArray.push({
@@ -296,6 +308,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                         total_hours: 0,
                         ot_hours: 0
                     });
+                    // TOTAL_WORKED_DAYS is NOT incremented for days without records
                 }
             });
 
@@ -334,6 +347,12 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
         res.status(500).json({ success: false, message: 'An error occurred while fetching data. Please try again later.' });
     }
 });
+
+// Helper functions (assuming these are defined elsewhere in your code)
+// function buildPersonnelSearchQuery(filters, includeTimekeepData) { ... }
+// function getDatesInRange(startDate_YYYYMMDD, endDate_YYYYMMDD) { ... }
+// function formatDateToMMDDYY(dateString_YYYYMMDD) { ... }
+// function formatDateTimeToMMDDYYHHMM(dateTimeString) { ... }
 
 // --- buildPersonnelSearchQuery Function (unchanged and should be placed below the route) ---
 // (Your buildPersonnelSearchQuery function should be exactly as in the previous full update)
@@ -601,13 +620,33 @@ const hrisDate = () => {
 // Assume 'upload' is configured correctly (e.g., from multer as upload.none())
 // Assume 'hrisDate' is a helper function that returns an array [today_date_str, now_datetime_str]
 
+// Helper function to calculate late hours
+function calculateLateHours(loginDateTimeStr, onTimeThresholdHour = 9, onTimeThresholdMinute = 0, onTimeThresholdSecond = 0) {
+    const actualLoginDate = new Date(loginDateTimeStr);
+
+    // Create a Date object representing the "on-time" threshold (e.g., 9:00:00 AM)
+    // on the same day as the actual login.
+    const onTimeThresholdDate = new Date(actualLoginDate);
+    onTimeThresholdDate.setHours(onTimeThresholdHour, onTimeThresholdMinute, onTimeThresholdSecond, 0);
+
+    // Only calculate late hours if the actual login is after the threshold
+    if (actualLoginDate > onTimeThresholdDate) {
+        const lateDurationMs = actualLoginDate.getTime() - onTimeThresholdDate.getTime();
+        // Convert milliseconds to hours and round to 2 decimal places
+        return parseFloat((lateDurationMs / (1000 * 60 * 60)).toFixed(2));
+    }
+    return 0.00; // Not late
+}
+
+
+//=============TIMEKEEPING POST
 router.post('/timekeep', upload.none(), async (req, res) => {
     console.log(req.body);
 
     const region = req.body.region;
     console.log('TIMEKEEP for region:', region);
 
-    const [today_date_str, now_datetime_str] = nuDate(); //hrisDate();
+    const [today_date_str, now_datetime_str] = nuDate(); // Assuming nuDate() returns [YYYY-MM-DD, YYYY-MM-DD HH:MM:SS]
     const xtable = `besi_timekeep_${region}`;
     const userId = parseInt(req.body.user_id);
     const actionType = req.body.action_type; // Expects "1" for login, "2" for logout
@@ -625,6 +664,9 @@ router.post('/timekeep', upload.none(), async (req, res) => {
 
         // --- Logic for Login Action (actionType === "1") ---
         if (actionType === "1") {
+            // Calculate late_hours based on the current login time
+            const calculatedLateHours = calculateLateHours(now_datetime_str); // Default threshold 9:00:00 AM
+
             if (existingEntry) {
                 // An entry for this user and date already exists
                 if (existingEntry.login_time) {
@@ -637,26 +679,31 @@ router.post('/timekeep', upload.none(), async (req, res) => {
                     });
                 } else {
                     // Entry exists, but login_time is NULL (e.g., a logout was recorded first, or pre-created entry)
-                    // UPDATE the existing record to set login_time
+                    // UPDATE the existing record to set login_time and late_hours
                     const updateLoginSql = `
                         UPDATE ${xtable}
-                        SET login_time = ?
+                        SET login_time = ?, late_hours = ?
                         WHERE id = ?;
                     `;
-                    await db.query(updateLoginSql, [now_datetime_str, existingEntry.id]);
-                    console.log(`User ${userId} login updated for ${today_date_str}.`);
+                    await db.query(updateLoginSql, [now_datetime_str, calculatedLateHours, existingEntry.id]);
+                    console.log(`User ${userId} login updated for ${today_date_str}. Late Hours: ${calculatedLateHours}`);
                 }
             } else {
-                // No entry for today, INSERT a brand new one with login_time
+                // No entry for today, INSERT a brand new one with login_time and late_hours
                 const insertLoginSql = `
-                    INSERT INTO ${xtable} (user_id, entry_date, login_time)
-                    VALUES (?, ?, ?);
+                    INSERT INTO ${xtable} (user_id, entry_date, login_time, late_hours)
+                    VALUES (?, ?, ?, ?);
                 `;
-                await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str]);
-                console.log(`User ${userId} logged in for the first time today.`);
+                await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str, calculatedLateHours]);
+                console.log(`User ${userId} logged in for the first time today. Late Hours: ${calculatedLateHours}`);
             }
 
-            const retdata = { success: true, time: now_datetime_str, msg: 'Login recorded successfully!' };
+            const retdata = {
+                success: true,
+                time: now_datetime_str,
+                msg: 'Login recorded successfully!',
+                late_hours: calculatedLateHours // Include late hours in the response
+            };
             return res.status(200).json(retdata);
 
         }
@@ -700,7 +747,7 @@ router.post('/timekeep', upload.none(), async (req, res) => {
                 const calculatedTotalHours = parseFloat((timeDiffMs / (1000 * 60 * 60)).toFixed(2)); // Convert ms to hours, round to 2 decimal places
 
                 // Calculate ot_hours (overtime hours, assuming 9 hours is regular)
-                const regularHoursThreshold = 9;
+                const regularHoursThreshold = 9; // Assuming regular working hours are 9 hours for OT calculation
                 const calculatedOtHours = parseFloat(Math.max(0, calculatedTotalHours - regularHoursThreshold).toFixed(2));
 
                 const updateLogoutSql = `
@@ -737,124 +784,6 @@ router.post('/timekeep', upload.none(), async (req, res) => {
     }
 });
 
-
-/*
-router.post('/timekeep', upload.none(), async (req, res) => {
-    // Get current date and datetime strings
-
-	console.log( req.body)
-
-	const region = req.body.region
-
-	console.log('TIMEKEEP for region:', region);
-
-    const [today_date_str, now_datetime_str] = hrisDate();
-    const xtable = `besi_timekeep_${region}`;
-    const userId = parseInt(req.body.user_id);
-    const actionType = req.body.action_type; // Expects "1" for login, "2" for logout
-
-    try {
-        // --- Step 1: Check for existing entry for this user and today's date ---
-        // We select the 'id' (primary key) to use for subsequent UPDATE statements
-        const checkEntrySql = `
-            SELECT id, login_time, logout_time
-            FROM ${xtable.toLowerCase()}
-            WHERE user_id = ? AND entry_date = ?;
-        `;
-        const [existingEntries] = await db.query(checkEntrySql, [userId, today_date_str]);
-        const existingEntry = existingEntries[0]; // Will be undefined if no entry exists
-
-        // --- Logic for Login Action (actionType === "1") ---
-        if (actionType === "1") {
-            if (existingEntry) {
-                // An entry for this user and date already exists
-                if (existingEntry.login_time) {
-                    // User has already logged in today
-                    console.log(`Duplicate login attempt for user ${userId} on ${today_date_str}.`);
-                    return res.status(200).json({ // 409 Conflict indicates a duplicate action
-                        success: true,
-                        msg: `You have already logged in today at ${new Date(existingEntry.login_time).toLocaleTimeString()}!`,
-                        errCode: 'ERR_DUP_LOGIN' // Custom error code for client-side handling
-                    });
-                } else {
-                    // Entry exists, but login_time is NULL (e.g., a logout was recorded first, or pre-created entry)
-                    // UPDATE the existing record to set login_time
-                    const updateLoginSql = `
-                        UPDATE ${xtable}
-                        SET login_time = ?
-                        WHERE id = ?;
-                    `;
-                    await db.query(updateLoginSql, [now_datetime_str, existingEntry.id]);
-                    console.log(`User ${userId} login updated for ${today_date_str}.`);
-                }
-            } else {
-                // No entry for today, INSERT a brand new one with login_time
-                const insertLoginSql = `
-                    INSERT INTO ${xtable} (user_id, entry_date, login_time)
-                    VALUES (?, ?, ?);
-                `;
-                await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str]);
-                console.log(`User ${userId} logged in for the first time today.`);
-            }
-
-            const retdata = { success: true, time: now_datetime_str, msg: 'Login recorded successfully!' };
-            return res.status(200).json(retdata);
-
-        }
-        // --- Logic for Logout Action (actionType === "2") ---
-        else if (actionType === "2") {
-            if (!existingEntry || !existingEntry.login_time) {
-                // No entry for today, or login_time is NULL (user hasn't logged in yet)
-                console.log(`Logout attempt without prior login for user ${userId} on ${today_date_str}.`);
-                return res.status(200).json({ // 400 Bad Request indicates an invalid action sequence
-                    success: true,
-                    msg: 'You must log in first before logging out!',
-                    errCode: 'ERR_NO_LOGIN'
-                });
-            } else if (existingEntry.logout_time) {
-                // User has already logged out today
-                console.log(`Duplicate logout attempt for user ${userId} on ${today_date_str}.`);
-                return res.status(200).json({ // 409 Conflict
-                    success: true,
-                    msg: `You have already logged out today at ${new Date(existingEntry.logout_time).toLocaleTimeString()}!`,
-                    errCode: 'ERR_DUP_LOGOUT'
-                });
-            } else {
-                // All good: User logged in, hasn't logged out yet. UPDATE the existing record.
-                const updateLogoutSql = `
-                    UPDATE ${xtable}
-                    SET logout_time = ?
-                    WHERE id = ?;
-                `;
-                await db.query(updateLogoutSql, [now_datetime_str, existingEntry.id]);
-                console.log(`User ${userId} logged out for ${today_date_str}.`);
-            }
-
-            const retdata = { success: true, time: now_datetime_str, msg: 'Logout recorded successfully!' };
-            return res.status(200).json(retdata);
-        }
-        // --- Logic for Invalid Action Type ---
-        else {
-            console.log(`Invalid action type received: ${actionType} for user ${userId}.`);
-            return res.status(400).json({
-                success: false,
-                msg: 'Invalid action type. Expected "1" for login or "2" for logout.',
-                errCode: 'ERR_INVALID_ACTION'
-            });
-        }
-
-    } catch (err) {
-        console.error('Error in /timekeep route:', err);
-        // This catch block handles unexpected database errors (e.g., connection issues, schema mismatches).
-        // If a UNIQUE constraint (like `user_id`, `entry_date`) is violated during the INSERT (which the logic above tries to prevent explicitly)
-        // you might still catch ER_DUP_ENTRY (MySQL error code 1062 or SQLSTATE 23000), but the explicit checks should minimize this.
-        
-        // General server error response
-        return res.status(500).json({ success: false, msg: 'DATABASE ERROR, PLEASE TRY AGAIN!!!', errCode: 'ERR_SERVER' });
-    }
-});
-
-*/
 //========login post
 router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
     console.log('firing login with Authenticate====== ', req.params.uid, req.params.pwd, req.params.region, ' ========')

@@ -327,6 +327,7 @@ router.get('/topfivehub/:email/:trans', async(req,res)=>{
             
         }//eif
 
+        console.log(sql)
         const [rows, fields] = await db.query(sql);
         res.json(rows);
 
