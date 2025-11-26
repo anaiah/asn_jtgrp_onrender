@@ -61,6 +61,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const mysqls = require('mysql2/promise')
 const { emitWarning } = require('process')
@@ -133,7 +134,6 @@ router.post('/searchemp', upload.none(), async (req, res) => {
 
 
 // --- HELPER FUNCTIONS (Place these outside your router.post or in a utility file) ---
-
 // Helper function to format date to MM-DD-YY
 function formatDateToMMDDYY(dateString) {
     if (!dateString) return null;
@@ -218,7 +218,8 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     position_code: row.position_code,
                     total_worked_hours: 0, // Initialized
                     total_overtime_hours: 0, // Initialized
-                    total_worked_days: 0, // <--- NEW: Initialize TOTAL_WORKED_DAYS
+                    total_worked_days: 0, // Initialized
+                    total_late_hours: 0,  // <--- NEW: Initialize total_late_hours
                     first_login_time_in_period: null,
                     last_logout_time_in_period: null,
                     _raw_first_login_time_in_period: null,
@@ -251,6 +252,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     logout: formatDateTimeToMMDDYYHHMM(row.tk_logout_time),
                     total_hours: parseFloat(row.tk_total_hours || 0),
                     ot_hours: parseFloat(row.tk_ot_hours || 0),
+                    late_hours: parseFloat(row.tk_late_hours || 0), // <--- NEW: Add late_hours to daily record
                     _raw_login_time: row.tk_login_time,
                     _raw_logout_time: row.tk_logout_time
                 });
@@ -278,7 +280,8 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
             const loginDetailsArray = [];
             employee.total_worked_hours = 0; // Explicitly reset again before recalculation
             employee.total_overtime_hours = 0; // Explicitly reset again before recalculation
-            employee.total_worked_days = 0; // <--- NEW: Reset before counting for each employee
+            employee.total_worked_days = 0; // Reset before counting for each employee
+            employee.total_late_hours = 0; // <--- NEW: Reset before summing for each employee
 
             allDatesInPeriod_YYYYMMDD.forEach(currentDate_YYYYMMDD => {
                 const record = employee.timekeeping_records_by_date.get(currentDate_YYYYMMDD);
@@ -290,12 +293,14 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                         logout: record.logout,
                         total_hours: record.total_hours,
                         ot_hours: record.ot_hours,
+                        late_hours: record.late_hours, // <--- NEW: Add late_hours to daily record
                     });
                     // Aggregate totals from actual records that were found
                     employee.total_worked_hours += record.total_hours;
                     employee.total_overtime_hours += record.ot_hours;
+                    employee.total_late_hours += record.late_hours; // <--- NEW: Aggregate total_late_hours
 
-                    // <--- NEW LOGIC: Check for complete login/logout for this day
+                    // Check for complete login/logout for this day
                     if (record.login !== null && record.login !== '' && record.logout !== null && record.logout !== '') {
                         employee.total_worked_days ++;
                     }
@@ -306,9 +311,10 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                         login: null,
                         logout: null,
                         total_hours: 0,
-                        ot_hours: 0
+                        ot_hours: 0,
+                        late_hours: 0, // <--- NEW: Default late_hours to 0 for missing records
                     });
-                    // TOTAL_WORKED_DAYS is NOT incremented for days without records
+                    // total_worked_days is NOT incremented for days without records
                 }
             });
 
@@ -409,7 +415,8 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 tk.login_time AS tk_login_time,
                 tk.logout_time AS tk_logout_time,
                 tk.total_hours AS tk_total_hours,
-                tk.ot_hours AS tk_ot_hours
+                tk.ot_hours AS tk_ot_hours,
+                tk.late_hours AS tk_late_hours      -- <--- NEW: Select late_hours
             FROM
                 \`${userTableName}\` AS u
             LEFT JOIN
@@ -467,8 +474,6 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 
     return { sql, params, dateRange: effectiveDateRange };
 }
-
-
 
 // === HRIS UPLOAD EXCEL ===
 router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
@@ -783,6 +788,163 @@ router.post('/timekeep', upload.none(), async (req, res) => {
         return res.status(500).json({ success: false, msg: 'DATABASE ERROR, PLEASE TRY AGAIN!!!', errCode: 'ERR_SERVER' });
     }
 });
+
+
+//============DOWNLOAD PAYSLIP REPORT==================//
+// Ensure you have express.json() middleware enabled in your main app file for req.body to work:
+// app.use(express.json());
+// Helper function to get month name for the header date range
+function getMonthName(monthNumber) { // monthNumber is 0-indexed from Date object
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                    "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    return months[monthNumber];
+}
+
+router.post('/download-grid-data-xls', async (req, res) => {
+    try {
+        const gridData = req.body; // This is the array of employee objects from the client
+
+        if (!gridData || gridData.length === 0) {
+            return res.status(400).send('No data provided for Excel export.');
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Timekeep Summary');
+
+        // --- 1. Add Static Header Information (Rows 1-4) ---
+        const companyNameCell = worksheet.getCell('A1');
+        companyNameCell.value = 'BETTER EDGE SYSTEMS INCORPORATED';
+        companyNameCell.font = { bold: true }; // <--- NEW: Make company name bold
+
+        worksheet.getCell('A2').value = 'TEXTRON BLDG., 168 Luna Mencias St.,';
+        worksheet.getCell('A3').value = 'Addition Hills, San Juan City';
+		worksheet.getCell('A4').value = 'Metro Manila, Philippines';
+		
+
+        // --- 2. Dynamically Generate Date Range for Header (Row 4) ---
+        let reportDateRange = 'Report Date Range Not Available';
+        if (gridData.length > 0 && gridData[0].login_details && gridData[0].login_details.length > 0) {
+            const firstDayXdate = gridData[0].login_details[0].xdate; // e.g., "11-01-25"
+            const lastDayXdate = gridData[0].login_details[gridData[0].login_details.length - 1].xdate; // e.g., "11-30-25"
+
+            // Helper to parse MM-DD-YY string to a Date object (assuming 20xx for 2-digit years)
+            const parseMMDDYYToDate = (mmddyy) => {
+                const [month, day, yearShort] = mmddyy.split('-');
+                const fullYear = parseInt(yearShort, 10) + 2000; // Assuming 2-digit year is 20XX
+                // Use YYYY-MM-DD format for Date constructor to avoid parsing issues
+                return new Date(`${fullYear}-${month}-${day}T00:00:00`);
+            };
+
+            const start = parseMMDDYYToDate(firstDayXdate);
+            const end = parseMMDDYYToDate(lastDayXdate);
+
+            const startMonthName = getMonthName(start.getMonth());
+            const startDay = start.getDate();
+            const endMonthName = getMonthName(end.getMonth());
+            const endDay = end.getDate();
+            const year = start.getFullYear();
+
+            // Handle cases where start and end month might be different if the range spans months
+            if (startMonthName === endMonthName) {
+                reportDateRange = `${startMonthName}. ${startDay} - ${endDay} , ${year}`;
+            } else {
+                reportDateRange = `${startMonthName}. ${startDay} - ${endMonthName}. ${endDay} , ${year}`;
+            }
+        }
+        worksheet.getCell('A4').value = reportDateRange;
+
+        // --- Leave Row 5 and 6 empty as per screenshot ---
+        // ExcelJS will automatically leave them empty if we start writing at row 7.
+
+
+        // --- 3. Define Column Properties and Manually Add Headers to Row 7 ---
+        // Define column properties (keys for mapping and widths)
+        const columnDefinitions = [
+            { key: 'besi_id', width: 30 },
+            { key: 'full_name', width: 30 },
+            { key: 'area', width: 15 },
+            { key: 'position_code', width: 15},
+            { key: 'total_worked_days', width: 15 },
+            { key: 'total_worked_hours', width: 15 },
+            { key: 'total_late_hours', width: 15 },
+            { key: 'total_overtime_hours', width: 15 },
+        ];
+        worksheet.columns = columnDefinitions; // This tells ExcelJS about column keys and widths
+
+        // Manually write the header *values* to Row 7
+        const headerRow = worksheet.getRow(7);
+        headerRow.getCell('A').value = 'BESI ID';
+        headerRow.getCell('B').value = 'NAME';
+        headerRow.getCell('C').value = 'AREA';
+        headerRow.getCell('D').value = 'POSITION';
+        headerRow.getCell('E').value = 'WORK DAYS';
+        headerRow.getCell('F').value = 'WORK HOUR';
+        headerRow.getCell('G').value = 'LATE HOUR';
+        headerRow.getCell('H').value = 'OT HOUR';
+        headerRow.font = { bold: true };
+
+		//=======set alignments for header row
+ 		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID
+        headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME
+        headerRow.getCell('C').alignment = { horizontal: 'center' };  // AREA (example, could be left)
+        headerRow.getCell('D').alignment = { horizontal: 'center' };    // POSITION
+
+        // Numeric columns (WORK DAYS, WORK HOUR, LATE HOUR, OT HOUR) - typically right or center
+        headerRow.getCell('E').alignment = { horizontal: 'center' };   // WORK DAYS
+        headerRow.getCell('F').alignment = { horizontal: 'center' };   // WORK HOUR
+        headerRow.getCell('G').alignment = { horizontal: 'center' };   // LATE HOUR
+        headerRow.getCell('H').alignment = { horizontal: 'center' };   // OT HOUR
+        // --- END NEW ---
+
+
+        // --- 4. Loop Through gridData and Populate Rows (Starting from Row 8) ---
+        // `addRows` appends to the next available row, which is now Row 8 because we just populated Row 7.
+        const startDataRow = 8;
+        worksheet.addRows(gridData.map(employee => ({
+            besi_id: employee.besi_id,
+            full_name: employee.full_name,
+            area: '', // Placeholder, as 'area' is not in the provided employee object
+            position_code: employee.position_code,
+            total_worked_days: employee.total_worked_days,
+            total_worked_hours: employee.total_worked_hours ? parseFloat(employee.total_worked_hours).toFixed(2) : '0.00',
+            total_late_hours: employee.total_late_hours ? parseFloat(employee.total_late_hours).toFixed(2) : '0.00',
+            total_overtime_hours: employee.total_overtime_hours ? parseFloat(employee.total_overtime_hours).toFixed(2) : '0.00',
+        })));
+
+
+        // --- 5. Apply Right Alignment to Numeric Columns (E, F, G, H) ---
+        const endDataRow = startDataRow + gridData.length - 1; // Calculate the last row with data
+        for (let i = startDataRow; i <= endDataRow; i++) {
+            const row = worksheet.getRow(i);
+            row.getCell('E').alignment = { horizontal: 'right' }; // WORK DAYS
+            row.getCell('F').alignment = { horizontal: 'right' }; // WORK HOUR
+            row.getCell('G').alignment = { horizontal: 'right' }; // LATE HOUR
+            row.getCell('H').alignment = { horizontal: 'right' }; // OT HOUR
+        }
+
+
+        // --- Set Response Headers for File Download ---
+        const today = new Date().toISOString().slice(0, 10); // Format YYYY-MM-DD
+        const filename = `timekeep_summary_report_${today}.xlsx`;
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        // --- Send the Workbook as the Response ---
+        await workbook.xlsx.write(res);
+        res.end(); // Important: End the response stream
+
+        console.log('Grid summary data exported to XLSX and sent successfully.');
+
+    } catch (error) {
+        console.error('Error processing grid data for XLSX export:', error);
+        res.status(500).send(`Error processing data for report: ${error.message}`);
+    }
+});
+
+// Don't forget to export your router if it's in a separate file:
+// module.exports = router;
+
 
 //========login post
 router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
