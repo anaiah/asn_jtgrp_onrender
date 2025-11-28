@@ -481,50 +481,64 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 }
 
 //========= TIMEKEEPING CORRECTION ==============//
-// --- Helper Function for Timekeeping Calculations (e.g., in a utils.js or at the top of your router file) ---
+// --- Helper Function for Timekeeping Calculations (UPDATED) ---
 function calculateTimekeepingMetrics(loginTimeStr, logoutTimeStr) {
     let total_hours = 0.00;
     let ot_hours = 0.00;
-    let late_hours = 0.00; // Placeholder for now, needs clear rules
+    let late_hours = 0.00;
 
-    const standardWorkdayHours = 8; // Example: Standard 8-hour shift
-    const standardShiftStartHour = 8; // Example: 8 AM for late calculation
-    const standardShiftStartMinute = 0; // Example: 0 minutes past the hour
+    const standardWorkdayHours = 8;
+    const standardShiftStartHour = 8;
+    const standardShiftStartMinute = 0;
 
     let loginTimeObj = null;
     let logoutTimeObj = null;
 
-    if (loginTimeStr) {
+    // --- CRITICAL FIX HERE: Only create Date object if string is not null ---
+    if (loginTimeStr) { // Checks if it's not null/undefined/empty string
         loginTimeObj = new Date(loginTimeStr);
+        if (isNaN(loginTimeObj.getTime())) { // Check for invalid date
+            loginTimeObj = null;
+            console.warn("Invalid loginTimeStr passed to calculateTimekeepingMetrics:", loginTimeStr);
+        }
     }
-    if (logoutTimeStr) {
+    if (logoutTimeStr) { // Checks if it's not null/undefined/empty string
         logoutTimeObj = new Date(logoutTimeStr);
+        if (isNaN(logoutTimeObj.getTime())) { // Check for invalid date
+            logoutTimeObj = null;
+            console.warn("Invalid logoutTimeStr passed to calculateTimekeepingMetrics:", logoutTimeStr);
+        }
     }
+
+    // Backend-side validation: Cannot have Logout without Login
+    if (logoutTimeObj && !loginTimeObj) {
+        console.warn("Attempted to calculate with Logout but no Login. Forcing total/ot/late to 0.");
+        return { total_hours: 0, ot_hours: 0, late_hours: 0 }; // Or throw an error if you prefer
+    }
+    // Also, Login must be before Logout
+    if (loginTimeObj && logoutTimeObj && logoutTimeObj <= loginTimeObj) {
+        console.warn("Attempted to calculate with Logout before or same as Login. Forcing total/ot/late to 0.");
+        return { total_hours: 0, ot_hours: 0, late_hours: 0 };
+    }
+
 
     // 1. Calculate Total Hours
     if (loginTimeObj && logoutTimeObj && logoutTimeObj > loginTimeObj) {
         const durationMs = logoutTimeObj.getTime() - loginTimeObj.getTime();
-        total_hours = parseFloat((durationMs / (1000 * 60 * 60)).toFixed(2)); // Convert ms to hours, 2 decimal places
+        total_hours = parseFloat((durationMs / (1000 * 60 * 60)).toFixed(2));
     }
 
-    // 2. Calculate OT Hours (if total hours exceed standard workday)
+    // 2. Calculate OT Hours
     if (total_hours > standardWorkdayHours) {
         ot_hours = parseFloat((total_hours - standardWorkdayHours).toFixed(2));
     }
 
-    // 3. Calculate Late Hours (Requires more specific business rules)
-    // For now, a simple example: if login is after 8:00 AM
+    // 3. Calculate Late Hours
     if (loginTimeObj) {
         const loginHour = loginTimeObj.getHours();
         const loginMinute = loginTimeObj.getMinutes();
 
-        // If logged in after the standard shift start time
         if (loginHour > standardShiftStartHour || (loginHour === standardShiftStartHour && loginMinute > standardShiftStartMinute)) {
-            // This is a basic "is late?" flag or a very simple calculation.
-            // Example: Calculate minutes late and convert to hours.
-            // Or, if your "late_hours" just records a single instance of lateness,
-            // you might just set it to 1, or some specific value.
-            // For now, let's say it's minutes past the standard start, converted to hours.
             const minutesLate = (loginHour * 60 + loginMinute) - (standardShiftStartHour * 60 + standardShiftStartMinute);
             if (minutesLate > 0) {
                  late_hours = parseFloat((minutesLate / 60).toFixed(2));
@@ -532,12 +546,10 @@ function calculateTimekeepingMetrics(loginTimeStr, logoutTimeStr) {
         }
     }
 
-
     return { total_hours, ot_hours, late_hours };
 }
 
-// --- Your existing router.post('/api/recordMissingTimeEntry') ---
-
+//==============RECORD MISSING TIME ENTRY=================//
 router.post('/recordMissingTimeEntry', upload.none(), async (req, res) => {
     const { user_id, besi_id, entry_date, login_time, logout_time, reason } = req.body;
 
