@@ -153,7 +153,8 @@ function formatDateTimeToMMDDYYHHMM(dateTimeString) {
     const year = date.getFullYear().toString().slice(-2);
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${month}-${day}-${year} ${hours}:${minutes}`;
+    //return `${month}-${day}-${year} ${hours}:${minutes}`;
+	return `${hours}:${minutes}`;
 }
 
 // Helper function to generate an array of YYYY-MM-DD date strings within a range
@@ -178,6 +179,7 @@ function getDatesInRange(startDateStr, endDateStr) {
 // Assuming 'db' is your mysql2 connection pool and 'upload' is your multer setup
 router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
     // console.log( req.body) // Uncomment for debugging request body
+	console.log('==Firing searchempTimeKeep()==', req.body);
     const filters = {
         name: req.body.filter_name,
         id: req.body.filter_id,
@@ -373,6 +375,9 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
  * @returns {{sql: string, params: Array, dateRange?: {from: string, to: string}}} An object containing the generated SQL query, its parameters, and the effective date range if timekeeping data is requested.
  */
 function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
+	console.log('==buildPersonnelSearchQuery() with filters:', filters, 'isTimeKeep:', isTimeKeep);
+
+
     let { name, id, region, position, date_from, date_to } = filters;
     const params = [];
     const conditions = [];
@@ -474,6 +479,137 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 
     return { sql, params, dateRange: effectiveDateRange };
 }
+
+//========= TIMEKEEPING CORRECTION ==============//
+// --- Helper Function for Timekeeping Calculations (e.g., in a utils.js or at the top of your router file) ---
+function calculateTimekeepingMetrics(loginTimeStr, logoutTimeStr) {
+    let total_hours = 0.00;
+    let ot_hours = 0.00;
+    let late_hours = 0.00; // Placeholder for now, needs clear rules
+
+    const standardWorkdayHours = 8; // Example: Standard 8-hour shift
+    const standardShiftStartHour = 8; // Example: 8 AM for late calculation
+    const standardShiftStartMinute = 0; // Example: 0 minutes past the hour
+
+    let loginTimeObj = null;
+    let logoutTimeObj = null;
+
+    if (loginTimeStr) {
+        loginTimeObj = new Date(loginTimeStr);
+    }
+    if (logoutTimeStr) {
+        logoutTimeObj = new Date(logoutTimeStr);
+    }
+
+    // 1. Calculate Total Hours
+    if (loginTimeObj && logoutTimeObj && logoutTimeObj > loginTimeObj) {
+        const durationMs = logoutTimeObj.getTime() - loginTimeObj.getTime();
+        total_hours = parseFloat((durationMs / (1000 * 60 * 60)).toFixed(2)); // Convert ms to hours, 2 decimal places
+    }
+
+    // 2. Calculate OT Hours (if total hours exceed standard workday)
+    if (total_hours > standardWorkdayHours) {
+        ot_hours = parseFloat((total_hours - standardWorkdayHours).toFixed(2));
+    }
+
+    // 3. Calculate Late Hours (Requires more specific business rules)
+    // For now, a simple example: if login is after 8:00 AM
+    if (loginTimeObj) {
+        const loginHour = loginTimeObj.getHours();
+        const loginMinute = loginTimeObj.getMinutes();
+
+        // If logged in after the standard shift start time
+        if (loginHour > standardShiftStartHour || (loginHour === standardShiftStartHour && loginMinute > standardShiftStartMinute)) {
+            // This is a basic "is late?" flag or a very simple calculation.
+            // Example: Calculate minutes late and convert to hours.
+            // Or, if your "late_hours" just records a single instance of lateness,
+            // you might just set it to 1, or some specific value.
+            // For now, let's say it's minutes past the standard start, converted to hours.
+            const minutesLate = (loginHour * 60 + loginMinute) - (standardShiftStartHour * 60 + standardShiftStartMinute);
+            if (minutesLate > 0) {
+                 late_hours = parseFloat((minutesLate / 60).toFixed(2));
+            }
+        }
+    }
+
+
+    return { total_hours, ot_hours, late_hours };
+}
+
+// --- Your existing router.post('/api/recordMissingTimeEntry') ---
+
+router.post('/recordMissingTimeEntry', upload.none(), async (req, res) => {
+    const { user_id, besi_id, entry_date, login_time, logout_time, reason } = req.body;
+
+    // Basic validation
+    if (!user_id || !besi_id || !entry_date || (!login_time && !logout_time) || !reason) {
+        return res.status(400).json({ success: false, message: 'Missing required fields for time entry.' });
+    }
+
+    const regionMatch = besi_id.match(/BE-([A-Z]+)-/);
+    if (!regionMatch || !regionMatch[1]) {
+        return res.status(400).json({ success: false, message: 'Invalid besi_id format. Could not determine region.' });
+    }
+    const regionClean = regionMatch[1].toLowerCase().replace(/-/g, '_');
+    const timekeepTableName = `besi_timekeep_${regionClean}`;
+
+    try {
+        // --- NEW: Calculate metrics before database operation ---
+        const { total_hours, ot_hours, late_hours } = calculateTimekeepingMetrics(login_time, logout_time);
+
+        // First, check if an entry already exists for this user and date
+        const [existingRows] = await db.query(
+            `SELECT * FROM \`${timekeepTableName}\` WHERE user_id = ? AND entry_date = ?`,
+            [user_id, entry_date]
+        );
+
+        let sql, params;
+
+        if (existingRows.length > 0) {
+            // Entry exists, update it
+            sql = `
+                UPDATE \`${timekeepTableName}\`
+                SET login_time = ?, logout_time = ?, total_hours = ?, ot_hours = ?, late_hours = ?, reason = ?, updated_at = NOW()
+                WHERE user_id = ? AND entry_date = ?
+            `;
+            params = [
+                login_time,
+                logout_time,
+                total_hours, // Calculated
+                ot_hours,    // Calculated
+                late_hours,  // Calculated
+                reason,
+                user_id,
+                entry_date
+            ];
+        } else {
+            // No entry, insert a new one
+            sql = `
+                INSERT INTO \`${timekeepTableName}\`
+                (user_id, entry_date, login_time, logout_time, total_hours, ot_hours, late_hours, reason, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            `;
+            params = [
+                user_id,
+                entry_date,
+                login_time,
+                logout_time,
+                total_hours, // Calculated
+                ot_hours,    // Calculated
+                late_hours,  // Calculated
+                reason
+            ];
+        }
+
+        await db.query(sql, params);
+        res.status(200).json({ success: true, message: 'Time entry recorded successfully.' });
+
+    } catch (error) {
+        console.error('Error recording missing time entry:', error.message);
+        res.status(500).json({ success: false, message: error.message || 'Failed to record time entry.' });
+    }
+});
+
 
 // === HRIS UPLOAD EXCEL ===
 router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
