@@ -7,9 +7,8 @@ multiple comment //// => IMPORTANT
 const express = require('express')
 
 const Utils = require('./util')//== my func
-
 //const QRPDF = require('./qrpdf')
-const mypdf = require('./mypdf')//=== my own module
+const asnpdf = require('./asnpdf')//=== my own module
 
 const cookieParser = require('cookie-parser')
 
@@ -36,8 +35,6 @@ const nodemailer = require("nodemailer")
 const router = express.Router()
 
 const fs = require('fs');
-//const QRPDF = require('./qrpdf')
-const asnpdf = require('./asnpdf')//=== my own module
 
 const PuppeteerHTMLPDF = require('puppeteer-html-pdf');
 
@@ -1136,34 +1133,6 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
         // We need to check if result[0] (the array of rows) exists and has length > 0.
         if (result && result[0] && result[0].length > 0) {
             user = result[0][0]; // Get the first user object from the rows array
-
-			// --- STEP 2: Conditional Re-query for Region based on grp_id ---
-			if (user.grp_id === 1) { // If the user is a rider (or grp_id 1)
-				console.log('User is a rider (grp_id 1). Fetching region from asn_hub...');
-
-				// Ensure the user has a 'hub' value to query with
-				if (user.hub) {
-					// Query asn_hub using the 'hub' field from asn_users
-					const hubRegionSql = `SELECT region FROM asn_hub WHERE hub = ?`;
-					const hubRegionResult = await db.query(hubRegionSql, [user.hub]);
-
-					if (hubRegionResult && hubRegionResult[0] && hubRegionResult[0].length > 0) {
-						// Get the region value from asn_hub and attach it to the user object
-						user.region = hubRegionResult[0][0].region; 
-						console.log('Rider region fetched from asn_hub:', user.region);
-					} else {
-						console.log('No matching region found in asn_hub for user.hub:', user.hub);
-						// You might want to set a default or null here if no region is found
-						user.region = null; 
-					}
-				} else {
-					console.log('Rider (grp_id 1) has no "hub" assigned in asn_users table.');
-					user.region = null; // No hub to look up, so no region
-				}
-
-			}//eif
-
-
             console.log('User found:', user.email, user.region); // Log for debugging
 
             let aData = [];
@@ -1186,7 +1155,6 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
             aData.push(obj);
 			console.log(aData)
             return res.status(200).json(aData);
-
         } else {
             // No user found, or query returned empty array
             console.log('No matching record found for provided credentials.');
@@ -1677,719 +1645,63 @@ router.get('/getmonthlytransaction/:empid', async(req,res)=>{
 //======================ADD NEW EMPLOYEE ====================
 // Create a new employee (CREATE)
 let myfile
+router.post('/newemppost/', async (req, res) => {
+    //const { employeeId, full_name, email, phone, birth_date, hire_date, job_title, department, employment_status, address } = req.body;
+
+	myfile = req.body.employeeId
+	console.log('data is', req.body.fullName.toUpperCase(), req.body.birthDate , req.body.jobTitle)
+	
+   	connectDb()
+    .then((db)=>{
+
+	//$sql = `INSERT INTO asn_employees (emp_id, full_name, email, phone, birth_date, hire_date, job_title, department, employment_status, address) 
+	//VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`
+	
+			
+		$sql = `INSERT INTO asn_employees (emp_id, full_name, email, phone, birth_date, hire_date, job_title, department, employment_status, address) 
+		VALUES (?,?,?,?,?,?,?,?,?,?) `
+			
+		db.query( $sql,
+			[	req.body.employeeId, 
+				req.body.fullName.toUpperCase(), 
+				req.body.email, 
+				req.body.phone, 
+				req.body.birthDate, 
+				req.body.hireDate, 
+				req.body.jobTitle,
+				req.body.department, 
+				req.body.employmentStatus, 
+				req.body.address ],
+			(error,result)=>{
+				console.log('inserting..',result.rowCount)
+
+				//results[0]
+				res.json({
+					message: "Employee Number " + myfile +" Added Successfully!",
+					voice:"Employee Number " + myfile +" Added Successfully!",
+					approve_voice:`You have another item added in Inventory`,
+					status:true
+				})
+	
+				closeDb(db);//CLOSE connection
+			
+		})
+		
+    }).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    }) 
+});
 
 //==============busboy, basic-ftp  for file uploading============
 const Busboy = require('busboy')
 const {Client} = require("basic-ftp")
 
-async function generateEmpId( region, date_hired, poscode ) {    
-
-    //const regionCode = req.body.hrisload_region; // e.g., SMNL
-    
-    const xtable = `besi_users_${region.toLowerCase()}`;
-
-    const seriesTable = `besi_${region.toLowerCase()}_series`;
-
-    const conn = await mysqls.createConnection(dbconfig);
-
-    // Fetch current series JSON once
-    const [seriesRows] = await conn.execute(`SELECT series_data FROM ${seriesTable} WHERE id=1`);
-
-	let seriesData;
-	if (seriesRows.length && seriesRows[0]?.series_data) {
-		try {
-			seriesData = JSON.parse(seriesRows[0].series_data);
-		} catch (e) {
-			console.error('Failed to parse series_data JSON', e);
-			seriesData = [
-			{ "code": "01", "series": 1 },
-			{ "code": "02", "series": 1 }
-			];
-		}
-		} else {
-		seriesData = [
-			{ "code": "01", "series": 1 },
-			{ "code": "02", "series": 1 }
-		];
-	}
-
-    // Find the current series for this position, or initialize
-    let seriesObj = seriesData.find(s => s.code === poscode);
-    if (!seriesObj) {
-      seriesObj = { code: poscode, series: 1 };
-      seriesData.push(seriesObj);
-    }
-
-    let lastSeriesNumber = seriesObj.series; // get the latest series number store in var
-
-    // Helper: get date string as yymmdd
-    const getDateString = (date) => {
-      if (!date) return '';
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return '';
-      const y = d.getFullYear().toString().slice(-2);
-      const m = ('0' + (d.getMonth() + 1)).slice(-2);
-      const day = ('0' + d.getDate()).slice(-2);
-      return `${m}${day}${y}`;
-    };
-
-    const formattedDateHired = formatDate(date_hired);
-    // Generate emp_id using lastSeriesNumber
-    const datePart = getDateString(formattedDateHired) || getDateString(new Date());
-    const seqStr = ('0000' + lastSeriesNumber).slice(-4); // pad 4 digits
-
-    const emp_id = `BE-${region.toUpperCase()}-${datePart}-${poscode}${seqStr}`;
-
-    // Increment for next record
-	lastSeriesNumber += 1;
-
-    // Now update the series table with latest number
-	seriesObj.series = lastSeriesNumber; // update the object
-	await conn.execute(`UPDATE ${seriesTable} SET series_data = ? WHERE id=1`, [JSON.stringify(seriesData)]);
-
-	await conn.end();
-
-    return emp_id;
-}
-
-// --- Utility: Local Temp Directory Setup ---
-const tempUploadDir = path.join(__dirname, 'temp_uploads');
-if (!fs.existsSync(tempUploadDir)) {
-    fs.mkdirSync(tempUploadDir, { recursive: true });
-}
-
-// --- Utility: File Processing and FTP Upload Function (MODIFIED) ---
-
-// --- MODIFIED processAndUploadFile for signature and other documents ---
-// --- MODIFIED processAndUploadFile for detailed debugging ---
-async function processAndUploadFile(
-    employeeId,
-    localTempOriginalPath,
-    originalFilename,
-    remoteTargetFolder,
-    ftpClientConfig,
-    uploadFieldName
-) {
-
-    let originalExtname = path.extname(originalFilename).toLowerCase();
-    let processedFileName;
-    let sharpOptions = {}; 
-
-    // ... (Your existing logic to determine processedFileName and sharpOptions based on uploadFieldName) ...
-    if (uploadFieldName === 'signature_image') {
-        processedFileName = originalFilename;
-        originalExtname = '.png';
-        sharpOptions = { resize: { width: 300 }, png: { quality: 90 } };
-    } else {
-        /// TAKEN OUT MARCH 2 2K26 const baseName = path.basename(originalFilename, originalExtname).replace(/[^a-zA-Z0-9_.-]/g, '');
-        let filePrefix = '';
-        switch (uploadFieldName) {
-            case 'id_picture': filePrefix = 'USER_'; break;
-            case 'bgy_clearance': filePrefix = 'BGY_'; break;
-            case 'police_clearance': filePrefix = 'POLICE_'; break;
-            case 'drivers_license': filePrefix = 'DRIVER_'; break;
-            default: filePrefix = 'DOC_'; break;
-        }
-        const cleanEmployeeId = employeeId; //? String(employeeId).replace(/[^a-zA-Z0-9_]/g, '') : 'NO_EMP_ID';
-        processedFileName = `${filePrefix}${cleanEmployeeId}${originalExtname}`;
-        sharpOptions = { resize: { width: 500 }, jpeg: { quality: 30 } };
-    }
-    
-    const localTempProcessedPath = path.join(tempUploadDir, processedFileName); // This line is crucial
-
-    console.log(`DEBUG: localTempOriginalPath = ${localTempOriginalPath}`);
-    console.log(`DEBUG: localTempProcessedPath = ${localTempProcessedPath}`);
-
-    let client = null;
-
-    try {
-        // --- 1. Image Processing with Sharp ---
-        console.log(`DEBUG: Starting Sharp processing for field '${uploadFieldName}'`);
-        await sharp(localTempOriginalPath)
-            .resize(sharpOptions.resize)
-            [sharpOptions.jpeg ? 'jpeg' : 'png'](sharpOptions.jpeg || sharpOptions.png) // Dynamic format
-            .toFile(localTempProcessedPath);
-        console.log(`DEBUG: Sharp processing finished.`);
-
-        // --- NEW DEBUGGING STEP: Check if file exists AFTER Sharp writes it ---
-        if (!fs.existsSync(localTempProcessedPath)) {
-            const sharpError = `ERROR: Sharp reported success but file does not exist at ${localTempProcessedPath}!`;
-            console.error(sharpError);
-            throw new Error(sharpError);
-        }
-        console.log(`DEBUG: File confirmed to exist at ${localTempProcessedPath} after Sharp processing.`);
-
-        // --- 2. FTP Upload ---
-        console.log(`DEBUG: Starting FTP upload to ${remoteTargetFolder}/${processedFileName}`);
-        
-		client = new Client();
-        await client.access(ftpClientConfig);
-        await client.ensureDir(remoteTargetFolder);
-        await client.uploadFrom(localTempProcessedPath, `${processedFileName}`);
-        console.log(`DEBUG: FTP upload finished successfully.`);
-
-        return {
-            status: true,
-            fieldName: uploadFieldName,
-            originalName: originalFilename,
-            uploadedName: processedFileName,
-            remotePath: `${remoteTargetFolder}/${processedFileName}`
-        };
-
-    } catch (error) {
-        console.error(`ERROR: An error occurred during processAndUploadFile for field '${uploadFieldName}':`, error);
-        throw { // Rethrow to be caught by Promise.all in the main handler
-            status: false,
-            fieldName: uploadFieldName,
-            originalName: originalFilename,
-            error: error.message || 'Unknown file processing/upload error',
-            details: error
-        };
-    } finally {
-        // ... (Cleanup logic) ...
-        if (client) client.close(); 
-        fs.unlink(localTempOriginalPath, (err) => {
-            if (err) console.error(`Error deleting original temp file ${localTempOriginalPath}:`, err);
-            else console.log(`Deleted original temp file: ${localTempOriginalPath}`);
-        });
-        fs.unlink(localTempProcessedPath, (err) => {
-            if (err) console.error(`Error deleting processed temp file ${localTempProcessedPath}:`, err);
-            else console.log(`Deleted processed temp file: ${localTempProcessedPath}`);
-        });
-    }
-}
-
-//================ Refactored /newemppost Endpoint (UNCHANGED from previous, just using new helper) ==================//
-router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
-
-	console.log('===FIRING /newemppost Endpoint===', req.params);
-
-	let empId = await generateEmpId(req.params.region, req.params.dateHired, req.params.jobTitle);	 // Declare empId in the outer scope to be used in file processing
-	
-    const busboy = Busboy({ headers: req.headers });
-
-    let formFields = {};
-    let filePromises = []; // Array to hold promises for each file's processing and FTP upload
-	let regions
-
-    // --- Busboy: Collect Text Fields ---
-    busboy.on('field', (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) => {
-        
-		formFields[fieldname] = val;
-
-		// Reset finalEmpid whenever a new field is received, to ensure it's only set after file processing
-    });
-
-    // --- Busboy: Collect File Data ---
-    busboy.on('file', (fieldname, file, fileInfo) => { // <--- CHANGED: fileInfo instead of filenam
-		
-        // Check if fileInfo is an object and contains a filename string
-        if (!fileInfo || typeof fileInfo.filename !== 'string' || fileInfo.filename === '') {
-            file.resume();
-            console.log(`No file uploaded for field: ${fieldname} or invalid filename object received.`);
-            return;
-        }
-
-        const originalFilename = fileInfo.filename; // <--- EXTRACT THE ACTUAL FILENAME STRING
-        console.log(`Busboy 'file' event: fieldname='${fieldname}', original filename='${originalFilename}'`);
-
-        let originalExtname = path.extname(originalFilename).toLowerCase(); // <--- NOW uses the string originalFilename
-        if (!['.jpg', '.jpeg', '.png', '.gif'].includes(originalExtname)) {
-            console.warn(`File '${originalFilename}' for field '${fieldname}' has an unsupported extension. Proceeding with caution.`);
-        }
-
-        const uniqueTempFilename = `${fieldname}_original_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${originalExtname}`;
-        const localTempOriginalPath = path.join(tempUploadDir, uniqueTempFilename);
-
-        const fstream = fs.createWriteStream(localTempOriginalPath);
-        file.pipe(fstream);
-
-        fstream.on('close', () => {
-            console.log(`Finished writing local temp file for field '${fieldname}': ${localTempOriginalPath}`);
-            filePromises.push(
-                (async () => {
-                    try {
-                        let subFolderName;
-
-                        const region = formFields.region;
-						regions = region
-
-                        switch (region) {
-                            case 'SMNL': subFolderName = 'ncr_smnl_emp'; break;
-                            case 'CMNL': subFolderName = 'ncr_cmnl_emp'; break;
-                            case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
-                            case 'BCOL': subFolderName = 'bsl_bicol_emp'; break;
-                            case 'SMLYTE': subFolderName = 'bsl_smarleyte_emp'; break;
-                            case 'CVIS': subFolderName = 'cvis_emp'; break;
-                            case 'BCLD': subFolderName = 'wvis_bacolod_emp'; break;
-                            case 'PANAY': subFolderName = 'wvis_panay_emp'; break;
-                            default:
-                                console.warn(`Unknown region "${region}". Using default subfolder 'others_uploads_emp'.`);
-                                subFolderName = 'others_uploads_emp';
-                                break;
-                        }
-                        const remoteTargetFolder = subFolderName;
-
-                        const ftpClientConfig = {
-                            host: "ftp.asianowapp.com",
-                            user: "u899193124.jtgrpcarlo",
-                            password: "@Carlo0811",
-                        };
-
-                        return await processAndUploadFile(
-                            empId,
-                            localTempOriginalPath,
-                            originalFilename,
-                            remoteTargetFolder,
-                            ftpClientConfig,
-                            fieldname // Pass the fieldname here
-                        );
-
-                    } catch (error) {
-                        console.error(`Error in file processing/upload promise for field '${fieldname}' (${originalFilename}):`, error);
-                        fs.unlink(localTempOriginalPath, (err) => {
-                            if (err) console.error(`Error deleting temp file on promise rejection ${localTempOriginalPath}:`, err);
-                        });
-                        throw error;
-                    }
-                })()
-            );
-        });
-
-       fstream.on('error', (err) => {
-            console.error(`Error writing local temp file for field '${fieldname}' (${originalFilename}):`, err);
-        });
-
-        file.resume();
-    });
-
-    // --- Busboy: Handle completion of parsing the request ---
-    busboy.on('finish', async () => {
-        console.log('Busboy finished parsing all parts of the request.');
-        console.log('Collected Form Fields:', formFields);
-
-        let dbConnection = null
-
-		let conn = await mysqls.createConnection(dbconfig);
-
-		//dbConnection = await connectDb();
-
-        try {
-			
-
-
-            await conn.beginTransaction(); // Start a transaction
-
-            const sql = `INSERT INTO asn_employees (
-                emp_id, full_name, email, phone, birth_date, hire_date, job_title,  employment_status, address
-            ) VALUES (?,?,?,?,?,?,?,?,?)`;
-
-			console.log('*****BESI ID IS ****** ', empId	)
-            //const department = formFields.department || "General Operations";
-            // Ensure date_reg is handled; it was added client-side in FormData
-            // If it's not a direct input, ensure it's still added
-            // const date_reg = formFields.date_reg || new Date().toISOString().split('T')[0]; // If you want to use this
-
-            //const dbResult = await dbConnection.query(sql, [
-			const dbResult = await conn.execute(sql, [
-			
-                //finalEmpid, // Use the generated empId.
-				empId !== undefined ? empId : null, // Using the generated empId
-                formFields.fullName.toUpperCase(),
-                formFields.email,
-                formFields.phone,
-                formFields.birthDate,
-                formFields.hireDate,
-                formFields.jobTitle,
-                formFields.employmentStatus,
-                formFields.address
-            ]);
-            console.log('Database insertion successful, rowCount:', dbResult[0].affectedRows);
-
-            // --- 2. Insert into bogus_table_1 (same fields) ---
-            const sql_bogus_1 = `INSERT INTO besi_users_${regions.toLowerCase()} (
-                besi_id, full_name, date_hired, email, hub, position_code ) 
-                VALUES (?,?,?,?,?,?)`;
-
-            const result_bogus_1 = await conn.execute(sql_bogus_1, [
-                empId !== undefined ? empId : null,
-                formFields.fullName.toUpperCase(),
-                formFields.hireDate,
-                formFields.email,
-                formFields.hub_store, // Assuming this field is part of the formFields; if not, adjust accordingly
-                formFields.jobTitle
-            ]);
-            console.log('Database insertion successful for bogus_table_1, affectedRows:', result_bogus_1[0].affectedRows);
-
-            // --- 3. Insert into bogus_table_2 (same fields) ---
-            // const sql_bogus_2 = `INSERT INTO bogus_table_2 (
-            //     emp_id, full_name, email, phone, birth_date, hire_date, job_title, employment_status, address
-            // ) VALUES (?,?,?,?,?,?,?,?,?)`;
-            // const result_bogus_2 = await conn.execute(sql_bogus_2, insertParams);
-            // console.log('Database insertion successful for bogus_table_2, affectedRows:', result_bogus_2[0].affectedRows);
-
-            // --- 4. Process and Upload All Files to FTP ---
-            const uploadResults = await Promise.all(filePromises);
-            console.log('======All files processed and uploaded to FTP:========', uploadResults);
-
-            // If all database operations and file uploads were successful, commit the transaction
-            await conn.commit();
-            console.log('Database transaction committed.');
-
-            // --- 5. Send Final Success Response ---
-            res.json({
-                message: `Record added successfully!`,
-                voice: `Record Added Successfully!`,
-                status: true,
-                employeeName: formFields.fullName.toUpperCase(),
-                employeeId: empId,
-				regionId: regions,
-                uploadDetails: uploadResults,
-                formFields: formFields
-            });
-
-        } catch (error) {
-             // If any part of the try block failed, attempt to roll back the transaction
-            if (conn) {
-                await conn.rollback();
-                console.error('Database transaction rolled back due to error.');
-            }
-
-            console.error('Error in /newemppost endpoint processing:', error);
-
-            let userMessage = "An unexpected error occurred during employee creation or document upload.";
-            
-            if (error.sqlMessage) {
-                userMessage = `Database error: ${error.sqlMessage}`;
-            } else if (error.message) {
-                userMessage = `Processing error: ${error.message}`;
-            } else if (error.error) {
-                // This specific error structure for file upload failure might need adjustment
-                userMessage = `File upload failed for ${error.fieldName}: ${error.error}`;
-            }
-
-            if (!res.headersSent) {
-                res.status(500).json({
-                    error: userMessage,
-                    voice: "Error occurred during employee creation or document upload.",
-                    status: false,
-                    details: error
-                });
-            }
-        } finally {
-            // Always ensure the connection is closed/released
-            if (conn) {
-                await conn.end(); // If using mysqls.createConnection
-                // If using a pool (e.g., mysqls.createPool().getConnection()), you'd use conn.release();
-                console.log('Database connection closed.');
-            }
-        } //eif
-    });
-
-    // --- Busboy: Handle Parsing Errors ---
-    busboy.on('error', (err) => {
-        console.error('Busboy parsing error:', err);
-        if (!res.headersSent) {
-            res.status(500).json({ status: false, error: 'File upload parsing error at request stream level.', details: err.message });
-        }
-    });
-
-    // Pipe the incoming request stream to Busboy for parsing
-    req.pipe(busboy);
-});
-
-//================ ENDPOINT: /newemppost ==================//
-
-//========= NEW ENDPOINT: / ========PRINTPDF==========//
-//======= THIS IS THE MOST IMPORTANT ROUTE OF ALL, CREATING PDF / CREATE PDF-- CHECK PDF FIRST BEFORE CREATING ==============
-router.post('/printpdf/:empid/:empname/:region', async(req, res)=>{
-    console.log('===FIRING /printpdf Endpoint===');
-
-    //****************** create pdf ***************************** */
-	mypdf.newCreatePDF( req.params.empid, req.params.empname, req.params.region, res)
-
-	//******************END DOWNLOAD ******************* */
-});
-
-
-//===============NEW ENDPOINT get location =================//
-router.get('/getlocation/:region', async(req,res)=>{
-    let conn =await mysqls.createConnection(dbconfig);
-
-    const regionParam = req.params.region;
-    let regionName = '';    
-
-    switch (regionParam) { // Use regionParam from URL  
-        case 'SMNL': regionName = 'NCR-SMNL'; break;
-        case 'CMNL': regionName = 'NCR-CMNL'; break;
-        case 'CMNVA': regionName = 'NCR-CMNVA'; break;
-        case 'BCOL': regionName = 'BSL-BICOL'; break;
-        case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
-        case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
-        case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
-        case 'PANAY': regionName  = 'WVIS-PANAY'; break;
-    }
-    const remoteTargetTable = regionName; // Now uses the derived table name
-
-
-    try {
-        
-        const sql = `SELECT location FROM asn_hub WHERE region = ? group by location ORDER BY region, location`;  
-        const results = await conn.execute(sql, [regionName]  );
-        
-        console.log('Results from /getlocation:', regionName,  results[0]);
-
-        res.status(200).json({ data: results[0] });
-
-    }
-    catch (err) {
-        console.error('Error in /getlocation endpoint:', err);
-        res.status(500).json({ error: 'Server Error' });
-    }
-    finally {
-        await conn.end();
-    }   
-});
-//=================NEW ENDPOINT gethub() =================//
-router.get('/gethub/:region/:location', async(req,res)=>{
-
-     const regionParam= req.params.region;
-     const locParam = req.params.location;
-     
-     let conn =await mysqls.createConnection(dbconfig);
-
-     console.log('Received parameters for /gethub:', req.params.region, req.params.location);
-    
-    let regionName = '';    
-
-    switch (regionParam) { // Use regionParam from URL  
-        case 'SMNL': regionName = 'NCR-SMNL'; break;
-        case 'CMNL': regionName = 'NCR-CMNL'; break;
-        case 'CMNVA': regionName = 'NCR-CMNVA'; break;
-        case 'BCOL': regionName = 'BSL-BICOL'; break;
-        case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
-        case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
-        case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
-        case 'PANAY': regionName  = 'WVIS-PANAY'; break;
-    }
-    const remoteTargetTable = regionName; // Now uses the derived table name
-
-
-    try {
-        const sql = `SELECT hub FROM asn_hub WHERE region = ? AND location = ? ORDER BY region, hub`;  
-        const results  = await conn.execute(sql,[regionName, locParam]  );
-        
-        res.status(200).json({ data: results[0] });
-    }
-    catch (err) {
-        console.error('Error in /gethub endpoint:', err);
-        res.status(500).json({ error: 'Server Error' });
-    }
-});
-
-
-//================ NEW ENDPOINT: /uploadsignature ==================//
-//================ FIXING THE /uploadsignature ENDPOINT ==================//
-router.post('/uploadsignature/:empId/:regions', async (req, res) => { // Removed empId and regions from params
-    console.log('===FIRING /uploadsignature Endpoint===');
-
-    const busboy = Busboy({ headers: req.headers });
-
-    let formFields = {};
-    let filePromises = [];
-    let employeeId = req.params.empId; // Assuming empId comes from URL param
-    const regionParam = req.params.regions; // Assuming regions comes from URL param
-
-    // --- Busboy: Collect Text Fields (will capture employeeId if sent in body) ---
-    busboy.on('field', (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) => {
-        formFields[fieldname] = val;
-        // If employeeId is sent in form data, it will overwrite the URL param for this specific request
-        if (fieldname === 'employeeId') {
-            employeeId = val;
-        }
-    });
-
-    // --- Busboy: Collect File Data (FIXED RACE CONDITION) ---
-    busboy.on('file', (fieldname, file, fileInfo) => {
-        // --- Capture originalFilename here in the outer scope for all callbacks ---
-        const originalFilename = fileInfo && typeof fileInfo.filename === 'string' ? fileInfo.filename : '';
-        
-        if (!originalFilename || fieldname !== 'signature_image') {
-            file.resume();
-            console.warn(`Skipping file for field: ${fieldname}. Reason: ${!originalFilename ? 'No filename' : 'Not signature_image'}.`);
-            return;
-        }
-        
-        console.log(`Busboy 'file' event: fieldname='${fieldname}', original filename='${originalFilename}'`);
-
-        let originalExtname = path.extname(originalFilename).toLowerCase();
-        if (originalExtname !== '.png') {
-            console.warn(`Signature file '${originalFilename}' has unexpected extension ${originalExtname}. Forcing to .png for processing.`);
-            originalExtname = '.png';
-        }
-
-        const uniqueTempFilename = `${fieldname}_original_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${originalExtname}`;
-        const localTempOriginalPath = path.join(tempUploadDir, uniqueTempFilename);
-
-        // --- THE FIX: Create a Promise for this file's entire lifecycle IMMEDIATELY ---
-        const fileProcessingPromise = new Promise((resolve, reject) => {
-            const fstream = fs.createWriteStream(localTempOriginalPath);
-            file.pipe(fstream);
-
-            fstream.on('close', async () => {
-                console.log(`Finished writing local temp file for field '${fieldname}': ${localTempOriginalPath}`);
-                try {
-                    if (!employeeId) {
-                        throw new Error("Employee ID is missing for signature upload (Promise context).");
-                    }
-                    if (!regionParam) {
-                        throw new Error("Region parameter is missing from the URL for remote folder determination.");
-                    }
-
-                    // Determine remoteTargetFolder based on req.params.regions
-                    let subFolderName;
-                    switch (regionParam) { // Use regionParam from URL
-                        case 'SMNL': subFolderName = 'ncr_smnl_emp'; break;
-                        case 'CMNL': subFolderName = 'ncr_cmnl_emp'; break;
-                        case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
-                        case 'BCOL': subFolderName = 'bsl_bicol_emp'; break;
-                        case 'SMLYTE': subFolderName = 'bsl_smarleyte_emp'; break;
-                        case 'CVIS': subFolderName = 'cvis_emp'; break;
-                        case 'BCLD': subFolderName = 'wvis_bacolod_emp'; break;
-                        case 'PANAY': subFolderName = 'wvis_panay_emp'; break;
-                        default:
-                            console.warn(`Unknown region "${regionParam}" from URL. Using default subfolder 'others_uploads_emp'.`);
-                            subFolderName = 'others_uploads_emp';
-                            break;
-                    }
-                    const remoteTargetFolder = subFolderName; // Now uses the derived subfolder
-
-                    const ftpClientConfig = {
-                        host: "ftp.asianowapp.com",
-                        user: "u899193124.jtgrpcarlo",
-                        password: "@Carlo0811",
-                    };
-                    
-                    const result = await processAndUploadFile(
-                        employeeId, // Use employeeId from URL param or form field
-                        localTempOriginalPath,
-                        originalFilename, // This is already 'SIGN_EMP_ID.png'
-                        remoteTargetFolder,
-                        ftpClientConfig,
-                        fieldname
-                    );
-                    resolve(result); // Resolve the promise with the result
-                } catch (error) {
-                    console.error(`ERROR: File processing/upload failed for field '${fieldname}' (${originalFilename}):`, error);
-                    fs.unlink(localTempOriginalPath, (err) => { // Cleanup temp file on error
-                        if (err) console.error(`Error deleting temp file on promise rejection ${localTempOriginalPath}:`, err);
-                    });
-                    reject(error); // Reject the promise on error
-                }
-            });
-
-            fstream.on('error', (err) => {
-                console.error(`ERROR: Error writing local temp file for field '${fieldname}' (${originalFilename}):`, err);
-                reject(err); // Reject the promise on fstream error
-            });
-        }); // End of new Promise construction
-
-        filePromises.push(fileProcessingPromise); // --- PUSH THE PROMISE IMMEDIATELY ---
-    }); // End of busboy.on('file')
-
-    // --- Busboy: Handle completion of parsing the request ---
-    busboy.on('finish', async () => {
-        console.log('Busboy finished parsing signature upload request.');
-        console.log('Collected Form Fields:', formFields);
-        console.log('Collected filePromises count:', filePromises.length); // DEBUG.
-
-        let dbConnection = null;
-
-        try {
-            if (!employeeId) { // Check if employeeId is available from URL or form
-                throw new Error("Employee ID was not provided in the request (URL or form data).");
-            }
-
-            if (filePromises.length === 0) { // THIS CHECK NOW WORKS CORRECTLY
-                 throw new Error("No signature file was provided for upload.");
-            }
-
-            const uploadResults = await Promise.all(filePromises);
-            const signatureUploadResult = uploadResults[0];
-
-            if (!signatureUploadResult || !signatureUploadResult.status) {
-                throw new Error("Signature file upload failed or no file was processed successfully.");
-            }
-            const signatureRemotePath = signatureUploadResult.remotePath;
-            console.log('Signature uploaded to:', signatureRemotePath);
-
-            // --- Database Update with Signature Path (commented out as requested) ---
-            /*
-            dbConnection = await connectDb();
-            const sqlUpdateSignature = `UPDATE asn_employees SET signature_path = ? WHERE emp_id = ?`;
-            const updateResult = await dbConnection.query(sqlUpdateSignature, [signatureRemotePath, employeeId]);
-            
-            if (updateResult.affectedRows === 0) {
-                 console.warn(`No employee found with emp_id ${employeeId} to update signature path.`);
-                 throw new Error(`Employee with ID ${employeeId} not found for signature update.`);
-            }
-            console.log('Database updated with signature path for employee:', employeeId);
-            */
-
-            res.json({
-                message: `Signature successfully uploaded and recorded!`,
-                voice: `Signature successfully uploaded!`,
-                status: true,
-                employeeId: employeeId,
-                signaturePath: signatureRemotePath
-            });
-
-        } catch (error) {
-            console.error('Error in /uploadsignature endpoint processing:', error);
-            let userMessage = "An unexpected error occurred during signature upload.";
-            if (error && error.sqlMessage) { // Check error for sqlMessage if DB is enabled
-                userMessage = `Database error: ${error.sqlMessage}`;
-            } else if (error && error.message) {
-                userMessage = `Processing error: ${error.message}`;
-            }
-            
-            if (!res.headersSent) {
-                res.status(500).json({
-                    error: userMessage,
-                    voice: "Error occurred during signature upload.",
-                    status: false,
-                    details: error
-                });
-            }
-        } finally {
-            // if (dbConnection) { // Ensure dbConnection is defined if used
-            //     closeDb(dbConnection);
-            //     console.log('Database connection released.');
-            // }
-        }
-    });
-
-    // --- Busboy: Handle Parsing Errors ---
-    busboy.on('error', (err) => {
-        console.error('Busboy parsing error:', err);
-        if (!res.headersSent) {
-            res.status(500).json({ status: false, error: 'File upload parsing error at request stream level.', details: err.message });
-        }
-    });
-
-    req.pipe(busboy);
-});
-
 //================ post image ==================//
-router.post('/postimage/:transnumber/:region',   async (req, res) => {
+router.post('/postimage/:transnumber',   async (req, res) => {
 	console.log('===FIRING /postimage===', req.params.transnumber )
-
-	const cRegion = req.params.region;
 
 	const busboy = Busboy({ headers: req.headers });
 		
-
-	//busboy.on(file) is triggered for each file in the form data
 	busboy.on('file', function(fieldname, file, filename) {
 
 		console.log( 'firing busboy on file() ==', filename, fieldname, path.extname( filename.filename) )
@@ -2427,61 +1739,17 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
 					const client = new Client()
 					//client.ftp.verbose = true
 
-					// DEFINE YOUR TARGET FOLDER HERE
-					// Note: This path is relative to your FTP user's root. 
-					// If your FTP user lands in /, you might need "/public_html/html/my_images"
-					switch (cRegion) {
-						case 'NCR-SMNL':
-							subFolderName = 'ncr_smnl_rcpt';
-							break;
-						case 'NCR-CMNL':
-							subFolderName = 'ncr_cmnl_rcpt';
-							break;
-						case 'NCR-CMNVA':
-							subFolderName = 'ncr_cmnva_rcpt';
-							break;
-						case 'BSL-BICOL': // Example: for National Capital Region
-							subFolderName = 'bsl_bicol_rcpt';
-							break;
-						case 'BSL-SMARLEYTE': // Example: for National Capital Region
-							subFolderName = 'bsl_smarleyte_rcpt';
-							break;
-						case 'CENTRAL VISAYAS':
-							subFolderName = 'cvis_rcpt';
-							break;
-						case 'WVIS-BACOLOD': // Example: for National Capital Region
-							subFolderName = 'wvis_bacolod_rcpt';
-							break;
-						case 'WVIS-PANAY': // Example: for National Capital Region
-							subFolderName = 'wvis_panay_rcpt';
-							break;		
-					}//end switch
-
-					const remoteTargetFolder = subFolderName; // Set this to your desired target folder on the FTP server
-
 					try{
-						
-						// await client.access({
-						// 	host: "ftp.asianowapp.com",
-						// 	user: "u899193124.0811carlo",
-						// 	password: "u899193124.Asn",
-						// })
-
 						await client.access({
 							host: "ftp.asianowapp.com",
-							user: "u899193124.jtgrpcarlo",
-							password: "@Carlo0811",
+							user: "u899193124.0811carlo",
+							password: "u899193124.Asn",
 						})
 
 						client.trackProgress(info => {
 							console.log("file", info.name)
 							console.log("transferred overall", info.bytesOverall)
 						})
-
-						// === THIS IS THE FIX ===
-						// 1. Ensure the remote directory exists and 'cd' (change directory) into it
-						//the ensureDir() method will create the directory if it doesn't exist, and then change into it
-						await client.ensureDir(remoteTargetFolder);
 
 						await client.uploadFrom(xfile, xfile)
 
