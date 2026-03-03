@@ -79,7 +79,7 @@ module.exports = (io) => {
 	user: 'u899193124_asianowjt',
 	password: 'M312c4@g125c3',
 	database: 'u899193124_asianowjt'
-}
+    }
 
 
 const formatDate = (dateValue) => {

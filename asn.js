@@ -259,9 +259,10 @@ io.on('connection', (socket) => {
     
 })//end io conn
 //====== server listen to por
+// const PORT = process.env.PORT || 3000; //node.js for hostinger
+// app.listen(PORT, '0.0.0.0', () => console.log(`API listening on ${PORT}`));
+const PORT = process.env.PORT||10000 //<-- bring back if render.com
 
-const port = process.env.PORT||10000
-
-server_https.listen( port ,()=>{
-    console.log(`ASIANOW ENTERPRISE INC. API -- listening to port ${port}`)
+server_https.listen( PORT ,()=>{
+    console.log(`ASIANOW ENTERPRISE INC. API -- ALIVE AND listening to port ${PORT}`)
 })
