@@ -535,6 +535,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     jms_id: row.jms_id,
                     full_name: row.full_name,
                     position_code: row.position_code,
+                    reason:row.reason,
                     total_worked_hours: 0, // Initialized
                     total_overtime_hours: 0, // Initialized
                     total_worked_days: 0, // Initialized
@@ -570,6 +571,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     xdate: formatDateToMMDDYY(dateKey_YYYYMMDD), // Uses the derived YYYY-MM-DD string
                     login: formatDateTimeToMMDDYYHHMM(row.tk_login_time),
                     logout: formatDateTimeToMMDDYYHHMM(row.tk_logout_time),
+                    reason: row.tk_reason,
                     total_hours: parseFloat(row.tk_total_hours || 0),
                     ot_hours: parseFloat(row.tk_ot_hours || 0),
                     late_hours: parseFloat(row.tk_late_hours || 0), // <--- NEW: Add late_hours to daily record
@@ -609,12 +611,13 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
 
                 if (record) {
 
-                    
+                        //===============the login details array !important
                         loginDetailsArray.push({
                             id: record.id,
                             xdate: record.xdate,
                             login: record.login,
                             logout: record.logout,
+                            reason: record.reason,
                             total_hours: ( record.total_hours > 0  ? record.total_hours : 0), // Ensure total_hours is 0 if null/undefined/negative
                             ot_hours: ( record.total_hours > 0  ? record.ot_hours : 0), // Ensure ot_hours is 0 if null/undefined/negative
                             late_hours: (record.total_hours > 0  ? record.late_hours : 0), // <--- NEW: Add late_hours to daily record
@@ -624,7 +627,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     // Aggregate totals from actual records that were found
                     //==========IMPORTANT LINE, IF YOU WANT TO COUNT ALL HOURS INCLUDING PENDING APPROVAL, 
                     // UNCOMMENT THE BELOW AND COMMENT OUT THE IF CONDITION
-                    if(record.for_approval <3 ){ // Only count hours for records that are not pending approval
+                    if(record.for_approval <= 0 ){ // Only count hours for records that are not pending approval
                         employee.total_worked_hours += record.total_hours;
                         employee.total_overtime_hours += record.ot_hours;
                         employee.total_late_hours += record.late_hours; // <--- NEW: Aggregate total_late_hours
@@ -635,7 +638,10 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     }//EIF
 
                     // Check for complete login/logout for this day
-                    if (record.login !== null && record.login !== '' && record.logout !== null && record.logout !== '') {
+                    if (record.login !== null && record.login !== ''
+                         && record.logout !== null && record.logout !== '' 
+                         && ( record.for_approval <= 0 && record.total_hours > 0) ) {
+
                         employee.total_worked_days ++;
                     }
                 } else {
@@ -645,6 +651,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                         xdate: formatDateToMMDDYY(currentDate_YYYYMMDD),
                         login: null,
                         logout: null,
+                        reason:null,
                         total_hours: 0,
                         ot_hours: 0,
                         late_hours: 0, // <--- NEW: Default late_hours to 0 for missing records
@@ -717,7 +724,6 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 
     const regionClean = region.trim().toLowerCase().replace(/-/g, '_');
 
-
     //const userTableName = `besi_users_${regionClean}`;
 
     let sql = '';
@@ -754,6 +760,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 u.full_name,
                 u.position_code,
                 tk.id AS tk_id,
+                tk.reason as tk_reason,
                 tk.entry_date AS tk_entry_date,
                 tk.login_time AS tk_login_time,
                 tk.logout_time AS tk_logout_time,
