@@ -13,7 +13,6 @@ bus.setMaxListeners(20)
 const db  = require('./db')
 const { connectDb, closeDb } = require('./db')
 
-
 const http = require('http')
 
 //===== for socket.io
@@ -111,7 +110,6 @@ connectDb()
     //res.sendFile(path.join(__dirname , 'index.html'))
 })
 
-
 //===============Main Routes
 const usersRouter = require('./routes/api')(io);
 app.use('/', usersRouter);
@@ -136,7 +134,6 @@ let xmsg
 let userMode, userName
 
 let connectedSockets = []
-
 
 //listen socket.io
 io.on('connection', (socket) => {
@@ -237,7 +234,6 @@ io.on('connection', (socket) => {
     socket.on('disconnect', (id) => {
 		console.log('disconnecting....')
 		
-		
 			nLogged--
 		
             if(nLogged <= 0){
@@ -254,8 +250,6 @@ io.on('connection', (socket) => {
         console.log(`AsiaNow User Connected ${nLogged}`)
         //io.emit('logged',`Zonked connected: ${nLogged }`)
     })
-
-
     
 })//end io conn
 //====== server listen to por

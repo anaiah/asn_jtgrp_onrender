@@ -68,6 +68,7 @@ const ExcelJS = require('exceljs');
 
 const mysqls = require('mysql2/promise')
 const { emitWarning } = require('process')
+const e = require('express')
 
 
 
@@ -104,7 +105,318 @@ const formatDate = (dateValue) => {
   }
 };
 
-//=====Search Employee====//
+//====================HRIS DEACTIVATE EMPLOYEE====================//
+router.post('/deactivate/:emp_id', async(req,res)=>{
+    const emp_id = req.params.emp_id
+    console.log('==Firing deactivate employee with emp_id:', emp_id)
+})
+
+router.get('/testmail', async(req,res)=>	{
+
+  let transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'adminbesi@gmail.com',
+      pass: 'eumgsmqfjrebyxvn'
+    },
+     tls:{
+            rejectUnauthorized:false
+        }
+  });
+
+  try {
+
+    let htmltemp = `<html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Document</title>
+        </head>
+        <body>
+            Dear User,<br><br>Thank you for your Data Entry.<br><br>
+            <font color=red>PLS. DO NOT REPLY, THIS IS A SYSTEM GENERATED EMAIL.</font>
+            <br><br><br><br>        </body>
+        </html>	`
+
+    
+        const mailOptions = {
+                        from: '"ADMIN @ BESI" <noreply@asianowapp.com>',
+
+                        to: '"Caloy" <anaiahdaniel@gmail.com>',
+                        subject: `== APPROVED entry==`,
+                        html: htmltemp,
+                        
+                    }
+
+                    
+                    transporter.sendMail(mailOptions,(err,info)=>{
+                        if(err){
+                            console.log('nope',err)
+                            res.json({status:false})
+                        }else{
+                            //=== RETURN RESULT ===//
+                            console.log('**** MAIL SENT! *****')
+                                                                    
+                                    res.json({
+                                        message: "UPDATED Successfully!",
+                                        voice:"Equipment Updated Successfully!"
+                                    })
+                            
+                            
+                            //end Utils.deletepdf
+                        }//===eif
+                    })//=========end/ transport email
+  } catch (err) {
+    console.error('Error sending mail:', err);
+  }
+})
+
+//================== HRIS deactivate employee ==================//
+router.post("/employee/:status", async (req, res) => {
+
+    console.log('==Firing employee status change with body:', req.body.action, 'and status param:', req.params.status);    
+    const { empid, region, reason, action } = req.body;
+
+    return false; //=== TEMPORARY STOPPER FOR THIS ROUTE, REMOVE THIS LINE TO RE-ENABLE
+
+    if (!empid || !region || !action) {
+        return res.status(400).send("empid, region, and action are required");
+    }
+
+    if (action === "deactivate" && !reason) {
+        return res.status(400).send("reason is required for deactivation");
+    }
+
+    const conn = await mysqls.createConnection(dbconfig);
+    
+    try {
+        await conn.beginTransaction();
+
+        if (action === "deactivate") {
+            // set active = 0
+            await conn.execute(
+                `UPDATE besi_employees_${region.toLowerCase()} SET active = 0 WHERE emp_id = ?`,
+                [empid]
+            );
+            //=== for user table
+            await conn.execute(
+                `UPDATE besi_users_${region.toLowerCase()} SET active = 0 WHERE besi_id = ?`,
+                [empid]
+            );
+
+            // log deactivation
+            await conn.execute(
+                `INSERT INTO besi_deactivation_logs (emp_id, region, reason, created_at)
+                VALUES (?, ?, ?, NOW())`,
+                [empid, region, reason]
+            );
+
+        } else if (action === "reactivate") {
+            // set active = 1
+            await conn.execute(
+                `UPDATE besi_employees_${region.toLowerCase()} SET active = 1 WHERE emp_id = ?`,
+                [empid]
+            );
+            await conn.execute(
+                `UPDATE besi_users_${region.toLowerCase()} SET active = 1 WHERE besi_id  = ?`,
+                [empid]
+            );
+
+            // remove from logs
+            await conn.execute(
+                `DELETE FROM besi_deactivation_logs WHERE emp_id = ?`,
+                [empid]
+            );
+        } else {
+            await conn.rollback();
+            return res.status(400).send("Invalid action");
+        }//eif
+
+        await conn.commit();
+        res.json({ success: true });
+
+    } catch (err) {
+        await conn.rollback();
+        console.error(err);
+        res.status(500).send("Error updating employee status");
+    } finally {
+        await conn.end();
+    }
+});
+
+// ========================HRIS PRINT MASTERFILE=======================//
+router.post("/printmasterfile", upload.none(), async (req, res) => {
+
+    console.log('==Firing route.printmasterfile() with body:', req.body);
+
+    try {
+        const filters = {
+        name:     req.body.filter_name || "",
+        id:       req.body.filter_id || "",
+        region:   req.body.filter_region || "",
+        position: req.body.filter_position || "",
+        };
+
+        if (!filters.region) {
+        return res.status(400).send("Region is required");
+        }
+
+        const regionClean   = filters.region.toLowerCase(); // smnl, cmnl, etc.
+        const userTableName = `besi_employees_${regionClean}`;
+
+        let sql = `
+            SELECT 
+                e.*,
+                CASE 
+                WHEN e.active = 1 THEN 'Yes'
+                ELSE 'No'
+                END AS active_text,
+                dl.reason AS deactivation_reason
+            FROM \`${userTableName}\` e
+            LEFT JOIN (
+                SELECT l.emp_id, l.reason
+                FROM besi_deactivation_logs l
+                WHERE l.id IN (
+                SELECT MAX(id) FROM besi_deactivation_logs GROUP BY emp_id
+                )
+            ) dl ON dl.emp_id = e.emp_id
+            `;
+
+        const conditions = [];
+        const params = [];
+
+        if (filters.name.trim()) {
+        conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
+        params.push(`%${filters.name.trim()}%`);
+        }
+
+        if (filters.id.trim()) {
+        conditions.push("e.emp_id = ?");
+        params.push(filters.id.trim());
+        }
+
+        if (filters.position.trim()) {
+        conditions.push("e.position = ?");
+        params.push(filters.position.trim());
+        }
+
+        if (conditions.length > 0) {
+        sql += " WHERE " + conditions.join(" AND ");
+        }
+
+        sql += " ORDER BY e.full_name ASC";
+
+        //console.log("Generated SQL for masterfile:", sql, filters.position);
+        //console.log("Generated SQL for masterfile: route.printmasterfile()  ", sql, filters.position);
+
+        let conn = await mysqls.createConnection(dbconfig);
+
+        const [rows] = await conn.execute(sql, params);
+        await conn.end();
+
+        // Build Excel
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Masterfile");
+
+        // 1–4: static header
+        worksheet.getCell('A1').value = 'BETTER EDGE SYSTEMS INCORPORATED';
+        worksheet.getCell('A1').font = { bold: true };
+
+        worksheet.getCell('A2').value = 'TEXTRON BLDG., 168 Luna Mencias St.,';
+        worksheet.getCell('A3').value = 'Addition Hills, San Juan City';
+        worksheet.getCell('A4').value = 'Metro Manila, Philippines';
+
+        // 5: blank row
+        worksheet.addRow([]); // this becomes row 5
+
+        // 6: column headers
+        const headerRow = worksheet.addRow([
+            "BESI ID",
+            "Full Name",
+            "Hire Date",
+            "Emp Status",
+            "Email",
+            "Phone",
+            "Position",
+            "Address",
+            "Active",
+            "Deactivation Reason"
+        ]);
+        
+        headerRow.font = { bold: true };
+
+        //=======set alignments for header row
+ 		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID
+        headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME
+        headerRow.getCell('C').alignment = { horizontal: 'center' };  // hire date
+        headerRow.getCell('D').alignment = { horizontal: 'center' };    // emp status
+
+        // Numeric columns (WORK DAYS, WORK HOUR, LATE HOUR, OT HOUR) - typically right or center
+        headerRow.getCell('E').alignment = { horizontal: 'center' };   // EMAIL (treat as text but center for aesthetics)
+        headerRow.getCell('F').alignment = { horizontal: 'center' };   // phone (treat as text but center for aesthetics)
+        headerRow.getCell('G').alignment = { horizontal: 'center' };   // position
+        headerRow.getCell('H').alignment = { horizontal: 'center'};   // address
+        headerRow.getCell('I').alignment = { horizontal: 'center'};   // active
+        headerRow.getCell('J').alignment = { horizontal: 'center'};   // deactivation reason
+
+        //wrap entire address column
+        const addrCol = worksheet.getColumn(8);
+        addrCol.alignment = { wrapText: true };
+
+        const  poscol = worksheet.getColumn(7);
+        poscol.alignment = { horizontal: 'center' };
+
+        const  actcol = worksheet.getColumn(9);
+        actcol.alignment = { horizontal: 'center' };
+
+        const hireCol = worksheet.getColumn(3);
+        hireCol.alignment = { horizontal: 'center' };
+
+
+        // 7+: data rows
+        rows.forEach(r => {
+            worksheet.addRow([
+                r.emp_id,
+                r.full_name,
+                r.hire_date,
+                r.employment_status,
+                r.email,
+                r.phone,
+                r.position,
+                r.full_address,
+                r.active_text,
+                r.deactivation_reason || ""
+            ]);
+        });
+
+        // Set column widths
+        const widths = [25, 30, 15, 20, 15, 20, 15, 55, 10, 20];
+        
+        widths.forEach((w, i) => {
+            worksheet.getColumn(i + 1).width = w;
+        });
+
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=masterfile.xlsx"
+        );
+
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error generating masterfile");
+    }
+});
+
+//=====hris Search Employee====//
 router.post('/searchemp', upload.none(), async (req, res) => {
 	//console.log( req.body )
 	const filters = {
@@ -116,14 +428,16 @@ router.post('/searchemp', upload.none(), async (req, res) => {
 
     try {
         const { sql, params } = buildPersonnelSearchQuery(filters,false);
-        console.log('Generated SQL:', sql);
-        console.log('Parameters:', params);
-
+        //console.log('Generated SQL:', sql);
+        //console.log('Parameters:', params);
+        console.log('==Firing route.searchemp() with filters: called from hris.searchEmp()===', filters);
         // =====================================================================
         // Execute the query using the mysql2 connection pool
         const [rows] = await db.query(sql, params); // pool.execute returns [rows, fields]
         // =====================================================================
-		console.log(rows)
+		
+        //console.log(rows) //show result, taken out
+
 		return res.status(200).json({success:'true',msg:'SUCCESS',xdata:rows})
         //res.json(rows); // Send the query results back to the frontend
 
@@ -136,7 +450,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
 });
 
 
-// --- HELPER FUNCTIONS (Place these outside your router.post or in a utility file) ---
+// --- HELPER FUNCTIONS (Place these outside your router.post or gein a utility file) ---
 // Helper function to format date to MM-DD-YY
 function formatDateToMMDDYY(dateString) {
     if (!dateString) return null;
@@ -177,12 +491,12 @@ function getDatesInRange(startDateStr, endDateStr) {
 }
 
 
-// --- EXPRESS ROUTE (Updated) ---
-
+// --- EXPRESS ROUTE (Updated) --- triggered by hris.printTimeKeep() in frontend
+// michelle maralit FINANCE TIMEKEEPING SEARCH
 // Assuming 'db' is your mysql2 connection pool and 'upload' is your multer setup
 router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
     // console.log( req.body) // Uncomment for debugging request body
-	console.log('==Firing searchempTimeKeep()==', req.body);
+	console.log('==Firing searchempTimeKeep()  called by hris.printTimeKeep() ==');
     const filters = {
         name: req.body.filter_name,
         id: req.body.filter_id,
@@ -252,12 +566,14 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
 
             if (dateKey_YYYYMMDD) {
                 employee.timekeeping_records_by_date.set(dateKey_YYYYMMDD, {
+                    id: row.tk_id,
                     xdate: formatDateToMMDDYY(dateKey_YYYYMMDD), // Uses the derived YYYY-MM-DD string
                     login: formatDateTimeToMMDDYYHHMM(row.tk_login_time),
                     logout: formatDateTimeToMMDDYYHHMM(row.tk_logout_time),
                     total_hours: parseFloat(row.tk_total_hours || 0),
                     ot_hours: parseFloat(row.tk_ot_hours || 0),
                     late_hours: parseFloat(row.tk_late_hours || 0), // <--- NEW: Add late_hours to daily record
+                    for_approval: row.tk_for_approval || 0, // <--- NEW: Add for_approval to daily record
                     _raw_login_time: row.tk_login_time,
                     _raw_logout_time: row.tk_logout_time
                 });
@@ -292,18 +608,31 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                 const record = employee.timekeeping_records_by_date.get(currentDate_YYYYMMDD);
 
                 if (record) {
-                    loginDetailsArray.push({
-                        xdate: record.xdate,
-                        login: record.login,
-                        logout: record.logout,
-                        total_hours: record.total_hours,
-                        ot_hours: record.ot_hours,
-                        late_hours: record.late_hours, // <--- NEW: Add late_hours to daily record
-                    });
+
+                    
+                        loginDetailsArray.push({
+                            id: record.id,
+                            xdate: record.xdate,
+                            login: record.login,
+                            logout: record.logout,
+                            total_hours: ( record.total_hours > 0  ? record.total_hours : 0), // Ensure total_hours is 0 if null/undefined/negative
+                            ot_hours: ( record.total_hours > 0  ? record.ot_hours : 0), // Ensure ot_hours is 0 if null/undefined/negative
+                            late_hours: (record.total_hours > 0  ? record.late_hours : 0), // <--- NEW: Add late_hours to daily record
+                            for_approval: record.for_approval
+                        });
+                    
                     // Aggregate totals from actual records that were found
-                    employee.total_worked_hours += record.total_hours;
-                    employee.total_overtime_hours += record.ot_hours;
-                    employee.total_late_hours += record.late_hours; // <--- NEW: Aggregate total_late_hours
+                    //==========IMPORTANT LINE, IF YOU WANT TO COUNT ALL HOURS INCLUDING PENDING APPROVAL, 
+                    // UNCOMMENT THE BELOW AND COMMENT OUT THE IF CONDITION
+                    if(record.for_approval <3 ){ // Only count hours for records that are not pending approval
+                        employee.total_worked_hours += record.total_hours;
+                        employee.total_overtime_hours += record.ot_hours;
+                        employee.total_late_hours += record.late_hours; // <--- NEW: Aggregate total_late_hours
+                    }else{
+                        employee.total_worked_hours += 0;
+                        employee.total_overtime_hours += 0;
+                        employee.total_late_hours += 0; // <--- NEW: Aggregate total_late_hours
+                    }//EIF
 
                     // Check for complete login/logout for this day
                     if (record.login !== null && record.login !== '' && record.logout !== null && record.logout !== '') {
@@ -312,12 +641,14 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                 } else {
                     // No record for this date, push an empty one with the date
                     loginDetailsArray.push({
+                        id:null,
                         xdate: formatDateToMMDDYY(currentDate_YYYYMMDD),
                         login: null,
                         logout: null,
                         total_hours: 0,
                         ot_hours: 0,
                         late_hours: 0, // <--- NEW: Default late_hours to 0 for missing records
+                        for_approval:0
                     });
                     // total_worked_days is NOT incremented for days without records
                 }
@@ -380,13 +711,14 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
 function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 	console.log('==buildPersonnelSearchQuery() with filters:', filters, 'isTimeKeep:', isTimeKeep);
 
-
     let { name, id, region, position, date_from, date_to } = filters;
     const params = [];
     const conditions = [];
 
     const regionClean = region.trim().toLowerCase().replace(/-/g, '_');
-    const userTableName = `besi_users_${regionClean}`;
+
+
+    //const userTableName = `besi_users_${regionClean}`;
 
     let sql = '';
     let effectiveDateRange = null;
@@ -394,6 +726,8 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
     if (isTimeKeep) {
         // --- Timekeeping Query Logic (Detailed Daily Entries) ---
         const timekeepTableName = `besi_timekeep_${regionClean}`;
+
+        const userTableName = `besi_users_${regionClean}`;
 
         let finalDateFrom, finalDateTo;
         if (date_from && date_from.trim() !== '' && date_to && date_to.trim() !== '') {
@@ -419,11 +753,13 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 u.jms_id,
                 u.full_name,
                 u.position_code,
+                tk.id AS tk_id,
                 tk.entry_date AS tk_entry_date,
                 tk.login_time AS tk_login_time,
                 tk.logout_time AS tk_logout_time,
                 tk.total_hours AS tk_total_hours,
                 tk.ot_hours AS tk_ot_hours,
+                tk.for_approval AS tk_for_approval,
                 tk.late_hours AS tk_late_hours      -- <--- NEW: Select late_hours
             FROM
                 \`${userTableName}\` AS u
@@ -454,32 +790,50 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 
         sql += ` ORDER BY u.besi_id ASC, tk.entry_date ASC;`;
 
+
+        //console.log('buildPersonnelSearchQuery() Building personnel search query with timekeeping data.', sql);
+
+
     } else {
-        // --- Standard Personnel Search (No Timekeeping) Logic ---
-        sql = `SELECT id, email, besi_id, ocw_id, jms_id, full_name, position_code FROM \`${userTableName}\``;
+        const userTableName = `besi_employees_${regionClean}`;
+
+        // base SQL
+        sql = `
+        SELECT e.*, dl.reason AS deactivation_reason
+        FROM \`${userTableName}\` e
+        LEFT JOIN (
+            SELECT emp_id, reason
+            FROM besi_deactivation_logs
+            WHERE id IN (
+            SELECT MAX(id) FROM besi_deactivation_logs GROUP BY emp_id
+            )
+        ) dl ON dl.emp_id = e.emp_id
+        `;
+
+        console.log('Building standard personnel search query without timekeeping data.', sql);
 
         if (name && name.trim() !== '') {
-            conditions.push(`LOWER(full_name) LIKE LOWER(?)`);
-            params.push(`%${name.trim()}%`);
+        conditions.push(`LOWER(e.full_name) LIKE LOWER(?)`);
+        params.push(`%${name.trim()}%`);
         }
 
         if (id && id.trim() !== '') {
-            conditions.push(`besi_id = ?`);
-            params.push(id.trim());
+        conditions.push(`e.emp_id = ?`);
+        params.push(id.trim());
         }
 
         if (position && position.trim() !== '') {
-            conditions.push(`position_code = ?`);
-            params.push(position.trim());
+        conditions.push(`e.position = ?`);
+        params.push(position.trim());
         }
 
         if (conditions.length > 0) {
-            sql += ` WHERE ` + conditions.join(' AND ');
+        sql += ` WHERE ` + conditions.join(' AND ');
         }
 
-        sql += ` ORDER BY full_name ASC;`;
-    }
+        sql += ` ORDER BY e.full_name ASC;`;
 
+    }
     return { sql, params, dateRange: effectiveDateRange };
 }
 
@@ -584,7 +938,7 @@ router.post('/recordMissingTimeEntry', upload.none(), async (req, res) => {
             // Entry exists, update it
             sql = `
                 UPDATE \`${timekeepTableName}\`
-                SET login_time = ?, logout_time = ?, total_hours = ?, ot_hours = ?, late_hours = ?, reason = ?, updated_at = NOW()
+                SET login_time = ?, logout_time = ?, total_hours = ?, ot_hours = ?, late_hours = ?, reason = ?, for_approval = 1, updated_at = NOW()
                 WHERE user_id = ? AND entry_date = ?
             `;
             params = [
@@ -601,8 +955,8 @@ router.post('/recordMissingTimeEntry', upload.none(), async (req, res) => {
             // No entry, insert a new one
             sql = `
                 INSERT INTO \`${timekeepTableName}\`
-                (user_id, entry_date, login_time, logout_time, total_hours, ot_hours, late_hours, reason, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                (user_id, entry_date, login_time, logout_time, total_hours, ot_hours, late_hours, reason, for_approval,updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
             `;
             params = [
                 user_id,
@@ -625,6 +979,76 @@ router.post('/recordMissingTimeEntry', upload.none(), async (req, res) => {
     }
 });
 
+
+//==================== HRIS APPROVE CORRECTION IN TIMEKEEPING ===============//
+router.post('/approveTimeCorrection/:id/:region', upload.none(), async (req, res) => {
+    
+    const { decision } = req.body; // "1" approve, "0" reject
+    const { id, region } = req.params;
+
+    console.log('==Firing approveTimeCorrection with id:', id, 'and value:', decision, region), req.body;
+    //return false;
+
+    // validate input
+    if (!id || (decision !== "0" && decision !== "3")) {
+        return res.status(400).json({ success: false, message: "Invalid input" });
+    }
+
+    // build SQL depending on decision
+    let sql;
+    let params;
+
+    if (decision === "0") {
+        // Approve → for_approval back to 0
+        sql = `
+        UPDATE besi_timekeep_smnl
+        SET for_approval = 0
+        WHERE id = ?
+        `;
+        params = [id];
+    } else {
+        // Reject (3) → for_approval = 3 and zero hours
+        sql = `
+        UPDATE besi_timekeep_smnl
+        SET for_approval = 3
+        WHERE id = ?
+        `;
+        params = [id];
+    }
+
+    let conn;
+    try {
+        
+        conn = await mysqls.createConnection(dbconfig);
+
+        const [result] = await conn.execute(sql, params);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Record not found" });
+        }
+
+        res.json({ success: true, messaage: decision === "0" ? "Time correction approved" : "Time correction rejected" });
+
+    } catch (err) {
+
+        if (conn) {
+            await conn.rollback();
+            console.error('Database transaction rolled back due to error.');
+        }
+
+        console.error(err);
+        res.status(500).json({ success: false, message: "DB error" });
+     
+    } finally {
+        // Always ensure the connection is closed/released
+        if (conn) {
+            await conn.end(); // If using mysqls.createConnection
+            // If using a pool (e.g., mysqls.createPool().getConnection()), you'd use conn.release();
+            console.log('Database connection closed.');
+        }
+    } //eif
+
+});
 
 // === HRIS UPLOAD EXCEL ===
 router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
@@ -950,7 +1374,7 @@ function getMonthName(monthNumber) { // monthNumber is 0-indexed from Date objec
                     "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
     return months[monthNumber];
 }
-
+//====== DOWNLOAD  PAYSLIP/timekeep EXCEL DATA MISS MARALIT======//
 router.post('/download-grid-data-xls', async (req, res) => {
     try {
         const gridData = req.body; // This is the array of employee objects from the client
@@ -1121,14 +1545,14 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
     try {
          // Check if region is valid
         if (region && region.trim() !== "") {
-            //console.log(region, uid);
-            const sql = `select * from besi_users_${region} where email=? `;
+            //console.log(region, uid); 
+            const sql = `select * from besi_users_${region} where email=? and active=1`; // Assuming 'active' is a column to check if the user is active
             result = await db.query(sql, [uid]); // Assign to the already declared 'result'
             //console.log(sql, result[0]);
 
-		//if region:null	
+		//if region:null	//======LOGIN TO OLD USERS TABLE
         } else {
-            const sql = `select * from asn_users where email=? and pwd=?`;
+            const sql = `select * from asn_users where email=? and pwd=? and active=1`; // Assuming 'active' is a column to check if the user is active
             result = await db.query(sql, [uid, pwd]); // Assign to the already declared 'result'
         }
 
@@ -1785,6 +2209,7 @@ async function processAndUploadFile(
         let filePrefix = '';
         switch (uploadFieldName) {
             case 'id_picture': filePrefix = 'USER_'; break;
+            case 'id_specimen_picture': filePrefix = 'SPECIMEN_'; break;
             case 'bgy_clearance': filePrefix = 'BGY_'; break;
             case 'police_clearance': filePrefix = 'POLICE_'; break;
             case 'drivers_license': filePrefix = 'DRIVER_'; break;
@@ -1976,13 +2401,13 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 
         try {
 			
-
-
             await conn.beginTransaction(); // Start a transaction
 
-            const sql = `INSERT INTO asn_employees (
-                emp_id, full_name, email, phone, birth_date, hire_date, job_title,  employment_status, address
-            ) VALUES (?,?,?,?,?,?,?,?,?)`;
+            const sql = `INSERT INTO besi_employees_${regions.toLowerCase()} (
+                emp_id, first_name,middle_name,last_name,suffix,full_name, 
+                email, phone, birth_date, hire_date, position,  employment_status, 
+                street_1,street_2,city,bgy,full_address
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
 			console.log('*****BESI ID IS ****** ', empId	)
             //const department = formFields.department || "General Operations";
@@ -1990,43 +2415,102 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
             // If it's not a direct input, ensure it's still added
             // const date_reg = formFields.date_reg || new Date().toISOString().split('T')[0]; // If you want to use this
 
+            const insertParams = [
+                // 1. Employee ID
+                empId !== undefined ? empId : null, 
+
+                // 2. Name Parts (Use || null to handle empty fields)
+                formFields.first_name || null,
+                formFields.middle_name || null,
+                formFields.last_name || null,
+                formFields.name_suffix || null,
+
+                // 3. Full Name (Safe Uppercase: checks if value exists first)
+                (formFields.full_name ? formFields.full_name.toUpperCase() : null),
+
+                // 4. Contact & Personal Info
+                formFields.email || null,
+                formFields.phone || null,
+                formFields.birthDate || null,
+                formFields.hireDate || null,
+
+                // 5. Employment Details
+                formFields.jobTitle || null,
+                formFields.employmentStatus || null,
+
+                // 6. Address Components
+                formFields.street_1 || null,
+                formFields.street_2 || null,
+                formFields.city || null,
+                formFields.bgy || null,
+                formFields.address || null
+            ];
+
+
             //const dbResult = await dbConnection.query(sql, [
-			const dbResult = await conn.execute(sql, [
-			
-                //finalEmpid, // Use the generated empId.
-				empId !== undefined ? empId : null, // Using the generated empId
-                formFields.fullName.toUpperCase(),
-                formFields.email,
-                formFields.phone,
-                formFields.birthDate,
-                formFields.hireDate,
-                formFields.jobTitle,
-                formFields.employmentStatus,
-                formFields.address
-            ]);
+			const dbResult = await conn.execute(sql, insertParams);
+
             console.log('Database insertion successful, rowCount:', dbResult[0].affectedRows);
 
             // --- 2. Insert into bogus_table_1 (same fields) ---
             const sql_bogus_1 = `INSERT INTO besi_users_${regions.toLowerCase()} (
-                besi_id, full_name, date_hired, email, hub, position_code ) 
-                VALUES (?,?,?,?,?,?)`;
+                besi_id, full_name,  email, hub, position_code ) 
+                VALUES (?,?,?,?,?)`;
 
             const result_bogus_1 = await conn.execute(sql_bogus_1, [
                 empId !== undefined ? empId : null,
-                formFields.fullName.toUpperCase(),
-                formFields.hireDate,
-                formFields.email,
-                formFields.hub_store, // Assuming this field is part of the formFields; if not, adjust accordingly
-                formFields.jobTitle
+                (formFields.full_name ? formFields.full_name.toUpperCase() : null),
+                formFields.email || null,
+                formFields.hub_store || null, // Assuming this field is part of the formFields; if not, adjust accordingly
+                formFields.jobTitle || null
             ]);
-            console.log('Database insertion successful for bogus_table_1, affectedRows:', result_bogus_1[0].affectedRows);
+            console.log('Database insertion successful for new besi_users_xx, affectedRows:', result_bogus_1[0].affectedRows);
 
-            // --- 3. Insert into bogus_table_2 (same fields) ---
-            // const sql_bogus_2 = `INSERT INTO bogus_table_2 (
-            //     emp_id, full_name, email, phone, birth_date, hire_date, job_title, employment_status, address
-            // ) VALUES (?,?,?,?,?,?,?,?,?)`;
-            // const result_bogus_2 = await conn.execute(sql_bogus_2, insertParams);
-            // console.log('Database insertion successful for bogus_table_2, affectedRows:', result_bogus_2[0].affectedRows);
+            // --- 3. Insert into asn_users (same fields) ---
+            /* for old
+                grp_id
+            */
+            let grp_id
+            switch( formFields.jobTitle ){
+                case '01':
+                    grp_id = 1; // rider
+                    break;
+                case '02': //transporter
+                    grp_id = 22;
+                    break;  
+                case '03': //foot delivery
+                    grp_id = 23;
+                    break;  
+                case '04': //sorter/backroom
+                    grp_id = 24;
+                    break;  
+                case '06': //timekeeper
+                    grp_id = 26;
+                    break;
+                case '08': //coordinator
+                    grp_id = 4;
+                    break;  
+                case '15'://3 wheel
+                    grp_id = 15;
+                    break;
+                case '17'://4 wheel
+                    grp_id = 17;
+                    break;
+            }//endsw
+            /******** IF EVERYTHING IS LIVE PLS TAKE THIS ASN_USERS INSERTION OUT!  */
+            const sql_bogus_2 = `INSERT INTO asn_users (
+                 full_name, xname, email, pwd, hub, grp_id ) 
+                 VALUES (?,?,?,?,?,?)`;
+
+             const result_bogus_2 = await conn.execute(sql_bogus_2, [
+                (formFields.full_name ? formFields.full_name.toUpperCase() : null),
+                (formFields.full_name ? formFields.full_name.toUpperCase() : null),
+                formFields.email || null,
+                '123', // Default password, consider hashing in production
+                formFields.hub_store || null, // Assuming this field is part of the formFields; if not, adjust accordingly
+                grp_id || null
+            ]);
+             console.log('Database insertion successful for old asn_users tbl, affectedRows:', result_bogus_2[0].affectedRows);
 
             // --- 4. Process and Upload All Files to FTP ---
             const uploadResults = await Promise.all(filePromises);
@@ -2041,7 +2525,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 message: `Record added successfully!`,
                 voice: `Record Added Successfully!`,
                 status: true,
-                employeeName: formFields.fullName.toUpperCase(),
+                employeeName: formFields.full_name.toUpperCase(),
                 employeeId: empId,
 				regionId: regions,
                 uploadDetails: uploadResults,
