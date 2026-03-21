@@ -1008,7 +1008,7 @@ router.post('/approveTimeCorrection/:id/:region', upload.none(), async (req, res
     if (decision === "0") {
         // Approve → for_approval back to 0
         sql = `
-        UPDATE besi_timekeep_smnl
+        UPDATE besi_timekeep_${region.toLowerCase() }
         SET for_approval = 0
         WHERE id = ?
         `;
@@ -1016,7 +1016,7 @@ router.post('/approveTimeCorrection/:id/:region', upload.none(), async (req, res
     } else {
         // Reject (3) → for_approval = 3 and zero hours
         sql = `
-        UPDATE besi_timekeep_smnl
+        UPDATE besi_timekeep_${region.toLowerCase() }
         SET for_approval = 3
         WHERE id = ?
         `;
@@ -2350,6 +2350,8 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                             case 'SMNL': subFolderName = 'ncr_smnl_emp'; break;
                             case 'CMNL': subFolderName = 'ncr_cmnl_emp'; break;
                             case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
+                            case 'NELU': subFolderName = 'ncr_nelu_emp'; break;
+                            case 'NWLU': subFolderName = 'ncr_nwlu_emp'; break;
                             case 'BCOL': subFolderName = 'bsl_bicol_emp'; break;
                             case 'SMLYTE': subFolderName = 'bsl_smarleyte_emp'; break;
                             case 'CVIS': subFolderName = 'cvis_emp'; break;
@@ -2362,7 +2364,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                         }
                         const remoteTargetFolder = subFolderName;
 
-                        const ftpClientConfig = {
+                        const ftpClientConfig ={
                             host: "ftp.asianowapp.com",
                             user: "u899193124.jtgrpcarlo",
                             password: "@Carlo0811",
@@ -2603,7 +2605,7 @@ router.post('/printpdf/:empid/:empname/:region', async(req, res)=>{
 });
 
 
-//===============NEW ENDPOINT get location =================//
+//===============NEW ENDPOINT HRIS get location =================//
 router.get('/getlocation/:region', async(req,res)=>{
     let conn =await mysqls.createConnection(dbconfig);
 
@@ -2613,6 +2615,8 @@ router.get('/getlocation/:region', async(req,res)=>{
     switch (regionParam) { // Use regionParam from URL  
         case 'SMNL': regionName = 'NCR-SMNL'; break;
         case 'CMNL': regionName = 'NCR-CMNL'; break;
+        case 'NELU': regionName = 'NCR-NELU'; break;
+        case 'NWLU': regionName = 'NCR-NWLU'; break;
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
         case 'BCOL': regionName = 'BSL-BICOL'; break;
         case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
@@ -2621,7 +2625,6 @@ router.get('/getlocation/:region', async(req,res)=>{
         case 'PANAY': regionName  = 'WVIS-PANAY'; break;
     }
     const remoteTargetTable = regionName; // Now uses the derived table name
-
 
     try {
         
@@ -2743,6 +2746,8 @@ router.post('/uploadsignature/:empId/:regions', async (req, res) => { // Removed
                         case 'SMNL': subFolderName = 'ncr_smnl_emp'; break;
                         case 'CMNL': subFolderName = 'ncr_cmnl_emp'; break;
                         case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
+                        case 'NELU': subFolderName = 'ncr_nelu_emp'; break;
+                        case 'NWLA': subFolderName = 'ncr_nwla_emp'; break;
                         case 'BCOL': subFolderName = 'bsl_bicol_emp'; break;
                         case 'SMLYTE': subFolderName = 'bsl_smarleyte_emp'; break;
                         case 'CVIS': subFolderName = 'cvis_emp'; break;
@@ -2931,7 +2936,13 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
 						case 'NCR-CMNVA':
 							subFolderName = 'ncr_cmnva_rcpt';
 							break;
-						case 'BSL-BICOL': // Example: for National Capital Region
+                        case 'NCR-NELU':
+							subFolderName = 'ncr_nelu_rcpt';
+							break;
+                        case 'NCR-NWLU':
+							subFolderName = 'ncr_nwlu_rcpt';
+							break;
+                        case 'BSL-BICOL': // Example: for National Capital Region
 							subFolderName = 'bsl_bicol_rcpt';
 							break;
 						case 'BSL-SMARLEYTE': // Example: for National Capital Region
