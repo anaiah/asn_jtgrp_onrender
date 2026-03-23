@@ -758,6 +758,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 u.ocw_id,
                 u.jms_id,
                 u.full_name,
+                u.middle_name,
                 u.position_code,
                 tk.id AS tk_id,
                 tk.reason as tk_reason,
