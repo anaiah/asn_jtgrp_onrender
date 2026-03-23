@@ -31,7 +31,7 @@ module.exports =  {
         //
         // Replace it with this more robust and directly integrated version:
 
-        const signatureImageUrl = `https://asianowapp.com/html/ncr_smnl_emp/SIGN_${empid}.png`; // Construct the URL dynamically
+        const signatureImageUrl = `https://asianowapp.com/html/ncr_${region.toLowerCase()}_emp/SIGN_${empid}.png`; // Construct the URL dynamically
 
         let signatureBase64 = ''; // This variable will hold the Base64 string or remain empty on error
         try {
