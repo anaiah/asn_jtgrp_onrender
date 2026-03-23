@@ -2660,6 +2660,8 @@ router.get('/gethub/:region/:location', async(req,res)=>{
         case 'SMNL': regionName = 'NCR-SMNL'; break;
         case 'CMNL': regionName = 'NCR-CMNL'; break;
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
+        case 'NELU': regionName = 'NCR-NELU'; break;
+        
         case 'BCOL': regionName = 'BSL-BICOL'; break;
         case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
         case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
