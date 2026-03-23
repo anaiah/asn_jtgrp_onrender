@@ -2217,6 +2217,7 @@ async function processAndUploadFile(
         switch (uploadFieldName) {
             case 'id_picture': filePrefix = 'USER_'; break;
             case 'id_specimen_picture': filePrefix = 'SPECIMEN_'; break;
+            case 'id_gcash' : filePrefix = 'GCASH_'; break;
             case 'bgy_clearance': filePrefix = 'BGY_'; break;
             case 'police_clearance': filePrefix = 'POLICE_'; break;
             case 'drivers_license': filePrefix = 'DRIVER_'; break;
@@ -2661,7 +2662,7 @@ router.get('/gethub/:region/:location', async(req,res)=>{
         case 'CMNL': regionName = 'NCR-CMNL'; break;
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
         case 'NELU': regionName = 'NCR-NELU'; break;
-        
+
         case 'BCOL': regionName = 'BSL-BICOL'; break;
         case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
         case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
