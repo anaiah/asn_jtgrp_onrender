@@ -2114,6 +2114,7 @@ let myfile
 const Busboy = require('busboy')
 const {Client} = require("basic-ftp")
 
+// ***** this is to generate ID ****
 async function generateEmpId( region, date_hired, poscode ) {    
 
     //const regionCode = req.body.hrisload_region; // e.g., SMNL
@@ -2125,8 +2126,12 @@ async function generateEmpId( region, date_hired, poscode ) {
     const conn = await mysqls.createConnection(dbconfig);
 
     // Fetch current series JSON once
-    const [seriesRows] = await conn.execute(`SELECT series_data FROM ${seriesTable} WHERE id=1`);
+    const sql =`SELECT series_data FROM ${seriesTable}`;
+    
+    const [seriesRows] = await conn.execute(sql);
 
+    console.log('*** getting sequence ***', sql, seriesRows )
+    
 	let seriesData;
 	if (seriesRows.length && seriesRows[0]?.series_data) {
 		try {
@@ -2135,14 +2140,22 @@ async function generateEmpId( region, date_hired, poscode ) {
 			console.error('Failed to parse series_data JSON', e);
 			seriesData = [
 			{ "code": "01", "series": 1 },
-			{ "code": "02", "series": 1 }
+			{ "code": "02", "series": 1 },
+            { "code": "04", "series": 1 },
+            { "code": "08", "series": 1 },
+            { "code": "06", "series": 1 },
+            
 			];
 		}
-		} else {
+	} else {
 		seriesData = [
 			{ "code": "01", "series": 1 },
-			{ "code": "02", "series": 1 }
-		];
+			{ "code": "02", "series": 1 },
+            { "code": "04", "series": 1 },
+            { "code": "08", "series": 1 },
+            { "code": "06", "series": 1 },
+            
+			];
 	}
 
     // Find the current series for this position, or initialize
@@ -2177,7 +2190,10 @@ async function generateEmpId( region, date_hired, poscode ) {
 
     // Now update the series table with latest number
 	seriesObj.series = lastSeriesNumber; // update the object
-	await conn.execute(`UPDATE ${seriesTable} SET series_data = ? WHERE id=1`, [JSON.stringify(seriesData)]);
+    const usql = `UPDATE ${seriesTable} SET series_data = ? WHERE id=1`;
+	await conn.execute(usql, [JSON.stringify(seriesData)]);
+
+    console.log( '**** update sql series ',usql )
 
 	await conn.end();
 
@@ -2597,15 +2613,14 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 
 //========= NEW ENDPOINT: / ========PRINTPDF==========//
 //======= THIS IS THE MOST IMPORTANT ROUTE OF ALL, CREATING PDF / CREATE PDF-- CHECK PDF FIRST BEFORE CREATING ==============
-router.post('/printpdf/:empid/:empname/:region', async(req, res)=>{
+router.post('/printpdf/:empid/:empname/:region/:position/:addy/:datehired', async(req, res)=>{
     console.log('===FIRING /printpdf Endpoint===');
 
     //****************** create pdf ***************************** */
-	mypdf.newCreatePDF( req.params.empid, req.params.empname, req.params.region, res)
+	mypdf.newCreatePDF( req.params.empid, req.params.empname, req.params.region, req.params.position, req.params.addy, req.params.datehired, res)
 
 	//******************END DOWNLOAD ******************* */
 });
-
 
 //===============NEW ENDPOINT HRIS get location =================//
 router.get('/getlocation/:region', async(req,res)=>{
@@ -2625,7 +2640,8 @@ router.get('/getlocation/:region', async(req,res)=>{
         case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
         case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
         case 'PANAY': regionName  = 'WVIS-PANAY'; break;
-    }
+    }//endsw
+
     const remoteTargetTable = regionName; // Now uses the derived table name
 
     try {

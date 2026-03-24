@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transporter</title>
+    <style>
+    body {
+        font-family: Cambria, "Times New Roman", Times, serif;
+        font-size: 12px; 
+    }
+    .page-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;   /* centers horizontally */
+        padding: 0 16px;  /* left/right inner spacing */
+        
+        
+    }
+    .addy{
+        font-size: 9px;
+    }
+    .my-bold {
+    font-weight: bold;
+    }
+    table.blueTable {
+    font-family: "Courier New", Courier, monospace;
+    border: 0px solid #1C6EA4;
+    /*background-color: #fff8f8ff*/
+    width: 100%;
+    border-collapse: collapse;
+    }
+    table.blueTable td, table.blueTable th {
+    border: 1px solid #AAAAAA;
+    padding: 3px 2px;
+    
+    }
+    table.blueTable tbody td {
+    font-size: 7px;
+    color: #333333;
+    border: 1px solid #D0E4F5;
+    }
+    table.blueTable thead {
+    background: #C1B9B8;
+    border-bottom: 0px solid black;
+    }
+    table.blueTable thead th {
+    font-size: 8px;
+    text-align:center;
+    font-weight: bold;
+    color: #3B3B3B;
+    border-left: 1px solid #D0E4F5;
+    }
+    table.blueTable thead th:first-child {
+    border-left: none;
+    }
+    .pagex{
+        font-size:7px;
+    }
+
+    .mycontainer{
+        font-size :8px;
+    }
+    
+    .record-group {
+        font-size:7px;
+        display: block; /* Default, kept for clarity */
+        /* optional margin for clarity in debugging */
+        /* margin-bottom: 10px; */
+    }
+
+    .page-break {
+        page-break-after: always;
+        break-inside: avoid;
+    }
+
+    hr{
+        border:none;
+        height:1px;
+        background-color:#000000;
+        margin:20px auto;
+    }
+      /* Full-width wrapper, columns start at left */
+    .sig-wrapper {
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    /* 2 columns, kept together, not stretched */
+    .sig-row {
+        display: flex;
+        gap: 60px;              /* space between columns */
+        margin-left: 3px;      /* push whole block from left edge (optional) */
+    }
+
+    /* Control width of each column */
+    .sig-col {
+        width: 300px;           /* adjust per your layout */
+        text-align: left;
+    }
+
+    .sig-box {
+        width: 100%;
+        text-align: left;
+        margin-top: 10px;
+    }
+
+    .sig-img {
+        max-width: 100%;
+        height: 55px;
+        display: block;
+    }
+
+    .sig-line {
+        border-bottom: 1px solid #000;
+        margin-top: -3px;
+    }
+    /* below */
+    .ack-wrapper {
+        margin: 0px 0px; /* page side margins */
+    }
+
+    .ack-title {
+        text-align: center;
+        font-weight: bold;
+        text-decoration: underline;
+        margin-bottom: 20px;
+    }
+
+    .ack-center-line {
+        text-align: center;
+        margin: 0;
+    }
+
+    .ack-paragraph {
+        text-align: justify;
+        text-indent: 30px;
+        margin: 10px 0;
+    }
+
+    .ack-blank {
+    display: inline-block;
+    border-bottom: 1px solid #000;
+    min-width: 80px;           /* adjust length of blank */
+    text-align: center;
+    }
+
+     .ack-blank2 {
+    display: inline-block;
+    border-bottom: 1px solid #000;
+    min-width: 185px;           /* adjust length of blank */
+    text-align: center;
+    }
+
+    .ack-footer {
+        margin-top: 20px;
+    }
+
+    .ack-footer-line {
+        margin: 3px 0;
+    }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    
+</head>
+<body>
+<div class="page-wrapper">
+<table class="mt-5 mx-auto">    
+    <tr>
+        <td><img src="data:image/png;base64,{{logosmall}}" height="95px"></td>
+        <td><img src="data:image/png;base64,{{logomain}}"></td>
+    </tr>
+</table>
+
+<div class="mt-5 mb-3 ack-title">
+KASUNDUAN SA SERBISYO
+</div>
+
+
+Ang Kasunduang ito sa Serbisyo (“Kasunduan”) ay ginawa sa pagitan ng:<br><br>
+
+<b>BETTER EDGE SOLUTIONS INC. (“KOMPANYA”)</b>, isang korporasyong maayos na naitatag at
+ umiiral sa ilalim ng mga batas ng Pilipinas, na may pangunahing address sa 2nd Floor St. 
+ Thomas Commercial Building Umangil St. Dagupan Weste , City Of Tabuk (Capital), Kalinga, 
+ Cordillera Administrative Region (Car), 1635.<br>
+
+<center>-at-</center><br>
+
+<b><u>{{empname}}</u></b> (“KONTRAKTOR”), isang independent contractor 
+na may address sa <b><u>{{addy}}</u></b>  .
+<br><br>
+SAPAGKAT, nais ng KOMPANYA na kunin ang serbisyo ng KONTRAKTOR para sa paghahatid ng mga padala gaya ng nakasaad sa ibaba.<br>
+
+SAPAGKAT, ang KONTRAKTOR ay may sapat na kagamitan, kasangkapan, at kwalipikasyon upang maisagawa ang nasabing serbisyo.<br><br>
+
+SAPAGKAT, nais ng KONTRAKTOR na magbigay ng nasabing serbisyo sa KOMPANYA bilang isang independent contractor.<br><br>
+
+NGAYON, bilang kapalit ng mga nabanggit at mga kasunduan sa dokumentong ito, ang mga Partido ay sumasang-ayon sa mga sumusunod:<br><br>
+
+<b>I. SERBISYO</b><br><br>
+
+Ang KONTRAKTOR ay magbibigay ng serbisyo sa paghahatid ng mga padala patungo sa mga hubs, warehouse, at/o mga customer.<br><br>
+
+<b>II. BAYAD SA KOMISYON</b><br><br>
+
+Bilang kabayaran sa serbisyong ibibigay, ang KONTRAKTOR ay tatanggap ng arawang komisyon batay sa matagumpay na 
+biyahe ng paghahatid, kasama ang VAT, na tinanggap ng KOMPANYA. May karapatan ang KONTRAKTOR na kontrolin ang 
+bilang ng oras sa pagsasagawa ng serbisyo.<br><br>
+
+Sumasang-ayon ang KONTRAKTOR na maaaring baguhin ng KOMPANYA ang rate ng komisyon anumang oras, 
+ayon sa umiiral na kalagayan. Nauunawaan na ang KOMPANYA ay nagtatrabaho para sa isang third party client 
+kaya’t anumang pagbabago sa rate ay ipatutupad ng mga Partido.<br><br>
+
+Ang KONTRAKTOR ay magsisikap na maihatid ang mga padala sa loob ng makatwirang oras ayon sa pamantayan ng industriya.
+Kung hindi, maaaring maapektuhan ang halaga ng komisyon matapos ang pagsusuri.<br><br>
+
+Maaaring magbigay ng insentibo ang KOMPANYA sa KONTRAKTOR ayon sa sariling pagpapasya, alinsunod sa Seksyon VIII ng Kasunduang ito.<br><br>
+
+<b>III. MGA OBLIGASYON NG KONTRAKTOR</b><br><br>
+
+Ang KONTRAKTOR ay:<br><br>
+
+1. Gamitin ang tamang pag-iingat at kasanayan sa paghahatid upang matiyak ang matagumpay na paghahatid ng mga padala sa bawat customer.<br>
+2. Isauli ang nakolektang bayad mula sa mga customer ng kliyente ng KOMPANYA.<br>
+3. Magbigay ng sariling sasakyan, kagamitan, at kasangkapan sa pagsasagawa ng serbisyo.<br>
+4. Magbigay ng kwalipikadong driver/s para sa serbisyo.<br>
+5. Magpatupad ng mga paraan upang maisakatuparan ang serbisyo.<br><br>
+
+Maaaring tanggihan ng KONTRAKTOR ang paghahatid ng padala ngunit may karapatan ang KOMPANYA na wakasan ang 
+serbisyo kung ito ay magdudulot ng pinsala o pagkalugi.<br><br>
+
+Mananagot ang KONTRAKTOR sa anumang pagkawala, pinsala, o parusa bunga ng kanyang kapabayaan o maling gawain.<br><br>
+
+<b>IV. MGA OBLIGASYON NG KOMPANYA</b><br><br>
+
+Ang KOMPANYA ay:<br><br>
+
+1. Mag-ayos ng iskedyul para sa KONTRAKTOR upang maisagawa ang serbisyo. Maaaring tanggihan ng KONTRAKTOR 
+ang iskedyul ngunit kung tinanggap, dapat maisagawa ang paghahatid sa loob ng makatwirang oras.<br>
+2. Magbigay ng mga dokumento kaugnay sa serbisyo.<br>
+3. Magbigay ng bayad sa komisyon ayon sa Seksyon III.<br><br>
+
+<b>V. PAGIGING KUMPIDENSYAL</b><br><br>
+
+Sumasang-ayon ang mga Partido na anumang kumpidensyal na impormasyon na ibinahagi ng KOMPANYA ay h
+indi dapat isiwalat ng KONTRAKTOR nang walang pahintulot.<br><br>
+
+<b>VI. PROTEKSYON SA DATOS</b><br><br>
+
+Ang KOMPANYA ay nangongolekta ng personal na impormasyon ng mga customer. Sumasang-ayon ang 
+KOMPANYA at KONTRAKTOR na protektahan ang impormasyong ito alinsunod sa Data Privacy Act.<br><br>
+
+<b>VII. WALANG RELASYONG EMPLEYADO-EMPLOYER</b><br><br>
+
+Kinukumpirma ng KONTRAKTOR na siya ay isang Independent Contractor at walang relasyong employer-empleyado sa KOMPANYA.<br><br>
+
+<b>VIII. HINDI EKSKLUSIBO</b><br><br>
+
+Ang Kasunduang ito ay hindi pumipigil sa KONTRAKTOR na pumasok sa ibang kasunduan sa ibang entidad.<br><br>
+
+<b>IX. SCHEME NG INSENTIBO</b><br><br>
+
+Ang KOMPANYA ay may karapatang magbigay ng insentibo sa KONTRAKTOR. Ang pagbibigay ng insentibo ay 
+hindi nangangahulugang pagbabago ng estado ng KONTRAKTOR bilang independent contractor.<br><br>
+
+<b>X. PAGIGING MIYEMBRO NG SAKAY TRANSPORT SERVICE COOPERATIVE</b><br><br>
+
+Ang KONTRAKTOR ay hinihikayat na maging miyembro ng Sakay. Kung siya ay sumali, siya ay sasailalim sa mga patakaran ng Sakay.<br><br>
+
+<b>XI. FORCE MAJEURE</b><br><br>
+
+Walang Partido ang mananagot sa kabiguang maisagawa ang kasunduan dahil sa mga hindi inaasahang pangyayari gaya ng kalamidad, 
+kaguluhan, at iba pa.<br><br>
+
+<b>XII. PAGHIHIWALAY</b><br><br>
+
+Kung may bahagi ng kasunduan na hindi balido, ang natitirang bahagi ay mananatiling may bisa.<br><br>
+
+<b>XIII. TAGAL NG KASUNDUAN</b><br><br>
+
+Ang tagal ng Independent Service Agreement na ito ay magiging kapareho (co-terminus) ng Service 
+Agreement ng Employer at ng Principal, maliban na lamang kung ito ay maagang wakasan dahil sa anumang 
+dahilan na pinapahintulutan ng batas, mga alituntunin, at regulasyon ng mga kinauukulang awtoridad. 
+Ang contractor ay may karapatang tumanggap ng umiiral na commission rate sa oras ng pagpapatupad ng kasunduang ito, 
+maliban kung ito ay mabago alinsunod sa mga susunod na batas, alituntunin, at regulasyon, o kung may napagkasunduan a
+ng magkabilang panig sa pamamagitan ng nakasulat na kasunduan.<br><br>
+
+Maaaring wakasan ng KOMPANYA ang kasunduan anumang oras, habang ang KONTRAKTOR ay maaaring wakasan ito 
+sa loob ng 30 araw na paunang abiso.<br><br>
+
+<b>XIV. BUONG KASUNDUAN</b><br><br>
+
+Ang kasunduang ito ang bumubuo sa buong kasunduan sa pagitan ng KOMPANYA at KONTRAKTOR.<br><br>
+
+<b>XV. PAGBABAGO</b><br><br>
+
+Ang kasunduan ay maaaring baguhin lamang sa pamamagitan ng nakasulat na kasunduan ng parehong Partido.<br><br>
+
+<b>XVI. KOPYA</b><br><br>
+
+Ang kasunduan ay maaaring pirmahan sa dalawa o higit pang kopya na ituturing na orihinal.<br><br>
+
+<b>XVII. BATAS NA SASAKLAW</b><br><br>
+
+Ang kasunduan ay sasailalim sa mga batas ng Republika ng Pilipinas.<br><br>
+
+<b>BILANG PATUNAY</b>, ang mga Partido ay lumagda sa kasunduang ito sa petsang nakasaad sa ibaba.<br><br>
+
+<div class="sig-wrapper">
+  <div class="sig-row">
+    <!-- LEFT COLUMN: KOMPANYA -->
+    <div class="sig-col">
+      <div>BETTER EDGE SOLUTIONS, INC.</div>
+      <div>(KOMPANYA)</div>
+      <div>By:<br></div>
+
+      <div class="sig-box">
+        <!-- <img src=" alt="Signature KOMPANYA" class="sig-img"> -->&nbsp;
+        <div class="sig-line"></div>
+      </div>
+
+      <div>Pangalan at Katungkulan</div>
+      <div style="margin-top: 10px;">Petsa:</div>
+    </div>
+
+    <!-- RIGHT COLUMN: KONTRAKTOR -->
+    <div class="sig-col">
+      <div>KONTRAKTOR</div>
+      <div>By:<br><br></div>
+
+      <div class="sig-box">
+        <img src="{{signature}}" alt="Signature KONTRAKTOR" class="sig-img">
+        <div class="sig-line"></div>
+      </div>
+
+      <div>{{empname}}</div>
+      <div style="margin-top: 10px;">Petsa: {{datehired}}</div>
+    </div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+<!--//=========GENERATE THE SECOND PAGE//-->
+
+<div class="ack-wrapper">
+  <!-- TITLE -->
+  <div class="ack-title">PAGKILALA</div>
+
+  <!-- LOCATION LINES -->
+   <table class="mb-3">
+    <tr><td>Republika ng Pilipinas</td><td>)</td><td></td></tr>
+    <tr><td></td><td>)</td><td>S.S.</td></tr>
+   </table>
+  <!-- MAIN PARAGRAPH 1 -->
+  <p class="">
+    SA HARAP KO, isang Notaryo Publiko sa <span class="ack-blank">&nbsp;</span>
+    <B>Pilipinas, ngayong ika-</B>
+    <span class="ack-blank">&nbsp;</span> <b>ng</b>
+    <span class="ack-blank">&nbsp;</span> <b>2026</b>,
+    ay personal na humarap ang mga sumusunod:
+  </p>
+
+  <!-- MAIN PARAGRAPH 2 -->
+  <p class="">
+    Pangalan <span class="ack-blank2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> Numero ng ID
+    <span class="ack-blank2">&nbsp;</span> Petsa/Lugar ng Pagkakaloob
+    <span class="ack-blank2">&nbsp;</span>
+  </p>
+    <p class="">
+    <b>Pangalan</b> <span class="ack-blank2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <b>Numero ng ID</b>
+    <span class="ack-blank2">&nbsp;</span> <b>Petsa/Lugar ng Pagkakaloob</b>
+    <span class="ack-blank2">&nbsp;</span>
+  </p><br>
+
+  <!-- BODY TEXT -->
+  <p class="">
+    Na aking nakilala bilang siya ring mga taong lumagda sa naunang dokumento, at kanilang
+    pinagtibay na ito ay kanilang malaya at kusang-loob na gawa at kilos, at ng korporasyong
+    kanilang kinakatawan.
+  </p>
+
+  <p class="">
+    <b>PINATUNAYAN KO</b> ang aking <b>LAGDA AT SELYO</b> ngayong ika-
+    <span class="ack-blank">&nbsp;</span> ng
+    <span class="ack-blank">&nbsp;</span> 2026,
+  </p>
+
+  <!-- FOOTER LINES -->
+    <div class="ack-footer">
+    <table>
+        <tr><td>Doc. Blg. </td><td><span class="ack-blank">&nbsp;</span>;</td></tr>
+        <tr><td>Pahina Blg.</td><td><span class="ack-blank">&nbsp;</span>;</td></tr>
+        <tr><td>Aklat Blg.</td><td><span class="ack-blank">&nbsp;</span>;</td></tr>
+        <tr><td>Serye ng 2026</td><td><span class="ack-blank">&nbsp;</span>;</td></tr>
+    </table>
+    </div>
+</div>
+<div class="page-break"></div>
+<!--//=========GENERATE THE SECOND PAGE//-->
+
+
+
+  <!-- TITLE -->
+<div class="ack-title mb-5">ANNEX “A”</div>
+<b>DOCUMENTARY REQUIREMENTS:</b><br>
+<div class="ms-2">
+<b>MANDATORY</b><br>
+
+1. Biodata/Resume<br>
+
+2. Driver’s License photocopy (with Restriction 1)<br>
+
+3. Latest OR CR of the motor vehicle<br>
+
+4. 1x1 pic (white background)<br>
+
+5. Selfie pic with driver’s license<br>
+
+
+<b>Isumite sa loob ng 2-3 Linggo</b><br>
+
+1. NBI Clearance (original copy)*<br>
+
+2. Picture of Motor Vehicle<br>
+
+3. Authorization letter/Deed of sale (if driver is not the registered owner of the motor vehicle)<br>
+
+4. Drug Test (photocopy)<br>
+
+<b>Isumite sa loon ng 2 buwan</b><br>
+
+1. DTI Registration<br>
+
+2. Business Permit<br>
+
+3. BIR Registration<br>
+
+4. BIR Authority to Print<br>
+
+5. Sample of Printed Official Receipts<br>
+
+* Sumasang-ayon ang KOMPANYA na tanggapin ang kopya ng opisyal na resibo ng NBI Clearance ng KONTRAKTOR bilang patunay na ang nasabing dokumento ay kasalukuyang kinukuha.
+</div>
+
+
+</div>
+
+</body>
+</html>
