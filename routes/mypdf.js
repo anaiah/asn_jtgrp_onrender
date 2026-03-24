@@ -108,7 +108,7 @@ module.exports =  {
                 xfile = 'transporter.html';
             break;
             case '04' : // sorter
-                xfile = 'transporter.html';
+                xfile = 'sorter.html';
             break;
             case '08' : //coordinator
                 xfile = 'transporter.html';
