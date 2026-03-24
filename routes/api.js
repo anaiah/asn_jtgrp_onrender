@@ -423,7 +423,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 r.email,
                 r.phone,
                 r.position,
-                r.region,
+                r.region || filters.region ,
                 r.area,
                 r.location,
                 r.hub,
@@ -844,7 +844,8 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
         //console.log('buildPersonnelSearchQuery() Building personnel search query with timekeeping data.', sql);
 
 
-    } else {
+    } else {   //THIS LINE IS NOT FOR TIMEKEEPING
+
         const userTableName = `besi_employees_${regionClean}`;
 
         // base SQL
