@@ -129,14 +129,14 @@ module.exports =  {
             format: "Legal",
             orientation: "portrait",
             border: "5mm",
-             header: {
-                height: '30mm',
-                contents: `
-                <div style="font-size:9px; text-align:center; border-bottom:1px solid #000; padding-bottom:3px;">
-                    CONTRACT OF SERVICES – COORDINATOR
-                </div>
-                `
-            },
+            //  header: {
+            //     height: '30mm',
+            //     contents: `
+            //     <div style="font-size:9px; text-align:center; border-bottom:1px solid #000; padding-bottom:3px;">
+            //         CONTRACT OF SERVICES – COORDINATOR
+            //     </div>
+            //     `
+            // },
             // header: {
             //     height: "5mm"
             // }, 
