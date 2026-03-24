@@ -264,23 +264,36 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
         const regionClean   = filters.region.toLowerCase(); // smnl, cmnl, etc.
         const userTableName = `besi_employees_${regionClean}`;
+        const besiuserTable = `besi_users_${regionClean}`;
 
         let sql = `
-            SELECT 
+        
+            SELECT
                 e.*,
-                CASE 
-                WHEN e.active = 1 THEN 'Yes'
-                ELSE 'No'
+                u.hub,
+                h.hub,              -- or whatever columns asn_hub has
+                h.region,h.area,h.location,
+                CASE
+                    WHEN e.active = 1 THEN 'Yes'
+                    ELSE 'No'
                 END AS active_text,
                 dl.reason AS deactivation_reason
-            FROM \`${userTableName}\` e
-            LEFT JOIN (
+                FROM ${ userTableName } e
+                LEFT JOIN (
                 SELECT l.emp_id, l.reason
                 FROM besi_deactivation_logs l
                 WHERE l.id IN (
-                SELECT MAX(id) FROM besi_deactivation_logs GROUP BY emp_id
+                    SELECT MAX(id)
+                    FROM besi_deactivation_logs
+                    GROUP BY emp_id
                 )
-            ) dl ON dl.emp_id = e.emp_id
+                ) dl
+                ON dl.emp_id = e.emp_id
+                LEFT JOIN ${ besiuserTable } u
+                ON u.besi_id = e.emp_id         -- join users to employees
+                LEFT JOIN asn_hub h
+                ON u.hub = h.hub                 -- join hub table
+                
             `;
 
         const conditions = [];
@@ -313,6 +326,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         let conn = await mysqls.createConnection(dbconfig);
 
         const [rows] = await conn.execute(sql, params);
+
+        console.log( rows )
         await conn.end();
 
         // Build Excel
@@ -334,12 +349,17 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         const headerRow = worksheet.addRow([
             "BESI ID",
             "Full Name",
+            "Address",
+            "Birth Date",
             "Hire Date",
             "Emp Status",
             "Email",
             "Phone",
             "Position",
-            "Address",
+            "Region",
+            "Area",
+            "Location",
+            "Hub",
             "Active",
             "Deactivation Reason"
         ]);
@@ -347,51 +367,73 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         headerRow.font = { bold: true };
 
         //=======set alignments for header row
- 		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID
-        headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME
-        headerRow.getCell('C').alignment = { horizontal: 'center' };  // hire date
-        headerRow.getCell('D').alignment = { horizontal: 'center' };    // emp status
+ 		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID 1
+        headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME 2
+        
+        headerRow.getCell('C').alignment = { horizontal: 'left'};   // address 3
+        
+        headerRow.getCell('D').alignment = { horizontal: 'center' };  // birth date 4
+        
+        headerRow.getCell('E').alignment = { horizontal: 'center' };  // hire date 5
+
+        headerRow.getCell('F').alignment = { horizontal: 'center' };    // emp status 6
+
+         headerRow.getCell('G').alignment = { horizontal: 'left' };   // EMAIL 7 (treat as text but center for aesthetics)
+        headerRow.getCell('H').alignment = { horizontal: 'left' };   // phone 8 (treat as text but center for aesthetics)
+        
+        headerRow.getCell('I').alignment = { horizontal: 'center' };    // position 9
+        
+        headerRow.getCell('J').alignment = { horizontal: 'left' };   // region 10
+         headerRow.getCell('K').alignment = { horizontal: 'left' };   // area 11 (treat as text but center for aesthetics)
+        headerRow.getCell('L').alignment = { horizontal: 'left' };   // location 12 (treat as text but center for aesthetics)
+         headerRow.getCell('M').alignment = { horizontal: 'left' };   // hub 13 (treat as text but center for aesthetics)
+        // headerRow.getCell('F').alignment = { horizontal: 'center' };   // phone (treat as text but center for aesthetics)
+        
 
         // Numeric columns (WORK DAYS, WORK HOUR, LATE HOUR, OT HOUR) - typically right or center
-        headerRow.getCell('E').alignment = { horizontal: 'center' };   // EMAIL (treat as text but center for aesthetics)
-        headerRow.getCell('F').alignment = { horizontal: 'center' };   // phone (treat as text but center for aesthetics)
-        headerRow.getCell('G').alignment = { horizontal: 'center' };   // position
-        headerRow.getCell('H').alignment = { horizontal: 'center'};   // address
-        headerRow.getCell('I').alignment = { horizontal: 'center'};   // active
-        headerRow.getCell('J').alignment = { horizontal: 'center'};   // deactivation reason
+       
+        headerRow.getCell('N').alignment = { horizontal: 'center'};   // active
+        headerRow.getCell('O').alignment = { horizontal: 'left'};   // deactivation reason
 
         //wrap entire address column
-        const addrCol = worksheet.getColumn(8);
+        const addrCol = worksheet.getColumn(3);
         addrCol.alignment = { wrapText: true };
 
-        const  poscol = worksheet.getColumn(7);
-        poscol.alignment = { horizontal: 'center' };
+        const  poscol = worksheet.getColumn(9);
+        poscol.alignment = { horizontal: 'left' };
 
-        const  actcol = worksheet.getColumn(9);
+        const  actcol = worksheet.getColumn(6);
         actcol.alignment = { horizontal: 'center' };
 
-        const hireCol = worksheet.getColumn(3);
+        const hireCol = worksheet.getColumn(5);
         hireCol.alignment = { horizontal: 'center' };
 
+        const addyCol = worksheet.getColumn(4);
+        addyCol.alignment = { horizontal: 'center' };
 
         // 7+: data rows
         rows.forEach(r => {
             worksheet.addRow([
                 r.emp_id,
                 r.full_name,
+                r.full_address,
+                r.birth_date,
                 r.hire_date,
                 r.employment_status,
                 r.email,
                 r.phone,
                 r.position,
-                r.full_address,
+                r.region,
+                r.area,
+                r.location,
+                r.hub,
                 r.active_text,
                 r.deactivation_reason || ""
             ]);
         });
 
         // Set column widths
-        const widths = [25, 30, 15, 20, 15, 20, 15, 55, 10, 20];
+        const widths = [25, 30, 30, 15, 15, 15, 20, 15, 10, 20, 20, 20, 10, 40];
         
         widths.forEach((w, i) => {
             worksheet.getColumn(i + 1).width = w;
@@ -2430,6 +2472,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 			
             await conn.beginTransaction(); // Start a transaction
 
+           
             const sql = `INSERT INTO besi_employees_${regions.toLowerCase()} (
                 emp_id, first_name,middle_name,last_name,suffix,full_name, 
                 email, phone, birth_date, hire_date, position,  employment_status, 
@@ -2481,14 +2524,15 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 
             // --- 2. Insert into bogus_table_1 (same fields) ---
             const sql_bogus_1 = `INSERT INTO besi_users_${regions.toLowerCase()} (
-                besi_id, full_name,  email, hub, position_code ) 
-                VALUES (?,?,?,?,?)`;
+                besi_id, full_name,  email, hub, location, position_code ) 
+                VALUES (?,?,?,?,?,?)`;
 
             const result_bogus_1 = await conn.execute(sql_bogus_1, [
                 empId !== undefined ? empId : null,
                 (formFields.full_name ? formFields.full_name.toUpperCase() : null),
                 formFields.email || null,
                 formFields.hub_store || null, // Assuming this field is part of the formFields; if not, adjust accordingly
+                formFields.loc_store || null,
                 formFields.jobTitle || null
             ]);
             console.log('Database insertion successful for new besi_users_xx, affectedRows:', result_bogus_1[0].affectedRows);
