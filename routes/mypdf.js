@@ -111,7 +111,7 @@ module.exports =  {
                 xfile = 'sorter.html';
             break;
             case '08' : //coordinator
-                xfile = 'transporter.html';
+                xfile = 'coordinator.html';
             break;
             
         }//endsw
@@ -129,18 +129,36 @@ module.exports =  {
             format: "Legal",
             orientation: "portrait",
             border: "5mm",
-            header: {
-                height: "5mm"
-            }, 
-            footer: {
-                height: "9mm",
+             header: {
+                height: '30mm',
+                contents: `
+                <div style="font-size:9px; text-align:center; border-bottom:1px solid #000; padding-bottom:3px;">
+                    CONTRACT OF SERVICES – COORDINATOR
+                </div>
+                `
+            },
+            // header: {
+            //     height: "5mm"
+            // }, 
+            footer:{
+                height: '15mm',
                 contents: {
-                    //first: '<span class="pagex">Page 1</span>',
-                    //2: '<span class="pagex">Page 2</span>',// Any page number is working. 1-based index
-                    default: '<span class="pagex">Page {{page}} of '+ totalPages +'</span>', // fallback value
-                    last: '**Last Page**' 
+                default: `
+                    <div style="font-size:8px; width:100%; text-align:center; border-top:1px solid #000; padding-top:3px;">
+                    Page {{page}} of {{pages}}
+                    </div>
+                `
                 }
             }
+            // footer: {
+            //     height: "9mm",
+            //     contents: {
+            //         //first: '<span class="pagex">Page 1</span>',
+            //         //2: '<span class="pagex">Page 2</span>',// Any page number is working. 1-based index
+            //         default: '<span class="pagex">Page {{page}} of '+ totalPages +'</span>', // fallback value
+            //         last: '**Last Page**' 
+            //     }
+            // }
         }//====end options
 
         const pdfData = {
