@@ -184,5 +184,52 @@ module.exports =  {
             stream.pipe(res);
         });
 
+        /**** IMPORTANT USE THIS FOR HEADERS IN HTML TEMPLATE
+         * 
+         * /* This creates the header on every page 
+            // #pageHeader {
+                //position: fixed;
+                // /top: 0;              /* stick to top */
+                // left: 0;
+                // right: 0;
+                // height: 30mm;        /* adjust as needed */
+                // text-align: center;  /* center inline content */
+                // z-index: 1000;
+            //   }
+
+            //   #pageHeader table {
+            //     margin: 0 auto;      /* center the table itself */
+            //   }
+
+            //   #pageHeader img {
+            //     height: 18mm;        /* use mm instead of px for PDF */
+            //   }
+
+            //   body {
+            //     margin-top: 35mm;    /* leave space so content doesn’t overlap header */
+            //   }
+            //          */
+
+            //             THEN TABLE IN HTML
+            //             <div class="page-wrapper">
+            // <!-- <table class="mt-5 mx-auto">    
+            //     <tr>
+            //         <td><img src="data:image/png;base64,{{logosmall}}" height="95px"></td>
+            //         <td><img src="data:image/png;base64,{{logomain}}"></td>
+            //     </tr>
+            // </table> -->
+
+            // <div id="pageHeader">
+            //     <table>
+            //     <tr>
+            //         <td>
+            //         <img src="data:image/jpeg;base64,{{logosmall}}">
+            //         </td>
+            //         <td>
+            //         <img src="data:image/png;base64,{{logomain}}">
+            //         </td>
+            //     </tr>
+            //     </table>
+            // </div>
     },
 }//======end module export 
