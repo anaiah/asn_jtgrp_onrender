@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transporter</title>
+    <style>
+    body {
+        font-family: Cambria, "Times New Roman", Times, serif;
+        font-size: 12px; 
+    }
+    .page-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;   /* centers horizontally */
+        padding: 0 16px;  /* left/right inner spacing */
+        
+        
+    }
+    .addy{
+        font-size: 9px;
+    }
+    .my-bold {
+    font-weight: bold;
+    }
+    table.blueTable {
+    font-family: "Courier New", Courier, monospace;
+    border: 0px solid #1C6EA4;
+    /*background-color: #fff8f8ff*/
+    width: 100%;
+    border-collapse: collapse;
+    }
+    table.blueTable td, table.blueTable th {
+    border: 1px solid #AAAAAA;
+    padding: 3px 2px;
+    
+    }
+    table.blueTable tbody td {
+    font-size: 7px;
+    color: #333333;
+    border: 1px solid #D0E4F5;
+    }
+    table.blueTable thead {
+    background: #C1B9B8;
+    border-bottom: 0px solid black;
+    }
+    table.blueTable thead th {
+    font-size: 8px;
+    text-align:center;
+    font-weight: bold;
+    color: #3B3B3B;
+    border-left: 1px solid #D0E4F5;
+    }
+    table.blueTable thead th:first-child {
+    border-left: none;
+    }
+    .pagex{
+        font-size:7px;
+    }
+
+    .mycontainer{
+        font-size :8px;
+    }
+    
+    .record-group {
+        font-size:7px;
+        display: block; /* Default, kept for clarity */
+        /* optional margin for clarity in debugging */
+        /* margin-bottom: 10px; */
+    }
+
+    .page-break {
+        page-break-after: always;
+        break-inside: avoid;
+    }
+
+    hr{
+        border:none;
+        height:1px;
+        background-color:#000000;
+        margin:20px auto;
+    }
+      /* Full-width wrapper, columns start at left */
+    .sig-wrapper {
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    /* 2 columns, kept together, not stretched */
+    .sig-row {
+        display: flex;
+        gap: 60px;              /* space between columns */
+        margin-left: 3px;      /* push whole block from left edge (optional) */
+    }
+
+    /* Control width of each column */
+    .sig-col {
+        width: 300px;           /* adjust per your layout */
+        text-align: left;
+    }
+
+    .sig-box {
+        width: 100%;
+        text-align: left;
+        margin-top: 10px;
+    }
+
+    .sig-img {
+        max-width: 100%;
+        height: 55px;
+        display: block;
+    }
+
+    .sig-line {
+        border-bottom: 1px solid #000;
+        margin-top: -3px;
+    }
+    /* below */
+    .ack-wrapper {
+        margin: 0px 0px; /* page side margins */
+    }
+
+    .ack-title {
+        text-align: center;
+        font-weight: bold;
+        text-decoration: underline;
+        margin-bottom: 20px;
+    }
+
+    .ack-center-line {
+        text-align: center;
+        margin: 0;
+    }
+
+    .ack-paragraph {
+        text-align: justify;
+        text-indent: 30px;
+        margin: 10px 0;
+    }
+
+    .ack-blank {
+    display: inline-block;
+    border-bottom: 1px solid #000;
+    min-width: 80px;           /* adjust length of blank */
+    text-align: center;
+    }
+
+     .ack-blank2 {
+    display: inline-block;
+    border-bottom: 1px solid #000;
+    min-width: 185px;           /* adjust length of blank */
+    text-align: center;
+    }
+
+    .ack-footer {
+        margin-top: 20px;
+    }
+
+    .ack-footer-line {
+        margin: 3px 0;
+    }
+   .clause {
+  text-indent: -15px;   /* pull number out */
+  padding-left: 25px;   /* push text in */
+  text-align: justify;
+  margin: 0 0 3px 0;
+}
+
+.subclause {
+  text-indent: -15px;
+  padding-left: 45px;   /* more indent than main clause */
+  text-align: justify;
+  margin: 0 0 3px 0;
+}
+
+.clause .num,
+.subclause .num {
+  font-weight: normal;
+}
+
+
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    
+</head>
+<body>
+<div class="page-wrapper">
+<table class="mt-5 mx-auto">    
+    <tr>
+        <td><img src="data:image/png;base64,{{logosmall}}" height="95px"></td>
+        <td><img src="data:image/png;base64,{{logomain}}"></td>
+    </tr>
+</table>
+
+<div class="mt-5 mb-3 ack-title">
+SERVICE AGREEMENT
+</div>
+
+This Service Agreement (the “Agreement”) is made by and between 
+<b>Asia-Now Enterprises Inc. (the “COMPANY”)</b>, a corporation duly organized and validly existing under and by virtues
+ of laws of the Philippines, with branch address at <b>2nd Floor, 
+ Textron Building, 168 Luna Mencias St., San Juan City.
+ </b><br><br>
+
+<center><b>-and-</b></center><br>
+
+<b><u>{{empname}}</u></b> (“KONTRAKTOR”), an independent contractor with address at 
+<b><u>{{addy}}</u></b>.<br><br>
+
+WHEREAS, the COMPANY wishes to avail the coordination and delivery services 
+of the CONTRACTOR as a Coordinator/ Person In Charge (PIC) as defined below.<br><br>
+
+WHEREAS, the CONTRACTOR has the substantial materials, tools, equipment, and 
+qualifications required to provide such services.<br><br>
+
+WHEREAS, the CONTRACTOR wishes to provide such services to the COMPANY 
+as an independent contractor.<br><br>
+
+NOW THEREFORE, for and in consideration of the foregoing premises and mutual
+ covenants herein contained, the Parties agree as follows:<br><br>
+
+<b>I. SERVICES</b><br><br>
+
+The CONTRACTOR shall provide coordination and delivery services as Coordinator/ Person In Charge (PIC) for the transport of parcels and packages to be delivered to customers. <br><br>
+
+<b>II. COMMISSION FEE</b><br><br>
+
+For payment of the services rendered, the CONTRACTOR hereby proposes 
+a monthly commission fee arrangement, which proposal is hereby accepted by the COMPANY. <br><br>
+
+The CONTRACTOR agrees that the COMPANY, upon notice to CONTRACTOR, can modify or change the rate of the commission fee unilaterally, upon proper notice to CONTRACTOR, from time to time in accordance with the circumstances then prevailing at the time of the review. It is understood that COMPANY is working for a third-party client and thus any adjustments on the rates done by the 
+latter will have to be correspondingly implemented by the Parties.<br><br>
+
+The CONTRACTOR shall endeavour to act efficiently and effectively as Coordinator/ Person In Charge (PIC) in the coordination of riders, drivers, and other independent contractors and the delivery of the parcels and packages to the customers within reasonable time in accordance with standard industry practice, otherwise, this may affect, after review, the amount of commission 
+fee that the CONTRACTOR may receive from the COMPANY.<br><br>
+
+The CONTRACTOR is free to offer his or her services to other individuals or companies and does not necessarily render exclusive service to the COMPANY.<BR><BR>
+
+
+<b>III. CONTRACTOR OBLIGATIONS AND RESPONSIBILITIES</b><br><br>
+
+The CONTRACTOR shall:<br>
+
+<p class="clause">
+<span class="num">1.</span>
+Use reasonable care and skill as Coordinator/ Person In Charge 
+(PIC) of riders, drivers, and other independent contractors in 
+connection with the coordination and delivery services to make sure 
+that the parcels and packages are successfully and completely 
+delivered to each customer within the reasonable time standard in 
+the industry.
+</p>
+
+<p class="clause">
+<span class="num">2.</span>
+Provide the tools, materials, and equipment as Coordinator/ Person In Charge (PIC) in 
+carrying out the coordination and delivery services.
+</p>
+
+<p class="clause">
+<span class="num">3.</span>
+Ensure the proper coordination/management of riders, drivers, 
+and other independent contractors and the accomplishment and 
+completion of the subject delivery service
+</p>
+
+<p class="clause">
+<span class="num">4.</span>
+Ensure to perform the following:
+</p>
+<p class="subclause">
+<span class="num">(a)</span>
+Sources and recruits individuals who are interested to become riders, 
+drivers, and other independent contractors engaged in the delivery 
+of parcels of Client Stick to a schedule and be time-bound on the job;
+</p>
+<p class="subclause">
+<span class="num">(b)</span>
+Conducts orientation riders, drivers, and other independent 
+contractors for the structure of the company;
+</p>
+<p class="subclause">
+<span class="num">(c)</span>
+Submits report of actual deployment and newly hired;
+</p>
+<p class="subclause">
+<span class="num">(d)</span>
+Provides assistance for newly deployed riders;
+</p>
+<p class="subclause">
+<span class="num">(e)</span>
+Cascades instructions/ information given by Asian Now’s Head of Operations to riders, drivers, sorters;
+</p>
+<p class="subclause">
+<span class="num">(f)</span>
+Guides the riders, drivers, and other independent contractors in the performance of their contracts with Asia-Now; 
+</p>
+<p class="subclause">
+<span class="num">(g)</span>
+Monitors attendance  and day-today activities of riders, drivers, and other independent contractors, including loading and dispatching of parcels, delivery of parcels to Client’s customers, remittance of cash, and return of undelivered parcels to Client Hub;
+</p>
+<p class="subclause">
+<span class="num">(h)</span>
+Consolidates concerns, issues and complaints received from client, riders, drivers, sorters and other independent contractors and coordinates with different departments of Asia Now; and Client -Hub Lead, Team Lead, Coordinator and Admins;
+</p>
+<p class="subclause">
+<span class="num">(i)</span>
+Assists and coordinates required help relating to accident and life insurance 
+</p>
+<p class="subclause">
+<span class="num">(j)</span>
+Tracks riders with unremitted cash collections and assists on filing of case and report;
+</p>
+<p class="subclause">
+<span class="num">(k)</span>
+Makes recommendation to Asia-Now in disciplinary cases;
+</p>
+<p class="subclause">
+<span class="num">(l)</span>
+Provides assistance to client’s needs
+</p>
+
+<b>IV. COMPANY OBLIGATIONS AND RESPONSIBILITIES</b><br><br>
+
+The COMPANY shall:<br>
+
+<p class="clause">
+<span class="num">1.</span>
+Provide CONTRACTOR schedules for the delivery service to customers.
+</p>
+<p class="clause">
+<span class="num">2.</span>
+Provide necessary documents to CONTRACTOR in connection with the delivery service.
+
+</p>
+<p class="clause">
+<span class="num">3.</span>
+Provide Service Fee charged by CONTRACTOR as specified in Section II.
+</p>
+
+<b>V. CONFIDENTIALITY</b><br><br>
+
+The parties acknowledge that in connection with CONTRACTOR’S services, the COMPANY may disclose to CONTRACTOR confidential and proprietary information and trade secrets of the COMPANY, and that CONTRACTOR may also create such information within the scope and in the course of performing the services. CONTRACTOR hereby agrees that during the term of this agreement, CONTRACTOR shall not publicly divulge, disseminate, publish or otherwise disclose any Company Confidential 
+Information without the Company’s prior written consent.<br><br>
+
+<b>VI. DATA PRIVACY</b><br><br>
+
+The COMPANY collects personal information of customers necessary to 
+perform its functions. The COMPANY and the CONTRACTOR agrees in 
+committing to protect the privacy of customer’s information. We are 
+required by law to protect personal information and comply with the 
+Data Privacy Act (DPA) and other relevant 
+legislation relating to confidentiality and privacy.<br><br>
+
+<b>VII. NO EMPLOYER-EMPLOYEE RELATIONSHIP</b><br><br>
+
+CONTRACTOR acknowledges and agrees that there is no employer-employee 
+relationship between him/her and the COMPANY. CONTRACTOR is hereby 
+considered as an Independent Contractor. As such, standard statutory 
+requirements prescribed for full-time employment are not applicable 
+to this engagement. However, COMPANY reserves the exclusive discretion to grant the CONTRACTOR certain incentives. Should COMPANY opt to grant the CONTRACTOR incentives or any other remuneration, in whatever form, in addition to the CONTRACTOR’s service fee, such grant is considered an act of goodwill on the part of COMPANY and shall NOT in any way: (i) affect or elevate the status beyond the nature and status of CONTRACTOR granted by this Agreement, (ii) automatically vest as a continuous obligation on the part of COMPANY thereby COMPANY can cease the grant of any extra remuneration/benefit/privilege/incentives at any time without prior notice; and (iii) be deemed as a waiver by COMPANY of any right afforded 
+to it relating to the consultancy status granted by this Agreement.<br><br>
+
+<b>VIII. FORCE MAJEURE</b><br><br>
+
+Neither party shall be liable to the other for failure to perform due to causes beyond its reasonable control including, but not limited to, acts of God, acts of civil authorities, acts of military authorities, riots, embargoes, acts of nature and natural disasters, and other acts which may be due to 
+unforeseen events or though foreseen could not be reasonably avoided.<br><br>
+
+<b>IX. SEVERABILITY</b><br><br>
+
+The invalidity of any portion of this Agreement will not and shall 
+not be deemed to affect the validity of any other provision. In the 
+event that any provision of this Agreement is held to be invalid, 
+the COMPANY and the CONTRACTOR agree that the remaining provisions 
+shall be deemed to be in full force and effect as if they had been 
+executed subsequent to the expungement of the invalid provision.
+<br><br>
+
+<b>X. TERM</b><br><br>
+
+Engagement Status.  The duration of this Independent Service 
+Agreement shall be co-terminus with the Service Agreement of the
+ Employer with the Principal unless terminated for any cause 
+ as may be provided by law, rules and regulations of the proper 
+ authorities.  The contractor shell be entitled to the prevailing 
+ commission rate at the time of the execution of this agreement 
+ unless otherwise provided modified by a subsequent law, rules and r
+ egulations or agreed upon by parties in writing<BR>
+
+This Agreement may be terminated at any time by the COMPANY, with or
+ without cause, while CONTRACTOR may terminate the same upon thirty 
+ (30) days prior written notice to the COMPANY. <BR>
+
+<b>XI. ENTIRETY OF AGREEMENT</b><br><br>
+
+This Agreement represents the entire agreement between the COMPANY 
+and the CONTRACTOR and supersedes all prior negotiations, 
+representations, agreements, either oral or written. 
+<br><br>
+
+<b>XII. AMENDMENTS AND MODIFICATIONS</b><br><br>
+
+This Agreement may be amended only by a written instrument signed 
+and agreed upon by both parties.
+<br><br>
+
+<b>XIII. COUNTERPARTS</b><br><br>
+
+This Agreement may be executed in two or more counterparts, each of which shall be deemed an original, but all of which together shall constitute one and the same instrument.
+<br><br>
+
+<b>XIV. GOVERNING LAW/VENUE OF ACTIONS</b><br><br>
+
+This Agreement shall be governed by and construed according to the laws of the Republic of the Philippines. Should there be any dispute or action that arise from this agreement, it shall be understood that the venue for the said action or dispute if before the regular courts of Quezon City. 
+<br><br>
+
+<b>XIV. BUONG KASUNDUAN</b><br><br>
+
+Ang kasunduang ito ang bumubuo sa buong kasunduan sa pagitan ng KOMPANYA at KONTRAKTOR.<br><br>
+
+<b>XV. PAGBABAGO</b><br><br>
+
+Ang kasunduan ay maaaring baguhin lamang sa pamamagitan ng nakasulat na kasunduan ng parehong Partido.<br><br>
+
+<b>XVI. KOPYA</b><br><br>
+
+Ang kasunduan ay maaaring pirmahan sa dalawa o higit pang kopya na ituturing na orihinal.<br><br>
+
+<b>XVII. BATAS NA SASAKLAW</b><br><br>
+
+Ang kasunduan ay sasailalim sa mga batas ng Republika ng Pilipinas.<br><br>
+
+<b>BILANG PATUNAY</b>, ang mga Partido ay lumagda sa kasunduang ito sa petsang nakasaad sa ibaba.<br><br>
+
+<div class="sig-wrapper">
+  <div class="sig-row">
+    <!-- LEFT COLUMN: KOMPANYA -->
+    <div class="sig-col">
+      <div>Asia-Now Enterprises Inc.
+      <div>(COMPANY)</div>
+      <div>By:<br><BR></div>
+
+      <div class="sig-box">
+        <!-- <img src=" alt="Signature KOMPANYA" class="sig-img"> -->&nbsp;
+        <div class="sig-line"></div>
+      </div>
+
+      <div>Printed Name and Signature<br>Company Representative</div>
+      <div style="margin-top: 10px;">Date:</div>
+    </div>
+
+    <!-- RIGHT COLUMN: KONTRAKTOR -->
+    <div class="sig-col">
+      <div>&nbsp;</div>
+      <div>By:<br><br></div>
+
+      <div class="sig-box">
+        <img src="{{signature}}" alt="Signature " class="sig-img">
+        <div class="sig-line"></div>
+      </div>
+
+      <div>{{empname}}<BR>Coor/PIC</div>
+      <div style="margin-top: 10px;">Date: {{datehired}}</div>
+    </div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+<!--//=========GENERATE THE SECOND PAGE//-->
+
+<div class="ack-wrapper">
+  <!-- TITLE -->
+  <div class="ack-title">ACKNOWLEDGMENT</div>
+
+  <!-- LOCATION LINES -->
+   <table class="mb-3">
+    <tr><td>Republic of the Philippines</td><td>)</td><td></td></tr>
+    <tr><td></td><td>)</td><td>S.S.</td></tr>
+   </table>
+  <!-- MAIN PARAGRAPH 1 -->
+  <p class="">
+    BEFORE ME, a Notary Public of <span class="ack-blank">&nbsp;</span>
+    <B>Philippines, on this</B>
+    <span class="ack-blank">&nbsp;</span> <b> day of </b>
+    <span class="ack-blank">&nbsp;</span> <b>2026</b>,
+    personally appeared:
+  </p>
+
+  <!-- MAIN PARAGRAPH 2 -->
+  <p class="">
+    Name <span class="ack-blank2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ID Number
+    <span class="ack-blank2">&nbsp;</span> Date/Place of Issue
+    <span class="ack-blank2">&nbsp;</span>
+  </p>
+    <p class="">
+    <b>Pangalan</b> <span class="ack-blank2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <b>Numero ng ID</b>
+    <span class="ack-blank2">&nbsp;</span> <b>Petsa/Lugar ng Pagkakaloob</b>
+    <span class="ack-blank2">&nbsp;</span>
+  </p><br>
+
+  <!-- BODY TEXT -->
+  <p class="">
+    Known to me to be the same persons who executed the foregoing 
+    instrument, and acknowledged to me that the same is their free 
+    and voluntary act and deed, and   of the corporation which each 
+    represents.
+
+  </p>
+
+  <p class="">
+    WITNESS MY HAND AND SEAL on  <span class="ack-blank">&nbsp;</span> in
+    <span class="ack-blank">&nbsp;</span> 2026.
+  </p>
+
+  <!-- FOOTER LINES -->
+    <div class="ack-footer">
+    <table>
+        <tr><td>Doc. No. </td><td><span class="ack-blank">&nbsp;</span>;</td></tr>
+        <tr><td>Page No.</td><td><span class="ack-blank">&nbsp;</span>;</td></tr>
+        <tr><td>Book No.</td><td><span class="ack-blank">&nbsp;</span>;</td></tr>
+        <tr><td>Series</td><td><span class="ack-blank">&nbsp;</span>;</td></tr>
+    </table>
+    </div>
+</div>
+<div class="page-break"></div>
+<!--//=========GENERATE THE SECOND PAGE//-->
+
+
+
+  <!-- TITLE -->
+<div class="ack-title mb-5">ANNEX “A”</div>
+<b>DOCUMENTARY REQUIREMENTS:</b><br>
+<div class="ms-2">
+<b>MANDATORY</b><br>
+
+1. Biodata/Resume<br>
+
+2. Driver’s License photocopy (with Restriction 1)<br>
+
+3. Latest OR CR of the motor vehicle<br>
+
+4. 1x1 pic (white background)<br>
+
+5. Selfie pic with driver’s license<br>
+
+
+<b>Isumite sa loob ng 2-3 Linggo</b><br>
+
+1. NBI Clearance (original copy)*<br>
+
+2. Picture of Motor Vehicle<br>
+
+3. Authorization letter/Deed of sale (if driver is not the registered owner of the motor vehicle)<br>
+
+4. Drug Test (photocopy)<br>
+
+<b>Isumite sa loon ng 2 buwan</b><br>
+
+1. DTI Registration<br>
+
+2. Business Permit<br>
+
+3. BIR Registration<br>
+
+4. BIR Authority to Print<br>
+
+5. Sample of Printed Official Receipts<br>
+
+* Sumasang-ayon ang KOMPANYA na tanggapin ang kopya ng opisyal na resibo ng NBI Clearance ng KONTRAKTOR bilang patunay na ang nasabing dokumento ay kasalukuyang kinukuha.
+</div>
+
+
+</div>
+
+</body>
+</html>
