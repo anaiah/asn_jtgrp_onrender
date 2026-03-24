@@ -49,6 +49,8 @@ module.exports =  {
         }//endsw
 
         const signatureImageUrl = `https://asianowapp.com/html/${regionName}/SIGN_${empid}.png`; // Construct the URL dynamically
+        // const logomainUrl = `https://asianowapp.com/html/logomain.png`; // Construct the URL dynloamically
+        // const logosmallUrl = `https://asianowapp.com/html/logosmall.jpg`; // Construct the URL dynamica/lly
 
         let signatureBase64 = ''; // This variable will hold the Base64 string or remain empty on error
 
@@ -60,6 +62,21 @@ module.exports =  {
             throw new Error(`Failed to fetch signature image: ${signatureResponse.status} ${signatureResponse.statusText}`);
         }
 
+        // THIS IF FOR THE logO
+        // const logomainResponse = await fetch( logomainUrl);
+        // const aBuffer = await logomainResponse.arrayBuffer();
+        // const logomainBuffer = Buffer.from(aBuffer);
+
+        // logomainBase64 = `data:image/png;base64,${logomainBuffer.toString('base64')}`;
+        
+        // const logosmallResponse = await fetch( logosmallUrl);
+        // const aBuffer2 = await logosmallResponse.arrayBuffer();
+        // const logosmallBuffer = Buffer.from(aBuffer2);
+
+        // logosmallBase64 = `data:image/png;base64,${logosmallBuffer.toString('base64')}`;
+
+
+        // ====THIS IS FOR SIGNATURE
         const arrayBuffer = await signatureResponse.arrayBuffer();
         const signatureBuffer = Buffer.from(arrayBuffer);
 
@@ -116,32 +133,23 @@ module.exports =  {
             
         }//endsw
 
+        /**** LOAD HTML TEMPLATE AND LOGOS */
         let htmlx = fs.readFileSync(path.join(__dirname, xfile), "utf8");
-        
+
         const bitmap1 = fs.readFileSync(path.join(__dirname, "logomain.png"));
         const logomain = bitmap1.toString('base64');
-
+        
         const bitmap2 = fs.readFileSync(path.join(__dirname, "logosmall.jpg"));
         const logosmall = bitmap2.toString('base64');
-
+            
         let options = {
             //format: "A4",
             format: "Legal",
             orientation: "portrait",
             border: "5mm",
-            //  header: {
-            //     height: '30mm',
-            //     contents: `
-            //     <div style="font-size:9px; text-align:center; border-bottom:1px solid #000; padding-bottom:3px;">
-            //         CONTRACT OF SERVICES – COORDINATOR
-            //     </div>
-            //     `
-            // },
-            // header: {
-            //     height: "5mm"
-            // }, 
+            
             footer:{
-                height: '15mm',
+                height: '6mm',
                 contents: {
                 default: `
                     <div style="font-size:8px; width:100%; text-align:center; border-top:1px solid #000; padding-top:3px;">
@@ -150,15 +158,6 @@ module.exports =  {
                 `
                 }
             }
-            // footer: {
-            //     height: "9mm",
-            //     contents: {
-            //         //first: '<span class="pagex">Page 1</span>',
-            //         //2: '<span class="pagex">Page 2</span>',// Any page number is working. 1-based index
-            //         default: '<span class="pagex">Page {{page}} of '+ totalPages +'</span>', // fallback value
-            //         last: '**Last Page**' 
-            //     }
-            // }
         }//====end options
 
         const pdfData = {
