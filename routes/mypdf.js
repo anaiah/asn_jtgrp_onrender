@@ -39,9 +39,11 @@ module.exports =  {
         switch ( region.toLowerCase() ) { // Use regionParam from URL  
             case 'smnl': regionName = 'ncr_smnl_emp'; break;
             case 'cmnl': regionName = 'ncr_cmnl_emp'; break;
-            case 'nelu': regionName = 'ncr_nelu_emp'; break;
-            case 'nwlu': regionName = 'ncr_nwla_emp'; break;
             case 'cmnva': regionName = 'ncr_cmnva_emp'; break;
+            
+            case 'nelu': regionName = 'luz_nelu_emp'; break;
+            case 'nwlu': regionName = 'luz_nwla_emp'; break;
+            
             case 'bcol': regionName = 'bsl_bicol_emp'; break;
             case 'smlyte': regionName = 'bsl_smarleyte_emp'; break;
             case 'bcld': regionName = 'wvis_bacolod_emp'; break;
