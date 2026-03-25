@@ -168,7 +168,8 @@ module.exports =  {
             signature : signatureBase64,
             empname   : empname,
             addy      : addy,
-            datehired : datehired
+            datehired : datehired,
+            currYear  : new Date().getFullYear()
         };
 
         const template = hbar.compile(htmlx);
