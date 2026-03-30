@@ -2536,7 +2536,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
            
             const sql = `INSERT INTO besi_employees_${regions.toLowerCase()} (
                 emp_id, first_name,middle_name,last_name,suffix,full_name, 
-                email, phone, birth_date, hire_date, position,  employment_status, 
+                email, phone, birth_date, hire_date, position,employment_status, 
                 street_1,street_2,city,bgy,full_address
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
@@ -2570,8 +2570,8 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 formFields.employmentStatus || null,
 
                 // 6. Address Components
-                formFields.street_1 || null,
-                formFields.street_2 || null,
+                formFields.addy1 || null,
+                formFields.addy2 || null,
                 formFields.city || null,
                 formFields.bgy || null,
                 formFields.address || null
