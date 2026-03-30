@@ -178,7 +178,7 @@ router.post("/employee/:status", async (req, res) => {
     console.log('==Firing employee status change with body:', req.body.action, 'and status param:', req.params.status);    
     const { empid, region, reason, action } = req.body;
 
-    return false; //=== TEMPORARY STOPPER FOR THIS ROUTE, REMOVE THIS LINE TO RE-ENABLE
+   // return false; //=== TEMPORARY STOPPER FOR THIS ROUTE, REMOVE THIS LINE TO RE-ENABLE
 
     if (!empid || !region || !action) {
         return res.status(400).send("empid, region, and action are required");
@@ -460,16 +460,18 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
 //=====hris Search Employee====//
 router.post('/searchemp', upload.none(), async (req, res) => {
-	//console.log( req.body )
+	console.log( req.body )
 	const filters = {
         name: req.body.filter_name,
         id: req.body.filter_id,
         region: req.body.filter_region,
+        hub: req.body.filter_hub,
         position: req.body.filter_position
     };
 
     try {
         const { sql, params } = buildPersonnelSearchQuery(filters,false);
+
         //console.log('Generated SQL:', sql);
         //console.log('Parameters:', params);
         console.log('==Firing route.searchemp() with filters: called from hris.searchEmp()===', filters);
@@ -576,6 +578,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     ocw_id: row.ocw_id,
                     jms_id: row.jms_id,
                     full_name: row.full_name,
+                    emp_status: row.employment_status,
                     position_code: row.position_code,
                     reason:row.reason,
                     total_worked_hours: 0, // Initialized
@@ -760,7 +763,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
 function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 	console.log('==buildPersonnelSearchQuery() with filters:', filters, 'isTimeKeep:', isTimeKeep);
 
-    let { name, id, region, position, date_from, date_to } = filters;
+    let { name, id, region, hub, position, date_from, date_to } = filters;
     const params = [];
     const conditions = [];
 
@@ -776,6 +779,8 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
         const timekeepTableName = `besi_timekeep_${regionClean}`;
 
         const userTableName = `besi_users_${regionClean}`;
+        const empTableName = `besi_employees_${regionClean}`;
+
 
         let finalDateFrom, finalDateTo;
         if (date_from && date_from.trim() !== '' && date_to && date_to.trim() !== '') {
@@ -802,6 +807,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 u.full_name,
                 u.middle_name,
                 u.position_code,
+                e.employment_status,
                 tk.id AS tk_id,
                 tk.reason as tk_reason,
                 tk.entry_date AS tk_entry_date,
@@ -813,6 +819,9 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 tk.late_hours AS tk_late_hours      -- <--- NEW: Select late_hours
             FROM
                 \`${userTableName}\` AS u
+            LEFT JOIN
+                \`${empTableName}\` AS e
+                ON u.besi_id = e.emp_id
             LEFT JOIN
                 \`${timekeepTableName}\` AS tk
                 ON u.id = tk.user_id AND tk.entry_date BETWEEN ? AND ?
@@ -841,49 +850,99 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
         sql += ` ORDER BY u.besi_id ASC, tk.entry_date ASC;`;
 
 
-        //console.log('buildPersonnelSearchQuery() Building personnel search query with timekeeping data.', sql);
+        console.log('buildPersonnelSearchQuery() Building personnel search query with timekeeping data.');
 
 
-    } else {   //THIS LINE IS NOT FOR TIMEKEEPING
+    } else {   //THIS LINE IS NOT FOR TIMEKEEPING solely for searching only 
 
         const userTableName = `besi_employees_${regionClean}`;
+        const userTableHub = `besi_users_${regionClean}`;
+        const tableHub = `besi_${regionClean}_hub`;
 
-        // base SQL
-        sql = `
-        SELECT e.*, dl.reason AS deactivation_reason
-        FROM \`${userTableName}\` e
-        LEFT JOIN (
-            SELECT emp_id, reason
-            FROM besi_deactivation_logs
-            WHERE id IN (
-            SELECT MAX(id) FROM besi_deactivation_logs GROUP BY emp_id
-            )
-        ) dl ON dl.emp_id = e.emp_id
-        `;
+        if(!hub){
+            
+            // base SQL
+            sql = `
+            SELECT e.*, dl.reason AS deactivation_reason
+            FROM \`${userTableName}\` e
+            LEFT JOIN (
+                SELECT emp_id, reason
+                FROM besi_deactivation_logs
+                WHERE id IN (
+                SELECT MAX(id) FROM besi_deactivation_logs GROUP BY emp_id
+                )
+            ) dl ON dl.emp_id = e.emp_id
+            `;
 
-        console.log('Building standard personnel search query without timekeeping data.', sql);
+            console.log('Building standard personnel search query without timekeeping data WITHOUT HUB.');
 
-        if (name && name.trim() !== '') {
-        conditions.push(`LOWER(e.full_name) LIKE LOWER(?)`);
-        params.push(`%${name.trim()}%`);
+            if (name && name.trim() !== '') {
+            conditions.push(`LOWER(e.full_name) LIKE LOWER(?)`);
+            params.push(`%${name.trim()}%`);
+            }
+
+            if (id && id.trim() !== '') {
+            conditions.push(`e.emp_id = ?`);
+            params.push(id.trim());
+            }
+
+            if (position && position.trim() !== '') {
+            conditions.push(`e.position = ?`);
+            params.push(position.trim());
+            }
+
+            if (conditions.length > 0) {
+            sql += ` WHERE ` + conditions.join(' AND ');
+            }
+
+            sql += ` ORDER BY e.full_name ASC;`;
+
+        }else{
+            //console.log('WITH HUB REQUIRED POSITION===')
+            // base SQL
+            sql = `
+            SELECT e.*, u.hub, dl.reason AS deactivation_reason
+            FROM \`${userTableName}\` e
+            LEFT JOIN (
+                SELECT emp_id, reason
+                FROM besi_deactivation_logs
+                WHERE id IN (
+                SELECT MAX(id) FROM besi_deactivation_logs GROUP BY emp_id
+                )
+            ) dl ON dl.emp_id = e.emp_id
+            
+            LEFT JOIN \`${userTableHub}\`  u
+                ON u.besi_id = e.emp_id         -- join users to employees
+            LEFT JOIN \`${tableHub}\`  h
+                ON u.hub = h.hub     
+            `;
+
+            if (name && name.trim() !== '') {
+            conditions.push(`LOWER(e.full_name) LIKE LOWER(?)`);
+            params.push(`%${name.trim()}%`);
+            }
+
+            if (id && id.trim() !== '') {
+            conditions.push(`e.emp_id = ?`);
+            params.push(id.trim());
+            }
+
+            if (position && position.trim() !== '') {
+                conditions.push(`e.position = '${position}' `);
+                params.push(position.trim());
+            }//endif
+
+            if (conditions.length > 0) {
+                sql += ` WHERE ` + conditions.join(' AND '); 
+            }
+            
+            sql += ` and u.hub = '${hub}' ORDER BY e.full_name ASC;`;
+
+            console.log('Building standard personnel search query without timekeeping data but with HUB');
+
+
         }
-
-        if (id && id.trim() !== '') {
-        conditions.push(`e.emp_id = ?`);
-        params.push(id.trim());
-        }
-
-        if (position && position.trim() !== '') {
-        conditions.push(`e.position = ?`);
-        params.push(position.trim());
-        }
-
-        if (conditions.length > 0) {
-        sql += ` WHERE ` + conditions.join(' AND ');
-        }
-
-        sql += ` ORDER BY e.full_name ASC;`;
-
+        
     }
     return { sql, params, dateRange: effectiveDateRange };
 }
@@ -1650,6 +1709,7 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
                 grp_id: user.grp_id || user.position_code,
                 pic: user.pic || null,
                 ip_addy: '',
+                hub: user.hub || null,
 				besi_id: user.besi_id || null,
 				ocw_id: user.ocw_id ||  null,
 				jms_id: user.jms_id || null,
@@ -2570,6 +2630,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                     break;
             }//endsw
             /******** IF EVERYTHING IS LIVE PLS TAKE THIS ASN_USERS INSERTION OUT!  */
+            /*
             const sql_bogus_2 = `INSERT INTO asn_users (
                  full_name, xname, email, pwd, hub, grp_id ) 
                  VALUES (?,?,?,?,?,?)`;
@@ -2583,6 +2644,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 grp_id || null
             ]);
              console.log('Database insertion successful for old asn_users tbl, affectedRows:', result_bogus_2[0].affectedRows);
+            */
 
             // --- 4. Process and Upload All Files to FTP ---
             const uploadResults = await Promise.all(filePromises);
@@ -2688,10 +2750,11 @@ router.get('/getlocation/:region', async(req,res)=>{
     }//endsw
 
     const remoteTargetTable = regionName; // Now uses the derived table name
+    const locTable = 'besi_'+regionParam.toLowerCase()+'_hub';
 
     try {
         
-        const sql = `SELECT location FROM asn_hub WHERE region = ? group by location ORDER BY region, location`;  
+        const sql = `SELECT location FROM ${locTable} WHERE region = ? group by location ORDER BY location`;  
         const results = await conn.execute(sql, [regionName]  );
         
         console.log('Results from /getlocation:', regionName,  results[0]);
@@ -2733,10 +2796,90 @@ router.get('/gethub/:region/:location', async(req,res)=>{
     }
 
     const remoteTargetTable = regionName; // Now uses the derived table name
+    const hubTable = 'besi_'+regionParam.toLowerCase()+'_hub';
+    try {
+        const sql = `SELECT hub FROM ${hubTable} WHERE region = ? AND location = ? ORDER BY hub`;  
+        const results  = await conn.execute(sql,[regionName, locParam]  );
+        
+        res.status(200).json({ data: results[0] });
+    }
+    catch (err) {
+        console.error('Error in /gethub endpoint:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+router.get('/getarea/:region', async(req,res)=>{
+
+     const regionParam= req.params.region;
+     
+     let conn =await mysqls.createConnection(dbconfig);
+
+     console.log('Received parameters for /getarea:', req.params.region);
+    
+    let regionName = '';    
+
+    switch (regionParam) { // Use regionParam from URL  
+        case 'SMNL': regionName = 'NCR-SMNL'; break;
+        case 'CMNL': regionName = 'NCR-CMNL'; break;
+        case 'CMNVA': regionName = 'NCR-CMNVA'; break;
+        case 'NELU': regionName = 'LUZ-NEL'; break;
+        case 'NWLU': regionName = 'LUZ-NWL'; break;
+        case 'BCOL': regionName = 'BSL-BICOL'; break;
+        case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
+        case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
+        case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
+        case 'PANAY': regionName  = 'WVIS-PANAY'; break;
+    }
+
+    const remoteTargetTable = regionName; // Now uses the derived table name
+    const hubTable = 'besi_'+regionParam.toLowerCase()+'_hub';
 
     try {
-        const sql = `SELECT hub FROM asn_hub WHERE region = ? AND location = ? ORDER BY region, hub`;  
-        const results  = await conn.execute(sql,[regionName, locParam]  );
+        const sql = `SELECT area FROM ${hubTable} WHERE region = ?  ORDER BY area`;  
+        const results  = await conn.execute(sql,[regionName]  );
+        
+        console.log('getarea of lead coord',sql,results[0])
+        res.status(200).json({ data: results[0] });
+    }
+    catch (err) {
+        console.error('Error in /getarea endpoint:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+//=================NEW ENDPOINT gethub() =================//
+router.get('/gethubcoord/:region/:email', async(req,res)=>{
+
+     const regionParam= req.params.region;
+     const emailParam = req.params.email;
+
+     let conn =await mysqls.createConnection(dbconfig);
+
+     console.log('Received parameters for /gethubcoord:', req.params.region, req.params.email);
+    
+    let regionName = '';    
+
+    switch (regionParam.toUpperCase() ) { // Use regionParam from URL  
+        case 'SMNL': regionName = 'besi_smnl_hub'; break;
+        case 'CMNL': regionName = 'besi_cmnl_hub'; break;
+        case 'CMNVA': regionName = 'besi_cmnva_hub'; break;
+        case 'NELU': regionName = 'besi_nelu_hub'; break;
+        case 'NWLU': regionName = 'besi_nwlu_hub'; break;
+        // case 'BCOL': regionName = 'BSL-BICOL'; break;
+        // case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
+        // case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
+        // case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
+        // case 'PANAY': regionName  = 'WVIS-PANAY'; break;
+    }
+
+    const remoteTargetTable = regionName; // Now uses the derived table name
+
+    try {
+        const sql = `SELECT hub FROM ${remoteTargetTable} WHERE coordinator_email = ? ORDER BY hub`;  
+        const results  = await conn.execute(sql,[emailParam]  );
+
+        console.log('gethub of coord',sql,results[0])
         
         res.status(200).json({ data: results[0] });
     }
