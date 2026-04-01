@@ -132,7 +132,9 @@ module.exports =  {
             case '08' : //coordinator
                 xfile = 'coordinator.html';
             break;
-            
+            default:
+                xfile = 'coordinator.html';
+
         }//endsw
 
         /**** LOAD HTML TEMPLATE AND LOGOS */
