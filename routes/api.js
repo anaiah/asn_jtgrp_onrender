@@ -2473,6 +2473,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                             case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
                             case 'NELU': subFolderName = 'luz_nelu_emp'; break;
                             case 'NWLU': subFolderName = 'luz_nwlu_emp'; break;
+                            case 'MIN' : subFolderName = 'min_emp'; break;
                             case 'BCOL': subFolderName = 'bsl_bicol_emp'; break;
                             case 'SMLYTE': subFolderName = 'bsl_smarleyte_emp'; break;
                             case 'CVIS': subFolderName = 'cvis_emp'; break;
@@ -2742,6 +2743,7 @@ router.get('/getlocation/:region', async(req,res)=>{
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
+        case 'MIN' : regionName = 'MIN'; break;
         case 'BCOL': regionName = 'BSL-BICOL'; break;
         case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
         case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
@@ -2788,6 +2790,7 @@ router.get('/gethub/:region/:location', async(req,res)=>{
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
+        case 'MIN' : regionName = 'MIN'; break;
         case 'BCOL': regionName = 'BSL-BICOL'; break;
         case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
         case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
@@ -2825,6 +2828,7 @@ router.get('/getarea/:region', async(req,res)=>{
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
+        case 'MIN' : regionName = 'MIN'; break;
         case 'BCOL': regionName = 'BSL-BICOL'; break;
         case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
         case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
@@ -2866,6 +2870,7 @@ router.get('/gethubcoord/:region/:email', async(req,res)=>{
         case 'CMNVA': regionName = 'besi_cmnva_hub'; break;
         case 'NELU': regionName = 'besi_nelu_hub'; break;
         case 'NWLU': regionName = 'besi_nwlu_hub'; break;
+        case 'MIN': regionName = 'besi_min_hub'; break;
         // case 'BCOL': regionName = 'BSL-BICOL'; break;
         // case 'SMLYTE': regionName = 'BSL-SMARLEYTE'; break;
         // case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
@@ -2956,6 +2961,7 @@ router.post('/uploadsignature/:empId/:regions', async (req, res) => { // Removed
                         case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
                         case 'NELU': subFolderName = 'luz_nelu_emp'; break;
                         case 'NWLU': subFolderName = 'luz_nwlu_emp'; break;
+                        case 'MIN': subFolderName = 'min_hub'; break;
                         case 'BCOL': subFolderName = 'bsl_bicol_emp'; break;
                         case 'SMLYTE': subFolderName = 'bsl_smarleyte_emp'; break;
                         case 'CVIS': subFolderName = 'cvis_emp'; break;
@@ -3150,6 +3156,9 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
                         case 'LUZ-NWLU':
 							subFolderName = 'luz_nwlu_rcpt';
 							break;
+                        case 'MIN':
+                            subFolderName = 'min_rcpt';
+                            break;    
                         case 'BSL-BICOL': // Example: for National Capital Region
 							subFolderName = 'bsl_bicol_rcpt';
 							break;
