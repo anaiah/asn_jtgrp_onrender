@@ -2955,13 +2955,13 @@ router.post('/uploadsignature/:empId/:regions', async (req, res) => { // Removed
 
                     // Determine remoteTargetFolder based on req.params.regions
                     let subFolderName;
-                    switch (regionParam) { // Use regionParam from URL
+                    switch (regionParam.toUpperCase() ) { // Use regionParam from URL
                         case 'SMNL': subFolderName = 'ncr_smnl_emp'; break;
                         case 'CMNL': subFolderName = 'ncr_cmnl_emp'; break;
                         case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
                         case 'NELU': subFolderName = 'luz_nelu_emp'; break;
                         case 'NWLU': subFolderName = 'luz_nwlu_emp'; break;
-                        case 'MIN': subFolderName = 'min_hub'; break;
+                        case 'MIN': subFolderName = 'min_emp'; break;
                         case 'BCOL': subFolderName = 'bsl_bicol_emp'; break;
                         case 'SMLYTE': subFolderName = 'bsl_smarleyte_emp'; break;
                         case 'CVIS': subFolderName = 'cvis_emp'; break;
