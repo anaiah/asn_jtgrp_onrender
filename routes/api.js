@@ -2663,6 +2663,9 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 employeeName: formFields.full_name.toUpperCase(),
                 employeeId: empId,
 				regionId: regions,
+                positionId: formFields.jobTitle,
+                dateHired: formFields.hireDate,
+                address: formFields.address,
                 uploadDetails: uploadResults,
                 formFields: formFields
             });
