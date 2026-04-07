@@ -43,6 +43,7 @@ module.exports =  {
             
             case 'nelu': regionName = 'luz_nelu_emp'; break;
             case 'nwlu': regionName = 'luz_nwla_emp'; break;
+            case 'min' : regionName = 'min_emp'; break;
             
             case 'bcol': regionName = 'bsl_bicol_emp'; break;
             case 'smlyte': regionName = 'bsl_smarleyte_emp'; break;
