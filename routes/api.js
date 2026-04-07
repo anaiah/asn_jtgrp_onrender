@@ -2620,6 +2620,10 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 case '06': //timekeeper
                     grp_id = 26;
                     break;
+                case '10': //team leader
+                    grp_id = 10;
+                    break;
+
                 case '08': //coordinator
                     grp_id = 4;
                     break;  
@@ -2721,6 +2725,27 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 });
 
 //================ ENDPOINT: /newemppost ==================//
+
+//===========CHECK EMAIL BEFORE ADDING RECORD============//
+router.get('/checkinputemail/:email/:region', async (req, res) => {
+    const { email, region } = req.params;
+    console.log('firing checkinputemail() from hr.js')
+
+    try {
+        // SQL query to search the specific table
+        const query = `SELECT COUNT(*) as count FROM besi_employees_${region} WHERE email = ?`;
+        const [results] = await db.query(query, [email]);
+
+        // Send back true/false based on if the record was found
+        const exists = results[0].count > 0;
+        res.json({ exists: exists });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database query failed" });
+    }
+});
+
 
 //========= NEW ENDPOINT: / ========PRINTPDF==========//
 //======= THIS IS THE MOST IMPORTANT ROUTE OF ALL, CREATING PDF / CREATE PDF-- CHECK PDF FIRST BEFORE CREATING ==============
