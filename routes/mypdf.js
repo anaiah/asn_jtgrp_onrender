@@ -128,6 +128,7 @@ module.exports =  {
                 xfile = 'transporter.html';
             break;
             case '04' : // sorter
+            case '10':  // team leader
                 xfile = 'sorter.html';
             break;
             case '08' : //coordinator
