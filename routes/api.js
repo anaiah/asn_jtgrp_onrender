@@ -541,6 +541,7 @@ function getDatesInRange(startDateStr, endDateStr) {
 router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
     // console.log( req.body) // Uncomment for debugging request body
 	console.log('==Firing searchempTimeKeep()  called by hris.printTimeKeep() ==');
+
     const filters = {
         name: req.body.filter_name,
         id: req.body.filter_id,
@@ -580,6 +581,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     full_name: row.full_name,
                     emp_status: row.employment_status,
                     position_code: row.position_code,
+                    timekeep_approved: row.tk_approved,
                     reason:row.reason,
                     total_worked_hours: 0, // Initialized
                     total_overtime_hours: 0, // Initialized
@@ -811,6 +813,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 tk.id AS tk_id,
                 tk.reason as tk_reason,
                 tk.entry_date AS tk_entry_date,
+                tk.timekeep_approved as tk_approved,
                 tk.login_time AS tk_login_time,
                 tk.logout_time AS tk_logout_time,
                 tk.total_hours AS tk_total_hours,
@@ -1571,7 +1574,54 @@ router.post('/timekeep', upload.none(), async (req, res) => {
     }
 });
 
+//======= coordinator or lead coordinator approve timekeep of worker ==========//
+router.post('/approveTimeKeep', async (req, res) => {
 
+    console.log('===firing approvetimekeep()============')
+    // Expecting { fromDate: '04-01-26', toDate: '04-06-26' } in req.body
+    const { region, id, fromDate, toDate } = req.body;
+
+    console.log('===firing approvetimekeep()============', region, id, fromDate, toDate)
+    
+    if (!fromDate || !toDate) {
+        return res.status(400).json({ error: "Date range is required" });
+    }
+
+    // SQL to update a 'status' column to 'Approved' for records in the date range
+    // %m-%d-%y matches your '04-01-26' format
+    let conn = await mysqls.createConnection(dbconfig);
+
+    const sql = `
+    UPDATE besi_timekeep_${region.toLowerCase()}
+    SET timekeep_approved = 1
+    WHERE user_id = ? 
+    AND entry_date BETWEEN STR_TO_DATE(?, '%m-%d-%y') AND STR_TO_DATE(?, '%m-%d-%y')
+    `;
+
+    try {
+        // 1. Execute the query (No callback function here)
+        const [result] = await conn.execute(sql, [id, fromDate, toDate]);
+
+        // 2. Log to your terminal for debugging
+        console.log("Rows affected:", result.affectedRows);
+
+        // 3. Send the response to the client
+        return res.status(200).json({ 
+            success: true, 
+            message: `Successfully approved ${result.affectedRows} records.` 
+        });
+
+    } catch (err) {
+        // 4. Handle errors (e.g., table doesn't exist, SQL syntax error)
+        console.error("Database Error:", err);
+        return res.status(500).json({ 
+            success: false, 
+            error: "Failed to Approve Records" 
+        });
+    }
+
+
+});
 
 //============DOWNLOAD PAYSLIP REPORT==================//
 // Ensure you have express.json() middleware enabled in your main app file for req.body to work:
