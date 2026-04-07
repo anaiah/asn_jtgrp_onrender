@@ -1330,149 +1330,247 @@ function calculateLateHours(loginDateTimeStr, onTimeThresholdHour = 9, onTimeThr
 
 
 //=============TIMEKEEPING POST
+//=== this is version 1, changing this to 
+// //=== accomodate graveyard shifts ==??
+// router.post('/timekeep', upload.none(), async (req, res) => {
+//     console.log(req.body);
+
+//     const region = req.body.region;
+//     console.log('TIMEKEEP for region:', region);
+
+//     const [today_date_str, now_datetime_str] = nuDate(); // Assuming nuDate() returns [YYYY-MM-DD, YYYY-MM-DD HH:MM:SS]
+//     const xtable = `besi_timekeep_${region}`;
+//     const userId = parseInt(req.body.user_id);
+//     const actionType = req.body.action_type; // Expects "1" for login, "2" for logout
+
+//     try {
+//         // --- Step 1: Check for existing entry for this user and today's date ---
+//         // We select 'id', 'login_time', 'logout_time' to use for subsequent logic and calculations
+//         const checkEntrySql = `
+//             SELECT id, login_time, logout_time
+//             FROM ${xtable.toLowerCase()}
+//             WHERE user_id = ? AND entry_date = ?;
+//         `;
+//         const [existingEntries] = await db.query(checkEntrySql, [userId, today_date_str]);
+//         const existingEntry = existingEntries[0]; // Will be undefined if no entry exists
+
+//         // --- Logic for Login Action (actionType === "1") ---
+//         if (actionType === "1") {
+//             // Calculate late_hours based on the current login time
+//             const calculatedLateHours = calculateLateHours(now_datetime_str); // Default threshold 9:00:00 AM
+
+//             if (existingEntry) {
+//                 // An entry for this user and date already exists
+//                 if (existingEntry.login_time) {
+//                     // User has already logged in today
+//                     console.log(`Duplicate login attempt for user ${userId} on ${today_date_str}.`);
+//                     return res.status(200).json({
+//                         success: true,
+//                         msg: `You have already logged in today at ${new Date(existingEntry.login_time).toLocaleTimeString()}!`,
+//                         errCode: 'ERR_DUP_LOGIN'
+//                     });
+//                 } else {
+//                     // Entry exists, but login_time is NULL (e.g., a logout was recorded first, or pre-created entry)
+//                     // UPDATE the existing record to set login_time and late_hours
+//                     const updateLoginSql = `
+//                         UPDATE ${xtable}
+//                         SET login_time = ?, late_hours = ?
+//                         WHERE id = ?;
+//                     `;
+//                     await db.query(updateLoginSql, [now_datetime_str, calculatedLateHours, existingEntry.id]);
+//                     console.log(`User ${userId} login updated for ${today_date_str}. Late Hours: ${calculatedLateHours}`);
+//                 }
+//             } else {
+//                 // No entry for today, INSERT a brand new one with login_time and late_hours
+//                 const insertLoginSql = `
+//                     INSERT INTO ${xtable} (user_id, entry_date, login_time, late_hours)
+//                     VALUES (?, ?, ?, ?);
+//                 `;
+//                 await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str, calculatedLateHours]);
+//                 console.log(`User ${userId} logged in for the first time today. Late Hours: ${calculatedLateHours}`);
+//             }
+
+//             const retdata = {
+//                 success: true,
+//                 time: now_datetime_str,
+//                 msg: 'Login recorded successfully!',
+//                 late_hours: calculatedLateHours // Include late hours in the response
+//             };
+//             return res.status(200).json(retdata);
+
+//         }
+//         // --- Logic for Logout Action (actionType === "2") ---
+//         else if (actionType === "2") {
+//             if (!existingEntry || !existingEntry.login_time) {
+//                 // No entry for today, or login_time is NULL (user hasn't logged in yet)
+//                 console.log(`Logout attempt without prior login for user ${userId} on ${today_date_str}.`);
+//                 return res.status(200).json({
+//                     success: true,
+//                     msg: 'You must log in first before logging out!',
+//                     errCode: 'ERR_NO_LOGIN'
+//                 });
+//             } else if (existingEntry.logout_time) {
+//                 // User has already logged out today
+//                 console.log(`Duplicate logout attempt for user ${userId} on ${today_date_str}.`);
+//                 return res.status(200).json({
+//                     success: true,
+//                     msg: `You have already logged out today at ${new Date(existingEntry.logout_time).toLocaleTimeString()}!`,
+//                     errCode: 'ERR_DUP_LOGOUT'
+//                 });
+//             } else {
+//                 // All good: User logged in, hasn't logged out yet. Calculate hours and update the record.
+
+//                 // Parse times into Date objects for calculation
+//                 const loginTime = new Date(existingEntry.login_time);
+//                 const logoutTime = new Date(now_datetime_str);
+
+//                 // Basic validation: ensure logout is not before login (shouldn't happen with normal flow)
+//                 if (logoutTime < loginTime) {
+//                     console.warn(`Logout time (${logoutTime}) is before login time (${loginTime}) for user ${userId}.`);
+//                     return res.status(200).json({
+//                         success: true,
+//                         msg: 'Logout time cannot be before login time.',
+//                         errCode: 'ERR_INVALID_LOGOUT_TIME'
+//                     });
+//                 }
+
+//                 // Calculate total_hours in milliseconds, then convert to hours
+//                 const timeDiffMs = logoutTime.getTime() - loginTime.getTime();
+//                 const calculatedTotalHours = parseFloat((timeDiffMs / (1000 * 60 * 60)).toFixed(2)); // Convert ms to hours, round to 2 decimal places
+
+//                 // Calculate ot_hours (overtime hours, assuming 9 hours is regular)
+//                 const regularHoursThreshold = 9; // Assuming regular working hours are 9 hours for OT calculation
+//                 const calculatedOtHours = parseFloat(Math.max(0, calculatedTotalHours - regularHoursThreshold).toFixed(2));
+
+//                 const updateLogoutSql = `
+//                     UPDATE ${xtable}
+//                     SET logout_time = ?, total_hours = ?, ot_hours = ?
+//                     WHERE id = ?;
+//                 `;
+//                 await db.query(updateLogoutSql, [now_datetime_str, calculatedTotalHours, calculatedOtHours, existingEntry.id]);
+//                 console.log(`User ${userId} logged out for ${today_date_str}. Total Hours: ${calculatedTotalHours}, OT Hours: ${calculatedOtHours}`);
+
+//                 const retdata = {
+//                     success: true,
+//                     time: now_datetime_str,
+//                     msg: 'Logout recorded successfully!',
+//                     total_hours: calculatedTotalHours,
+//                     ot_hours: calculatedOtHours
+//                 };
+//                 return res.status(200).json(retdata);
+//             }
+//         }
+//         // --- Logic for Invalid Action Type ---
+//         else {
+//             console.log(`Invalid action type received: ${actionType} for user ${userId}.`);
+//             return res.status(400).json({
+//                 success: false,
+//                 msg: 'Invalid action type. Expected "1" for login or "2" for logout.',
+//                 errCode: 'ERR_INVALID_ACTION'
+//             });
+//         }
+
+//     } catch (err) {
+//         console.error('Error in /timekeep route:', err);
+//         return res.status(500).json({ success: false, msg: 'DATABASE ERROR, PLEASE TRY AGAIN!!!', errCode: 'ERR_SERVER' });
+//     }
+// });
 router.post('/timekeep', upload.none(), async (req, res) => {
-    console.log(req.body);
-
     const region = req.body.region;
-    console.log('TIMEKEEP for region:', region);
-
-    const [today_date_str, now_datetime_str] = nuDate(); // Assuming nuDate() returns [YYYY-MM-DD, YYYY-MM-DD HH:MM:SS]
+    const [today_date_str, now_datetime_str] = nuDate(); 
     const xtable = `besi_timekeep_${region}`;
     const userId = parseInt(req.body.user_id);
-    const actionType = req.body.action_type; // Expects "1" for login, "2" for logout
+    const actionType = req.body.action_type; 
 
     try {
-        // --- Step 1: Check for existing entry for this user and today's date ---
-        // We select 'id', 'login_time', 'logout_time' to use for subsequent logic and calculations
-        const checkEntrySql = `
-            SELECT id, login_time, logout_time
+        // --- STEP 1: Put it here! ---
+        // We look for a record that has a login but NO logout.
+        // The "INTERVAL 16 HOUR" handles the "forgot to logout" scenario.
+        const findOpenSessionSql = `
+            SELECT id, login_time, logout_time, entry_date
             FROM ${xtable.toLowerCase()}
-            WHERE user_id = ? AND entry_date = ?;
+            WHERE user_id = ? 
+              AND logout_time IS NULL
+              AND login_time > NOW() - INTERVAL 16 HOUR
+            ORDER BY login_time DESC LIMIT 1;
         `;
-        const [existingEntries] = await db.query(checkEntrySql, [userId, today_date_str]);
-        const existingEntry = existingEntries[0]; // Will be undefined if no entry exists
+
+        const [openEntries] = await db.query(findOpenSessionSql, [userId]);
+        const openEntry = openEntries[0];
 
         // --- Logic for Login Action (actionType === "1") ---
         if (actionType === "1") {
-            // Calculate late_hours based on the current login time
-            const calculatedLateHours = calculateLateHours(now_datetime_str); // Default threshold 9:00:00 AM
-
-            if (existingEntry) {
-                // An entry for this user and date already exists
-                if (existingEntry.login_time) {
-                    // User has already logged in today
-                    console.log(`Duplicate login attempt for user ${userId} on ${today_date_str}.`);
-                    return res.status(200).json({
-                        success: true,
-                        msg: `You have already logged in today at ${new Date(existingEntry.login_time).toLocaleTimeString()}!`,
-                        errCode: 'ERR_DUP_LOGIN'
-                    });
-                } else {
-                    // Entry exists, but login_time is NULL (e.g., a logout was recorded first, or pre-created entry)
-                    // UPDATE the existing record to set login_time and late_hours
-                    const updateLoginSql = `
-                        UPDATE ${xtable}
-                        SET login_time = ?, late_hours = ?
-                        WHERE id = ?;
-                    `;
-                    await db.query(updateLoginSql, [now_datetime_str, calculatedLateHours, existingEntry.id]);
-                    console.log(`User ${userId} login updated for ${today_date_str}. Late Hours: ${calculatedLateHours}`);
-                }
-            } else {
-                // No entry for today, INSERT a brand new one with login_time and late_hours
-                const insertLoginSql = `
-                    INSERT INTO ${xtable} (user_id, entry_date, login_time, late_hours)
-                    VALUES (?, ?, ?, ?);
-                `;
-                await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str, calculatedLateHours]);
-                console.log(`User ${userId} logged in for the first time today. Late Hours: ${calculatedLateHours}`);
+            // If an open session exists, they haven't clocked out from the previous shift
+            if (openEntry) {
+                return res.status(200).json({
+                    success: true,
+                    msg: `You are still logged in from ${new Date(openEntry.login_time).toLocaleString()}!`,
+                    errCode: 'ERR_DUP_LOGIN'
+                });
             }
 
-            const retdata = {
+            const calculatedLateHours = calculateLateHours(now_datetime_str);
+            
+            // New shift: INSERT using today_date_str as the reference date
+            const insertLoginSql = `
+                INSERT INTO ${xtable} (user_id, entry_date, login_time, late_hours)
+                VALUES (?, ?, ?, ?);
+            `;
+            await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str, calculatedLateHours]);
+
+            return res.status(200).json({
                 success: true,
                 time: now_datetime_str,
                 msg: 'Login recorded successfully!',
-                late_hours: calculatedLateHours // Include late hours in the response
-            };
-            return res.status(200).json(retdata);
-
+                late_hours: calculatedLateHours
+            });
         }
+
         // --- Logic for Logout Action (actionType === "2") ---
         else if (actionType === "2") {
-            if (!existingEntry || !existingEntry.login_time) {
-                // No entry for today, or login_time is NULL (user hasn't logged in yet)
-                console.log(`Logout attempt without prior login for user ${userId} on ${today_date_str}.`);
+            // For logout, we MUST have an openEntry (even if it was from "yesterday")
+            if (!openEntry) {
                 return res.status(200).json({
                     success: true,
-                    msg: 'You must log in first before logging out!',
+                    msg: 'No active login found. You must log in first!',
                     errCode: 'ERR_NO_LOGIN'
                 });
-            } else if (existingEntry.logout_time) {
-                // User has already logged out today
-                console.log(`Duplicate logout attempt for user ${userId} on ${today_date_str}.`);
-                return res.status(200).json({
-                    success: true,
-                    msg: `You have already logged out today at ${new Date(existingEntry.logout_time).toLocaleTimeString()}!`,
-                    errCode: 'ERR_DUP_LOGOUT'
-                });
-            } else {
-                // All good: User logged in, hasn't logged out yet. Calculate hours and update the record.
-
-                // Parse times into Date objects for calculation
-                const loginTime = new Date(existingEntry.login_time);
-                const logoutTime = new Date(now_datetime_str);
-
-                // Basic validation: ensure logout is not before login (shouldn't happen with normal flow)
-                if (logoutTime < loginTime) {
-                    console.warn(`Logout time (${logoutTime}) is before login time (${loginTime}) for user ${userId}.`);
-                    return res.status(200).json({
-                        success: true,
-                        msg: 'Logout time cannot be before login time.',
-                        errCode: 'ERR_INVALID_LOGOUT_TIME'
-                    });
-                }
-
-                // Calculate total_hours in milliseconds, then convert to hours
-                const timeDiffMs = logoutTime.getTime() - loginTime.getTime();
-                const calculatedTotalHours = parseFloat((timeDiffMs / (1000 * 60 * 60)).toFixed(2)); // Convert ms to hours, round to 2 decimal places
-
-                // Calculate ot_hours (overtime hours, assuming 9 hours is regular)
-                const regularHoursThreshold = 9; // Assuming regular working hours are 9 hours for OT calculation
-                const calculatedOtHours = parseFloat(Math.max(0, calculatedTotalHours - regularHoursThreshold).toFixed(2));
-
-                const updateLogoutSql = `
-                    UPDATE ${xtable}
-                    SET logout_time = ?, total_hours = ?, ot_hours = ?
-                    WHERE id = ?;
-                `;
-                await db.query(updateLogoutSql, [now_datetime_str, calculatedTotalHours, calculatedOtHours, existingEntry.id]);
-                console.log(`User ${userId} logged out for ${today_date_str}. Total Hours: ${calculatedTotalHours}, OT Hours: ${calculatedOtHours}`);
-
-                const retdata = {
-                    success: true,
-                    time: now_datetime_str,
-                    msg: 'Logout recorded successfully!',
-                    total_hours: calculatedTotalHours,
-                    ot_hours: calculatedOtHours
-                };
-                return res.status(200).json(retdata);
             }
-        }
-        // --- Logic for Invalid Action Type ---
-        else {
-            console.log(`Invalid action type received: ${actionType} for user ${userId}.`);
-            return res.status(400).json({
-                success: false,
-                msg: 'Invalid action type. Expected "1" for login or "2" for logout.',
-                errCode: 'ERR_INVALID_ACTION'
+
+            const loginTime = new Date(openEntry.login_time);
+            const logoutTime = new Date(now_datetime_str);
+
+            // Calculate total_hours (Works perfectly across midnight because we use full timestamps)
+            const timeDiffMs = logoutTime.getTime() - loginTime.getTime();
+            const calculatedTotalHours = parseFloat((timeDiffMs / (1000 * 60 * 60)).toFixed(2));
+
+            // OT Calculation
+            const regularHoursThreshold = 9;
+            const calculatedOtHours = parseFloat(Math.max(0, calculatedTotalHours - regularHoursThreshold).toFixed(2));
+
+            // Update the specific record we found in Step 1
+            const updateLogoutSql = `
+                UPDATE ${xtable}
+                SET logout_time = ?, total_hours = ?, ot_hours = ?
+                WHERE id = ?;
+            `;
+            await db.query(updateLogoutSql, [now_datetime_str, calculatedTotalHours, calculatedOtHours, openEntry.id]);
+
+            return res.status(200).json({
+                success: true,
+                time: now_datetime_str,
+                msg: 'Logout recorded successfully!',
+                total_hours: calculatedTotalHours,
+                ot_hours: calculatedOtHours
             });
         }
 
     } catch (err) {
         console.error('Error in /timekeep route:', err);
-        return res.status(500).json({ success: false, msg: 'DATABASE ERROR, PLEASE TRY AGAIN!!!', errCode: 'ERR_SERVER' });
+        return res.status(500).json({ success: false, msg: 'DATABASE ERROR!', errCode: 'ERR_SERVER' });
     }
 });
+
 
 
 //============DOWNLOAD PAYSLIP REPORT==================//
