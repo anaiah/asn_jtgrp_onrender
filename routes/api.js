@@ -900,6 +900,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 
             sql += ` ORDER BY e.full_name ASC;`;
 
+            console.log ( sql )
         }else{
             //console.log('WITH HUB REQUIRED POSITION===')
             // base SQL
@@ -2961,7 +2962,7 @@ router.get('/gethub/:region/:location', async(req,res)=>{
     
     let regionName = '';    
 
-    switch (regionParam) { // Use regionParam from URL  
+    switch (regionParam.toUpperCase()) { // Use regionParam from URL  
         case 'SMNL': regionName = 'NCR-SMNL'; break;
         case 'CMNL': regionName = 'NCR-CMNL'; break;
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
