@@ -1591,10 +1591,11 @@ router.post('/approveTimeKeep', async (req, res) => {
     // %m-%d-%y matches your '04-01-26' format
     let conn = await mysqls.createConnection(dbconfig);
 
+    //=======for_approval=0 those who do not have for corrections
     const sql = `
     UPDATE besi_timekeep_${region.toLowerCase()}
     SET timekeep_approved = 1
-    WHERE user_id = ? 
+    WHERE user_id = ? and for_approval = 0
     AND entry_date BETWEEN STR_TO_DATE(?, '%m-%d-%y') AND STR_TO_DATE(?, '%m-%d-%y')
     `;
 
