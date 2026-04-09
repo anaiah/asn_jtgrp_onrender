@@ -2722,9 +2722,11 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 
                 // 6. Address Components
                 formFields.addy1 || null,
-                formFields.addy2 || null,
+                // This checks if the value is 'n/a' (case-insensitive) OR empty, and returns null
+                (formFields.addy2?.toLowerCase() === 'n/a' || !formFields.addy2) ? null : formFields.addy2,
                 formFields.city || null,
-                formFields.bgy || null,
+                // This checks if the value is 'n/a' (case-insensitive) OR empty, and returns null
+                (formFields.bgy?.toLowerCase() === 'n/a' || !formFields.bgy) ? null : formFields.bgy,
                 formFields.address || null
             ];
 
