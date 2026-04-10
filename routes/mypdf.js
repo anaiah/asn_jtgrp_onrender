@@ -45,8 +45,9 @@ module.exports =  {
             case 'nwlu': regionName = 'luz_nwla_emp'; break;
             case 'min' : regionName = 'min_emp'; break;
             
-            case 'bcol': regionName = 'bsl_bicol_emp'; break;
-            case 'smlyte': regionName = 'bsl_smarleyte_emp'; break;
+            case 'bicol': regionName = 'bsl_bicol_emp'; break;
+            case 'smarleyte': regionName = 'bsl_smarleyte_emp'; break;
+
             case 'bcld': regionName = 'wvis_bacolod_emp'; break;
             case 'panay': regionName  = 'wvis_panay_emp'; break;
         }//endsw
