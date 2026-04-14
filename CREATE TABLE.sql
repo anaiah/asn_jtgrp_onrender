@@ -7,6 +7,9 @@ create table besi_employees_smarleyte like besi_employees_nelu;
 /*series*/
 create table besi_smarleyte_series like besi_nelu_series;
 
+INSERT INTO `besi_smarleyte_series` (`series_data`) 
+VALUES ('[{"code":"01","series":0},{"code":"02","series":0},{"code":"08","series":0},{"code":"04","series":0},{"code":"07","series":0},{"code":"06","series":0}]');
+
 /*for hub*/
 CREATE TABLE besi_smarleyte_hub LIKE besi_old_hub;
 INSERT INTO besi_smarleyte_hub

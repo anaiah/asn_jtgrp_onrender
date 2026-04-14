@@ -123,8 +123,6 @@ module.exports =  {
         //=== CREATE PDF ===========
         switch(position){
             case '01' : //rider
-                xfile = 'transporter.html';
-            break;
             case '02' : //transporter
                 xfile = 'transporter.html';
             break;
