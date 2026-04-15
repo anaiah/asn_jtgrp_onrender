@@ -2626,8 +2626,8 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                             case 'MIN' : subFolderName = 'min_emp'; break;
                             case 'BICOL': subFolderName = 'bsl_bicol_emp'; break;
                             case 'SMARLEYTE': subFolderName = 'bsl_smarleyte_emp'; break;
-                            case 'CVIS': subFolderName = 'cvis_emp'; break;
-                            case 'BCLD': subFolderName = 'wvis_bacolod_emp'; break;
+                            case 'CENTRAL': subFolderName = 'wvis_central_emp'; break;
+                            case 'BACOLOD': subFolderName = 'wvis_bacolod_emp'; break;
                             case 'PANAY': subFolderName = 'wvis_panay_emp'; break;
                             default:
                                 console.warn(`Unknown region "${region}". Using default subfolder 'others_uploads_emp'.`);
@@ -2926,8 +2926,8 @@ router.get('/getlocation/:region', async(req,res)=>{
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
         case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
-        case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
-        case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
+        case 'CENTRAL': regionName = 'WVIS-CENTRAL'; break;
+        case 'BACOLOD': regionName = 'WVIS-BACOLOD'; break;
         case 'PANAY': regionName  = 'WVIS-PANAY'; break;
     }//endsw
 
@@ -2973,8 +2973,8 @@ router.get('/gethub/:region/:location', async(req,res)=>{
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
         case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
-        case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
-        case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
+        case 'CENTRAL': regionName = 'WVIS-CENTRAL'; break;
+        case 'BACOLOD': regionName = 'WVIS-BACOLOD'; break;
         case 'PANAY': regionName  = 'WVIS-PANAY'; break;
     }
 
@@ -3011,8 +3011,8 @@ router.get('/getarea/:region', async(req,res)=>{
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
         case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
-        case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
-        case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
+        case 'CENTRAL': regionName = 'WVIS-CENTRAL'; break;
+        case 'BACOLOD': regionName = 'WVIS-BACOLOD'; break;
         case 'PANAY': regionName  = 'WVIS-PANAY'; break;
     }
 
@@ -3053,9 +3053,9 @@ router.get('/gethubcoord/:region/:email', async(req,res)=>{
         case 'MIN': regionName = 'besi_min_hub'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
         case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
-        // case 'CVIS': regionName = 'CENTRAL VISAYAS'; break;
-        // case 'BCLD': regionName = 'WVIS-BACOLOD'; break;
-        // case 'PANAY': regionName  = 'WVIS-PANAY'; break;
+        case 'CENTRAL': regionName = 'WVIS-CENTRAL'; break;
+        case 'BACOLOD': regionName = 'WVIS-BACOLOD'; break;
+        case 'PANAY': regionName  = 'WVIS-PANAY'; break;
     }
 
     const remoteTargetTable = regionName; // Now uses the derived table name
@@ -3144,8 +3144,8 @@ router.post('/uploadsignature/:empId/:regions', async (req, res) => { // Removed
                         case 'MIN': subFolderName = 'min_emp'; break;
                         case 'BICOL': subFolderName = 'bsl_bicol_emp'; break;
                         case 'SMARLEYTE': subFolderName = 'bsl_smarleyte_emp'; break;
-                        case 'CVIS': subFolderName = 'cvis_emp'; break;
-                        case 'BCLD': subFolderName = 'wvis_bacolod_emp'; break;
+                        case 'CENTRAL': subFolderName = 'wvis_central_emp'; break;
+                        case 'BACOLOD': subFolderName = 'wvis_bacolod_emp'; break;
                         case 'PANAY': subFolderName = 'wvis_panay_emp'; break;
                         default:
                             console.warn(`Unknown region "${regionParam}" from URL. Using default subfolder 'others_uploads_emp'.`);
@@ -3345,8 +3345,8 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
 						case 'BSL-SMARLEYTE': // Example: for National Capital Region
 							subFolderName = 'bsl_smarleyte_rcpt';
 							break;
-						case 'CENTRAL VISAYAS':
-							subFolderName = 'cvis_rcpt';
+						case 'WVIS-CENTRAL':
+							subFolderName = 'wvis_central_rcpt';
 							break;
 						case 'WVIS-BACOLOD': // Example: for National Capital Region
 							subFolderName = 'wvis_bacolod_rcpt';

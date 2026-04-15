@@ -47,8 +47,9 @@ module.exports =  {
             
             case 'bicol': regionName = 'bsl_bicol_emp'; break;
             case 'smarleyte': regionName = 'bsl_smarleyte_emp'; break;
-
-            case 'bcld': regionName = 'wvis_bacolod_emp'; break;
+            
+            case 'central': regionName = 'wvis_central_emp'; break;
+            case 'bacolod': regionName = 'wvis_bacolod_emp'; break;
             case 'panay': regionName  = 'wvis_panay_emp'; break;
         }//endsw
 
