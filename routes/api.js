@@ -2688,8 +2688,8 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
             const sql = `INSERT INTO besi_employees_${regions.toLowerCase()} (
                 emp_id, first_name,middle_name,last_name,suffix,full_name, 
                 email, phone, birth_date, hire_date, position,employment_status, 
-                street_1,street_2,city,bgy,full_address
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+                location,street_1,street_2,city,bgy,full_address
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
 			console.log('*****BESI ID IS ****** ', empId	)
             //const department = formFields.department || "General Operations";
@@ -2719,7 +2719,8 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 // 5. Employment Details
                 formFields.jobTitle || null,
                 formFields.employmentStatus || null,
-
+                formFields.loc_store || null,
+                
                 // 6. Address Components
                 formFields.addy1 || null,
                 // This checks if the value is 'n/a' (case-insensitive) OR empty, and returns null
@@ -3074,6 +3075,131 @@ router.get('/gethubcoord/:region/:email', async(req,res)=>{
     }
 });
 
+//======================= NEW ENDPOINT, FIX DUPLICATE RECORDS ==================//
+router.get('/fixme/:region/:pos/:targetId', async (req, res) => {
+
+    console.log('FIXING DUPLICATES... ')
+    const { region, pos, targetId } = req.params;
+    const connection = await db.getConnection();
+
+
+    // Define Dynamic Table Names
+    const empTable = `besi_employees_${region}`;
+    const userTable = `besi_users_${region}`;
+    const seriesTable = `besi_${region}_series`;
+
+
+    try {
+        await connection.beginTransaction();
+
+
+        // 1. GET SERIES FROM THE DYNAMIC SERIES TABLE
+        // No WHERE clause needed as per your instruction
+        const [seriesRow] = await connection.execute(`SELECT series_data FROM ${seriesTable}`);
+        if (seriesRow.length === 0) throw new Error(`Table ${seriesTable} is empty`);
+        
+        let seriesArray = JSON.parse(seriesRow[0].series_data);
+        let positionObj = seriesArray.find(item => item.code === pos);
+        if (!positionObj) throw new Error(`Position ${pos} not found in JSON`);
+
+
+        let currentSeries = parseInt(positionObj.series);
+
+
+        // 2. FIND IF THE SPECIFIC TARGET ID ACTUALLY HAS DUPLICATES
+        const [duplicates] = await connection.execute(
+            `SELECT emp_id, COUNT(*) as count 
+             FROM ${empTable} 
+             WHERE emp_id = ? 
+             GROUP BY emp_id 
+             HAVING count > 1`, [targetId]
+        );
+
+
+        if (duplicates.length === 0) {
+            await connection.rollback();
+            return res.send(`No duplicates found for ID: ${targetId}`);
+        }
+
+
+        // 3. GET ALL RECORDS FOR THIS SPECIFIC DUPLICATED ID
+        // Order by ID so the first one stays, the rest get changed
+        const [records] = await connection.execute(
+            `SELECT id FROM ${empTable} WHERE emp_id = ? ORDER BY id ASC`, [targetId]
+        );
+
+
+        let fixedCount = 0;
+        // The prefix is everything before the last 4 digits (BE-MIN-040126-01)
+        // We take the string excluding the last 4 digits
+        const idPrefix = targetId.substring(0, targetId.length - 4);
+
+
+        // Loop starting from the second record (index 1)
+        for (let i = 1; i < records.length; i++) {
+            currentSeries++; // Increment global series
+            
+            // Padded to 4 zeroes as per your ID (0071)
+            const newSeriesStr = currentSeries.toString().padStart(4, '0');
+            const newEmpId = `${idPrefix}${newSeriesStr}`;
+            const rowId = records[i].id;
+
+
+            // Update Employee Table
+            await connection.execute(
+                `UPDATE ${empTable} SET emp_id = ? WHERE id = ?`, 
+                [newEmpId, rowId]
+            );
+
+
+            // B. CORRECTED: Update the Duplicate in Users Table
+            // First, let's find all user records with that duplicate besi_id
+            const [userRecords] = await connection.execute(
+                `SELECT id FROM ${userTable} WHERE besi_id = ? ORDER BY id ASC`,
+                [targetId]
+            );
+
+
+            // If we found matching users, we target the same index 'i' 
+            // This assumes if you are fixing the 2nd employee, you fix the 2nd user record.
+            if (userRecords[i]) {
+                const userRowId = userRecords[i].id;
+                await connection.execute(
+                    `UPDATE ${userTable} SET besi_id = ? WHERE id = ?`, 
+                    [newEmpId, userRowId]
+                );
+            }
+
+            fixedCount++;
+        }
+
+
+        // 4. UPDATE THE JSON SERIES
+        positionObj.series = currentSeries;
+        await connection.execute(
+            `UPDATE ${seriesTable} SET series_data = ?`, 
+            [JSON.stringify(seriesArray)]
+        );
+
+
+        await connection.commit();
+        res.send(`
+            <h3>Fix Result for Region: ${region.toUpperCase()}</h3>
+            <p>Target ID: <b>${targetId}</b></p>
+            <p>Duplicates Fixed: <b>${fixedCount}</b></p>
+            <p>Newest assigned ID ended with: <b>${currentSeries.toString().padStart(4, '0')}</b></p>
+            <p>Series Table Updated.</p>
+        `);
+
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error("Cleanup Error:", error);
+        res.status(500).send("Error: " + error.message);
+    } finally {
+        if (connection) connection.release();
+    }
+});
 
 //================ NEW ENDPOINT: /uploadsignature ==================//
 //================ FIXING THE /uploadsignature ENDPOINT ==================//
