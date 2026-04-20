@@ -85,16 +85,7 @@ module.exports={
         await client.connect()
 
     },
-    /*
-    query: async( sql, params )=>{
-        if(client){
-            return await client.query(sql,params)
-        }else{
-            throw new Error('not conek')
-        }
-    },
-    */
-
+   
     closePg: async()=> {
         if(client){
             await client.end();    

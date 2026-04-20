@@ -1164,6 +1164,75 @@ router.post('/approveTimeCorrection/:id/:region', upload.none(), async (req, res
 
 });
 
+//====================HRIS GET ENROLLMENT REPORT ===============//
+// routes/reports.js
+const express = require('express');
+const router = express.Router();
+const db = require('../db'); // Your db.js pool
+
+router.get('/region-summary', async (req, res) => {
+    try {
+        // The Pivot Query we built
+        const sql = `
+            SELECT 
+                r.region_label AS 'Region',
+                COUNT(CASE WHEN e.position = '01' THEN 1 END) AS 'Rider',
+                COUNT(CASE WHEN e.position = '02' THEN 1 END) AS 'Transporter',
+                COUNT(CASE WHEN e.position = '03' THEN 1 END) AS 'FDS',
+                COUNT(CASE WHEN e.position = '04' THEN 1 END) AS 'Sorter',
+                COUNT(CASE WHEN e.position = '05' THEN 1 END) AS 'HubAdmin',
+                COUNT(CASE WHEN e.position = '06' THEN 1 END) AS 'TK',
+                COUNT(CASE WHEN e.position = '07' THEN 1 END) AS 'L Coord',
+                COUNT(CASE WHEN e.position = '08' THEN 1 END) AS 'Coord',
+                COUNT(CASE WHEN e.position = '10' THEN 1 END) AS 'TL',
+                COUNT(e.position) AS 'Total'
+            FROM (
+                SELECT 'WVIS BACOLOD' AS region_label UNION ALL
+                SELECT 'WVIS PANAY' UNION ALL
+                SELECT 'NCR SMNL' UNION ALL
+                SELECT 'BSL BICOL' UNION ALL
+                SELECT 'BSL SMRLEYTE' UNION ALL
+                SELECT 'MINDANAO' UNION ALL
+                SELECT 'WVIS CENTRAL' UNION ALL
+                SELECT 'NCR CMNL' UNION ALL
+                SELECT 'NCR CMNVA' UNION ALL
+                SELECT 'NELU'
+            ) AS r
+            LEFT JOIN (
+                SELECT 'WVIS BACOLOD' AS table_name, position FROM besi_employees_bacolod
+                UNION ALL
+                SELECT 'WVIS PANAY' AS table_name, position FROM besi_employees_panay
+                UNION ALL
+                SELECT 'NCR SMNL' AS table_name, position FROM besi_employees_smnl
+                UNION ALL
+                SELECT 'BSL BICOL' AS table_name, position FROM besi_employees_bicol
+                UNION ALL
+                SELECT 'BSL SMRLEYTE' AS table_name, position FROM besi_employees_smarleyte
+                UNION ALL
+                SELECT 'MINDANAO' AS table_name, position FROM besi_employees_min
+                UNION ALL
+                SELECT 'WVIS CENTRAL' AS table_name, position FROM besi_employees_central
+                UNION ALL
+                SELECT 'NCR CMNL' AS table_name, position FROM besi_employees_cmnl
+                UNION ALL
+                SELECT 'NCR CMNVA' AS table_name, position FROM besi_employees_cmnva
+                UNION ALL
+                SELECT 'NELU' AS table_name, position FROM besi_employees_nelu
+            ) AS e ON r.region_label = e.table_name
+            GROUP BY r.region_label
+            ORDER BY Total DESC;
+        `;
+
+        const [rows] = await db.query(sql); // Using db.query because it's a simple SELECT
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch report data" });
+    }
+});
+
+module.exports = router;
+
 // === HRIS UPLOAD EXCEL ===
 router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
   console.log('==FIRING hris XLS for region:', req.body.hrisload_region);
@@ -2678,7 +2747,21 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 
 		let conn = await mysqls.createConnection(dbconfig);
 
-		//dbConnection = await connectDb();
+		//**** next time try these instead coz of db.js for transactions
+        // 
+        // In your route...
+        // let conn;
+        // try {
+        //     conn = await db.getConnection();
+        //     await conn.beginTransaction();
+        //     // ... your SQL logic ...
+        //     await conn.commit();
+        // } catch (e) {
+        //     if (conn) await conn.rollback();
+        // } finally {
+        //     if (conn) conn.release();
+        // }
+ 
 
         try {
 			
@@ -2720,7 +2803,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 formFields.jobTitle || null,
                 formFields.employmentStatus || null,
                 formFields.loc_store || null,
-                
+
                 // 6. Address Components
                 formFields.addy1 || null,
                 // This checks if the value is 'n/a' (case-insensitive) OR empty, and returns null
@@ -2737,56 +2820,61 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 
             console.log('Database insertion successful, rowCount:', dbResult[0].affectedRows);
 
-            // --- 2. Insert into bogus_table_1 (same fields) ---
-            const sql_bogus_1 = `INSERT INTO besi_users_${regions.toLowerCase()} (
-                besi_id, full_name,  email, hub, location, position_code ) 
-                VALUES (?,?,?,?,?,?)`;
 
-            const result_bogus_1 = await conn.execute(sql_bogus_1, [
-                empId !== undefined ? empId : null,
-                (formFields.full_name ? formFields.full_name.toUpperCase() : null),
-                formFields.email || null,
-                formFields.hub_store || null, // Assuming this field is part of the formFields; if not, adjust accordingly
-                formFields.loc_store || null,
-                formFields.jobTitle || null
-            ]);
-            console.log('Database insertion successful for new besi_users_xx, affectedRows:', result_bogus_1[0].affectedRows);
+            // --- 2. Insert into bogus_table_1 (same fields) ---
+            // APRIL 20, 2K26, TAKING OUT THIS INSERT IN FAVOR OF TRIGGER 
+
+            // const sql_bogus_1 = `INSERT INTO besi_users_${regions.toLowerCase()} (
+            //     besi_id, full_name,  email, hub, location, position_code ) 
+            //     VALUES (?,?,?,?,?,?)`;
+
+            // const result_bogus_1 = await conn.execute(sql_bogus_1, [
+            //     empId !== undefined ? empId : null,
+            //     (formFields.full_name ? formFields.full_name.toUpperCase() : null),
+            //     formFields.email || null,
+            //     formFields.hub_store || null, // Assuming this field is part of the formFields; if not, adjust accordingly
+            //     formFields.loc_store || null,
+            //     formFields.jobTitle || null
+            // ]);
+            // console.log('Database insertion successful for new besi_users_xx, affectedRows:', result_bogus_1[0].affectedRows);
 
             // --- 3. Insert into asn_users (same fields) ---
             /* for old
                 grp_id
             */
-            let grp_id
-            switch( formFields.jobTitle ){
-                case '01':
-                    grp_id = 1; // rider
-                    break;
-                case '02': //transporter
-                    grp_id = 22;
-                    break;  
-                case '03': //foot delivery
-                    grp_id = 23;
-                    break;  
-                case '04': //sorter/backroom
-                    grp_id = 24;
-                    break;  
-                case '06': //timekeeper
-                    grp_id = 26;
-                    break;
-                case '10': //team leader
-                    grp_id = 10;
-                    break;
 
-                case '08': //coordinator
-                    grp_id = 4;
-                    break;  
-                case '15'://3 wheel
-                    grp_id = 15;
-                    break;
-                case '17'://4 wheel
-                    grp_id = 17;
-                    break;
-            }//endsw
+            // let grp_id
+            // switch( formFields.jobTitle ){
+            //     case '01':
+            //         grp_id = 1; // rider
+            //         break;
+            //     case '02': //transporter
+            //         grp_id = 22;
+            //         break;  
+            //     case '03': //foot delivery
+            //         grp_id = 23;
+            //         break;  
+            //     case '04': //sorter/backroom
+            //         grp_id = 24;
+            //         break;  
+            //     case '06': //timekeeper
+            //         grp_id = 26;
+            //         break;
+            //     case '10': //team leader
+            //         grp_id = 10;
+            //         break;
+
+            //     case '08': //coordinator
+            //         grp_id = 4;
+            //         break;  
+            //     case '15'://3 wheel
+            //         grp_id = 15;
+            //         break;
+            //     case '17'://4 wheel
+            //         grp_id = 17;
+            //         break;
+            // }//endsw
+
             /******** IF EVERYTHING IS LIVE PLS TAKE THIS ASN_USERS INSERTION OUT!  */
             /*
             const sql_bogus_2 = `INSERT INTO asn_users (
