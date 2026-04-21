@@ -1165,10 +1165,6 @@ router.post('/approveTimeCorrection/:id/:region', upload.none(), async (req, res
 });
 
 //====================HRIS GET ENROLLMENT REPORT ===============//
-// routes/reports.js
-const express = require('express');
-const router = express.Router();
-const db = require('../db'); // Your db.js pool
 
 router.get('/region-summary', async (req, res) => {
     try {
@@ -1231,7 +1227,6 @@ router.get('/region-summary', async (req, res) => {
     }
 });
 
-module.exports = router;
 
 // === HRIS UPLOAD EXCEL ===
 router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
