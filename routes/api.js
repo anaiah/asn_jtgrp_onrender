@@ -1164,9 +1164,11 @@ router.post('/approveTimeCorrection/:id/:region', upload.none(), async (req, res
 
 });
 
-//====================HRIS GET ENROLLMENT REPORT ===============//
-
+//====================HRIS GET ENROLLMENT REGION SUMMARY REPORT ===============//
 router.get('/region-summary', async (req, res) => {
+
+    console.log('==Firing route.region-summary()');
+    
     try {
         // The Pivot Query we built
         const sql = `
