@@ -1168,7 +1168,7 @@ router.post('/approveTimeCorrection/:id/:region', upload.none(), async (req, res
 router.get('/region-summary', async (req, res) => {
 
     console.log('==Firing route.region-summary()');
-    
+
     try {
         // The Pivot Query we built
         const sql = `
@@ -1218,7 +1218,7 @@ router.get('/region-summary', async (req, res) => {
                 SELECT 'NELU' AS table_name, position FROM besi_employees_nelu
             ) AS e ON r.region_label = e.table_name
             GROUP BY r.region_label
-            ORDER BY Total DESC;
+            ORDER BY r.region_label ASC;
         `;
 
         const [rows] = await db.query(sql); // Using db.query because it's a simple SELECT
