@@ -900,7 +900,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 
             sql += ` ORDER BY e.full_name ASC;`;
 
-            console.log ( sql )
+            //console.log ( sql )
         }else{
             //console.log('WITH HUB REQUIRED POSITION===')
             // base SQL
@@ -1232,6 +1232,8 @@ router.get('/region-summary', async (req, res) => {
 //===============HRIS SAVE JMS_ID=======================//
 // Express route
 router.post('/savejms/:region', async (req, res) => {
+    console.log('==Firing saveJmsId() with region:', req.params.region, 'and body:', req.body);
+
     const { region } = req.params;
     const { besi_id, jms_id } = req.body;
 
@@ -1243,7 +1245,7 @@ router.post('/savejms/:region', async (req, res) => {
 
     try {
         // Using your mysql connection pool
-        const [result] = await db.execute(query, [jms_id, besi_id]);
+        const [result] = await db.query(query, [jms_id, besi_id]);
         
         res.status(200).json({ success: true, message: "Record updated" });
     } catch (err) {
