@@ -852,7 +852,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 
         sql += ` ORDER BY u.besi_id ASC, tk.entry_date ASC;`;
 
-
+        //console.log('Generated SQL for timekeeping search:', sql);
         console.log('buildPersonnelSearchQuery() Building personnel search query with timekeeping data.');
 
 
@@ -1226,6 +1226,29 @@ router.get('/region-summary', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to fetch report data" });
+    }
+});
+
+//===============HRIS SAVE JMS_ID=======================//
+// Express route
+router.post('/savejms/:region', async (req, res) => {
+    const { region } = req.params;
+    const { besi_id, jms_id } = req.body;
+
+    // Safety check: only allow alphanumeric region names to prevent SQL injection
+    const tableRegion = region.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
+    const tableName = `besi_employees_${tableRegion}`;
+
+    const query = `UPDATE ${tableName} SET jms_id = ? WHERE emp_id = ?`;
+
+    try {
+        // Using your mysql connection pool
+        const [result] = await db.execute(query, [jms_id, besi_id]);
+        
+        res.status(200).json({ success: true, message: "Record updated" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "Database error" });
     }
 });
 

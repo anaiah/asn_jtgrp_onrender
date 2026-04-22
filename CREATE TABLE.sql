@@ -31,10 +31,12 @@ END;
 DELIMITER ;
 
 //==============DONT USE THIS
+SET FOREIGN_KEY_CHECKS = 0;--OFF PROTECTION
 DELETE t1, t2 
 FROM besi_employees_smnl AS t1
 INNER JOIN besi_users_smnl AS t2 ON t1.email = t2.email
 WHERE t1.email = 'example@email.com';
+SET FOREIGN_KEY_CHECKS = 1;--ON PROTECTION
 
 //==================DONT USE THIS, FOR REPORTING
 SELECT 
@@ -86,3 +88,8 @@ LEFT JOIN (
 ) AS e ON r.region_label = e.table_name
 GROUP BY r.region_label
 ORDER BY `Total Enrolled` DESC;
+
+select id, position,full_name, email, count(*) as existed
+from besi_employees_smnl
+group by full_name
+having existed > 1;
