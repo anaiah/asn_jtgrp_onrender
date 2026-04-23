@@ -31,12 +31,12 @@ END;
 DELIMITER ;
 
 //==============DONT USE THIS
-SET FOREIGN_KEY_CHECKS = 0;--OFF PROTECTION
+SET FOREIGN_KEY_CHECKS = 0;
 DELETE t1, t2 
-FROM besi_employees_smnl AS t1
-INNER JOIN besi_users_smnl AS t2 ON t1.email = t2.email
-WHERE t1.email = 'example@email.com';
-SET FOREIGN_KEY_CHECKS = 1;--ON PROTECTION
+FROM besi_employees_min AS t1
+INNER JOIN besi_users_min AS t2 ON t1.email = t2.email
+WHERE t1.id in (692,693,694);
+SET FOREIGN_KEY_CHECKS = 1;
 
 //==================DONT USE THIS, FOR REPORTING
 SELECT 
