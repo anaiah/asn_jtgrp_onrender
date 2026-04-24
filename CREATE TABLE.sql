@@ -38,6 +38,8 @@ INNER JOIN besi_users_min AS t2 ON t1.email = t2.email
 WHERE t1.id in (692,693,694);
 SET FOREIGN_KEY_CHECKS = 1;
 
+//==== force email to lower
+UPDATE besi_employees_min SET email = LOWER(email) where BINARY email != LOWER(email);
 //==================DONT USE THIS, FOR REPORTING
 SELECT 
     r.region_label AS 'Region',
