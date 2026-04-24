@@ -2794,7 +2794,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 emp_id, first_name,middle_name,last_name,suffix,full_name, 
                 email, phone, birth_date, hire_date, position,employment_status, 
                 location,hub,street_1,street_2,city,bgy,full_address
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
 			console.log('*****BESI ID IS ****** ', empId	)
             //const department = formFields.department || "General Operations";
@@ -2826,7 +2826,7 @@ router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
                 formFields.employmentStatus || null,
                 formFields.loc_store || null,
                 formFields.hub_store || null,
-                
+
                 // 6. Address Components
                 formFields.addy1 || null,
                 // This checks if the value is 'n/a' (case-insensitive) OR empty, and returns null
