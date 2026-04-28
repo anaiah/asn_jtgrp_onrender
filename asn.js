@@ -91,24 +91,16 @@ app.get('/',(req, res)=>{
     //res.sendFile(path.join(__dirname , 'index.html'))
 })
 */
-const axios = require('axios')
+db.connectDb()
+  .then(con => {
+    console.log('BETTER EDGE J&T GROUP DATABASE CONNECTED!');
+    // use con...
+    db.closeDb(con);
+  })
+  .catch(err => {
+    console.error('DB connection failed:', err);
+  });
 
-app.get('/', async(req, res)=>{
-    const ip = await axios.get('https://api.ipify.org?format=json')
-    console.log('i am blessed',ip.data.ip)
-
-connectDb() 
-.then((db)=>{
-    console.log("====asn.js MYSQL CONNECTION SUCCESS!====")
-    res.send(ip.data.ip)
-    closeDb(db);
-})                        
-.catch((error)=>{
-    console.log("***ERROR, CAN'T CONNECT TO MYSQL DB!****",error.code)
-});  
-
-    //res.sendFile(path.join(__dirname , 'index.html'))
-})
 
 //===============Main Routes
 const usersRouter = require('./routes/api')(io);
@@ -158,9 +150,9 @@ io.on('connection', (socket) => {
 				
 		nLogged++
 				
-		console.log('*** NEW ASIANOW  SOCKET.IO SERVICES STARTED ***\n', connectedSockets)	
+		console.log('*** NEW BETTER EDGE J&T GROUP  SOCKET.IO SERVICES STARTED ***\n', connectedSockets)	
 		
-		console.log(`NEW ASIANOW 12142K24 Connected ${nLogged}`)
+		console.log(`NEW BETTER EDGE J&T GROUP 12142K24 Connected ${nLogged}`)
 		
 		
 	}//============eif
@@ -258,5 +250,5 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT||10000 //<-- bring back if render.com
 
 server_https.listen( PORT ,()=>{
-    console.log(`ASIANOW ENTERPRISE INC. API -- ALIVE AND listening to port ${PORT}`)
+    console.log(`BETTER EDGE J&T GROUP API -- ALIVE AND listening to port ${PORT}`)
 })

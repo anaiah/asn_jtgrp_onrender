@@ -806,14 +806,14 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 u.besi_id,
                 u.ocw_id,
                 u.jms_id,
-                UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS full_name,
+                u.full_name,
                 u.middle_name,
                 u.position_code,
                 e.employment_status,
                 tk.id AS tk_id,
                 tk.reason as tk_reason,
                 tk.entry_date AS tk_entry_date,
-                tk.timekeep_approved as tk_approved,  -- <--- NEW: Select timekeep_approved to determine if the record is pending approval
+                tk.timekeep_approved as tk_approved,
                 tk.login_time AS tk_login_time,
                 tk.logout_time AS tk_logout_time,
                 tk.total_hours AS tk_total_hours,
@@ -2654,25 +2654,12 @@ async function processAndUploadFile(
 }
 
 //================ Refactored /newemppost Endpoint (UNCHANGED from previous, just using new helper) ==================//
-router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req, res) => {
+router.post('/newemppost/:region/:dateHired/:jobTitle', async (req, res) => {
 
 	console.log('===FIRING /newemppost Endpoint===', req.params);
 
-    const { xregion, dateHired, jobTitle, mode, empid } = req.params;
-
-    // return false; // REFACTORED: Commented out so code can run
-
-    // REFACTORED: Declare empId in the outer scope to be used throughout the route
-    let finalEmpId;
-
-    //====================================== First, generate the empId before processing files, FOR ADDING new employee only=========
-    if (mode === 'add') {
-        finalEmpId = await generateEmpId(xregion,dateHired,jobTitle);	 // REFACTORED: Removed 'let' to use outer scope variable
-    }else{
-        finalEmpId = empid // REFACTORED: Removed 'let' to use outer scope variable. For update mode, we assume empId is passed in params and skip generation
-    }
-	//===============================================
-
+	let empId = await generateEmpId(req.params.region, req.params.dateHired, req.params.jobTitle);	 // Declare empId in the outer scope to be used in file processing
+	
     const busboy = Busboy({ headers: req.headers });
 
     let formFields = {};
@@ -2747,7 +2734,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                         };
 
                         return await processAndUploadFile(
-                            finalEmpId, // REFACTORED: Using the outer scope ID
+                            empId,
                             localTempOriginalPath,
                             originalFilename,
                             remoteTargetFolder,
@@ -2801,31 +2788,24 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
         try {
 			
             await conn.beginTransaction(); // Start a transaction
-           
-            // REFACTORED: Logic to switch between INSERT and UPDATE
-            let sql = "";
-            if (mode === 'add') {
-                sql = `INSERT INTO besi_employees_${xregion.toLowerCase()} (
-                    emp_id, first_name,middle_name,last_name,suffix,full_name, 
-                    email, phone, birth_date, hire_date, position,employment_status, 
-                    location,hub,street_1,street_2,city,bgy,full_address
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-            } else {
-                sql = `UPDATE besi_employees_${xregion.toLowerCase()} SET 
-                    first_name=?, middle_name=?, last_name=?, suffix=?, full_name=?, 
-                    email=?, phone=?, birth_date=?, hire_date=?, position=?, employment_status=?, 
-                    location=?, hub=?, street_1=?, street_2=?, city=?, bgy=?, full_address=?
-                    WHERE emp_id = ?`;
-            }
 
-			console.log('*****BESI ID IS ****** ', finalEmpId, sql)
+           
+            const sql = `INSERT INTO besi_employees_${regions.toLowerCase()} (
+                emp_id, first_name,middle_name,last_name,suffix,full_name, 
+                email, phone, birth_date, hire_date, position,employment_status, 
+                location,hub,street_1,street_2,city,bgy,full_address
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+
+			console.log('*****BESI ID IS ****** ', empId	)
             //const department = formFields.department || "General Operations";
             // Ensure date_reg is handled; it was added client-side in FormData
             // If it's not a direct input, ensure it's still added
             // const date_reg = formFields.date_reg || new Date().toISOString().split('T')[0]; // If you want to use this
 
-            // REFACTORED: Organized params to handle both SQL types
-            const dataFields = [
+            const insertParams = [
+                // 1. Employee ID
+                empId !== undefined ? empId : null, 
+
                 // 2. Name Parts (Use || null to handle empty fields)
                 formFields.first_name || null,
                 formFields.middle_name || null,
@@ -2857,48 +2837,84 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 formFields.address || null
             ];
 
-            let queryParams = [];
-            if (mode === 'add') {
-                // For INSERT: emp_id is the first parameter
-                queryParams = [finalEmpId !== undefined ? finalEmpId : null, ...dataFields];
-            } else {
-                // For UPDATE: data fields come first, then emp_id for the WHERE clause
-                queryParams = [...dataFields, finalEmpId];
-            }
-
 
             //const dbResult = await dbConnection.query(sql, [
-			const dbResult = await conn.execute(sql, queryParams);
+			const dbResult = await conn.execute(sql, insertParams);
 
-            console.log(`Database ${mode} successful, rowCount:`, dbResult[0].affectedRows);
+            console.log('Database insertion successful, rowCount:', dbResult[0].affectedRows);
 
 
             // --- 2. Insert into bogus_table_1 (same fields) ---
             // APRIL 20, 2K26, TAKING OUT THIS INSERT IN FAVOR OF TRIGGER 
-            // REFACTORED: Re-enabling the update logic for edit mode for the users table
-            if (mode === 'edit') {
-                const sql_bogus_update = `UPDATE besi_users_${xregion.toLowerCase()} SET 
-                    full_name = ?, 
-                    email = ?, 
-                    hub = ?, 
-                    location = ?, 
-                    position_code = ? 
-                    WHERE besi_id = ?`;
-                
-                const [result_bogus_update] = await conn.execute(sql_bogus_update, [
-                    (formFields.full_name ? formFields.full_name.toUpperCase() : null),
-                    formFields.email || null,
-                    formFields.hub_store || null,
-                    formFields.loc_store || null,
-                    formFields.jobTitle || null,
-                    finalEmpId
-                ]);
-                console.log('Database update successful for besi_users_xx, affectedRows:', result_bogus_update.affectedRows);
-            }
 
-         
+            // const sql_bogus_1 = `INSERT INTO besi_users_${regions.toLowerCase()} (
+            //     besi_id, full_name,  email, hub, location, position_code ) 
+            //     VALUES (?,?,?,?,?,?)`;
+
+            // const result_bogus_1 = await conn.execute(sql_bogus_1, [
+            //     empId !== undefined ? empId : null,
+            //     (formFields.full_name ? formFields.full_name.toUpperCase() : null),
+            //     formFields.email || null,
+            //     formFields.hub_store || null, // Assuming this field is part of the formFields; if not, adjust accordingly
+            //     formFields.loc_store || null,
+            //     formFields.jobTitle || null
+            // ]);
+            // console.log('Database insertion successful for new besi_users_xx, affectedRows:', result_bogus_1[0].affectedRows);
+
             // --- 3. Insert into asn_users (same fields) ---
-            
+            /* for old
+                grp_id
+            */
+
+            // let grp_id
+            // switch( formFields.jobTitle ){
+            //     case '01':
+            //         grp_id = 1; // rider
+            //         break;
+            //     case '02': //transporter
+            //         grp_id = 22;
+            //         break;  
+            //     case '03': //foot delivery
+            //         grp_id = 23;
+            //         break;  
+            //     case '04': //sorter/backroom
+            //         grp_id = 24;
+            //         break;  
+            //     case '06': //timekeeper
+            //         grp_id = 26;
+            //         break;
+            //     case '10': //team leader
+            //         grp_id = 10;
+            //         break;
+
+            //     case '08': //coordinator
+            //         grp_id = 4;
+            //         break;  
+            //     case '15'://3 wheel
+            //         grp_id = 15;
+            //         break;
+            //     case '17'://4 wheel
+            //         grp_id = 17;
+            //         break;
+            // }//endsw
+
+            /******** IF EVERYTHING IS LIVE PLS TAKE THIS ASN_USERS INSERTION OUT!  */
+            /*
+            const sql_bogus_2 = `INSERT INTO asn_users (
+                 full_name, xname, email, pwd, hub, grp_id ) 
+                 VALUES (?,?,?,?,?,?)`;
+
+             const result_bogus_2 = await conn.execute(sql_bogus_2, [
+                (formFields.full_name ? formFields.full_name.toUpperCase() : null),
+                (formFields.full_name ? formFields.full_name.toUpperCase() : null),
+                formFields.email || null,
+                '123', // Default password, consider hashing in production
+                formFields.hub_store || null, // Assuming this field is part of the formFields; if not, adjust accordingly
+                grp_id || null
+            ]);
+             console.log('Database insertion successful for old asn_users tbl, affectedRows:', result_bogus_2[0].affectedRows);
+            */
+
             // --- 4. Process and Upload All Files to FTP ---
             const uploadResults = await Promise.all(filePromises);
             console.log('======All files processed and uploaded to FTP:========', uploadResults);
@@ -2909,11 +2925,11 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
 
             // --- 5. Send Final Success Response ---
             res.json({
-                message: `Record ${mode === 'add' ? 'added' : 'updated'} successfully!`, // REFACTORED for mode
-                voice: `Record ${mode === 'add' ? 'Added' : 'Updated'} Successfully!`, // REFACTORED for mode
+                message: `Record added successfully!`,
+                voice: `Record Added Successfully!`,
                 status: true,
                 employeeName: formFields.full_name.toUpperCase(),
-                employeeId: finalEmpId,
+                employeeId: empId,
 				regionId: regions,
                 positionId: formFields.jobTitle,
                 dateHired: formFields.hireDate,
@@ -2957,8 +2973,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 // If using a pool (e.g., mysqls.createPool().getConnection()), you'd use conn.release();
                 console.log('Database connection closed.');
             }
-        } //endtry
-
+        } //eif
     });
 
     // --- Busboy: Handle Parsing Errors ---
@@ -2973,305 +2988,9 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
     req.pipe(busboy);
 });
 
-
-//==orig and working route for adding new employee, we will modify this to use the new
-//  helper function that includes signature and other documents processing, and also better error handling and debugging===
-// router.post('/newemppost/:region/:dateHired/:jobTitle/:mode/:empid', async (req, res) => {
-
-// 	console.log('===FIRING /newemppost Endpoint===', req.params);
-
-//     const { region, dateHired, jobTitle, mode, empid } = req.params;
-
-//     return false;
-
-//     //====================================== First, generate the empId before processing files, FOR ADDING new employee only=========
-//     if (mode === 'add') {
-//         let empId = await generateEmpId(region,dateHired,jobTitle);	 // Declare empId in the outer scope to be used in file processing
-//     }else{
-//         let empId = empid // For update mode, we assume empId is passed in params and skip generation
-//     }
-// 	//===============================================
-
-//     const busboy = Busboy({ headers: req.headers });
-
-//     let formFields = {};
-//     let filePromises = []; // Array to hold promises for each file's processing and FTP upload
-// 	let regions
-
-//     // --- Busboy: Collect Text Fields ---
-//     busboy.on('field', (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) => {
-        
-// 		formFields[fieldname] = val;
-
-// 		// Reset finalEmpid whenever a new field is received, to ensure it's only set after file processing
-//     });
-
-//     // --- Busboy: Collect File Data ---
-//     busboy.on('file', (fieldname, file, fileInfo) => { // <--- CHANGED: fileInfo instead of filenam
-		
-//         // Check if fileInfo is an object and contains a filename string
-//         if (!fileInfo || typeof fileInfo.filename !== 'string' || fileInfo.filename === '') {
-//             file.resume();
-//             console.log(`No file uploaded for field: ${fieldname} or invalid filename object received.`);
-//             return;
-//         }
-
-//         const originalFilename = fileInfo.filename; // <--- EXTRACT THE ACTUAL FILENAME STRING
-//         console.log(`Busboy 'file' event: fieldname='${fieldname}', original filename='${originalFilename}'`);
-
-//         let originalExtname = path.extname(originalFilename).toLowerCase(); // <--- NOW uses the string originalFilename
-//         if (!['.jpg', '.jpeg', '.png', '.gif'].includes(originalExtname)) {
-//             console.warn(`File '${originalFilename}' for field '${fieldname}' has an unsupported extension. Proceeding with caution.`);
-//         }
-
-//         const uniqueTempFilename = `${fieldname}_original_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${originalExtname}`;
-//         const localTempOriginalPath = path.join(tempUploadDir, uniqueTempFilename);
-
-//         const fstream = fs.createWriteStream(localTempOriginalPath);
-//         file.pipe(fstream);
-
-//         fstream.on('close', () => {
-//             console.log(`Finished writing local temp file for field '${fieldname}': ${localTempOriginalPath}`);
-//             filePromises.push(
-//                 (async () => {
-//                     try {
-//                         let subFolderName;
-
-//                         const region = formFields.region;
-// 						regions = region
-
-//                         switch (region) {
-//                             case 'SMNL': subFolderName = 'ncr_smnl_emp'; break;
-//                             case 'CMNL': subFolderName = 'ncr_cmnl_emp'; break;
-//                             case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
-//                             case 'NELU': subFolderName = 'luz_nelu_emp'; break;
-//                             case 'NWLU': subFolderName = 'luz_nwlu_emp'; break;
-//                             case 'MIN' : subFolderName = 'min_emp'; break;
-//                             case 'BICOL': subFolderName = 'bsl_bicol_emp'; break;
-//                             case 'SMARLEYTE': subFolderName = 'bsl_smarleyte_emp'; break;
-//                             case 'CENTRAL': subFolderName = 'wvis_central_emp'; break;
-//                             case 'BACOLOD': subFolderName = 'wvis_bacolod_emp'; break;
-//                             case 'PANAY': subFolderName = 'wvis_panay_emp'; break;
-//                             default:
-//                                 console.warn(`Unknown region "${region}". Using default subfolder 'others_uploads_emp'.`);
-//                                 subFolderName = 'others_uploads_emp';
-//                                 break;
-//                         }
-//                         const remoteTargetFolder = subFolderName;
-
-//                         const ftpClientConfig ={
-//                             host: "ftp.asianowapp.com",
-//                             user: "u899193124.jtgrpcarlo",
-//                             password: "@Carlo0811",
-//                         };
-
-//                         return await processAndUploadFile(
-//                             empId,
-//                             localTempOriginalPath,
-//                             originalFilename,
-//                             remoteTargetFolder,
-//                             ftpClientConfig,
-//                             fieldname // Pass the fieldname here
-//                         );
-
-//                     } catch (error) {
-//                         console.error(`Error in file processing/upload promise for field '${fieldname}' (${originalFilename}):`, error);
-//                         fs.unlink(localTempOriginalPath, (err) => {
-//                             if (err) console.error(`Error deleting temp file on promise rejection ${localTempOriginalPath}:`, err);
-//                         });
-//                         throw error;
-//                     }
-//                 })()
-//             );
-//         });
-
-//        fstream.on('error', (err) => {
-//             console.error(`Error writing local temp file for field '${fieldname}' (${originalFilename}):`, err);
-//         });
-
-//         file.resume();
-//     });
-
-//     // --- Busboy: Handle completion of parsing the request ---
-//     busboy.on('finish', async () => {
-//         console.log('Busboy finished parsing all parts of the request.');
-//         console.log('Collected Form Fields:', formFields);
-
-//         let dbConnection = null
-
-// 		let conn = await mysqls.createConnection(dbconfig);
-
-// 		//**** next time try these instead coz of db.js for transactions
-//         // 
-//         // In your route...
-//         // let conn;
-//         // try {
-//         //     conn = await db.getConnection();
-//         //     await conn.beginTransaction();
-//         //     // ... your SQL logic ...
-//         //     await conn.commit();
-//         // } catch (e) {
-//         //     if (conn) await conn.rollback();
-//         // } finally {
-//         //     if (conn) conn.release();
-//         // }
- 
-
-//         try {
-			
-//             await conn.beginTransaction(); // Start a transaction
-
-           
-//             const sql = `INSERT INTO besi_employees_${regions.toLowerCase()} (
-//                 emp_id, first_name,middle_name,last_name,suffix,full_name, 
-//                 email, phone, birth_date, hire_date, position,employment_status, 
-//                 location,hub,street_1,street_2,city,bgy,full_address
-//             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-
-// 			console.log('*****BESI ID IS ****** ', empId	)
-//             //const department = formFields.department || "General Operations";
-//             // Ensure date_reg is handled; it was added client-side in FormData
-//             // If it's not a direct input, ensure it's still added
-//             // const date_reg = formFields.date_reg || new Date().toISOString().split('T')[0]; // If you want to use this
-
-//             const insertParams = [
-//                 // 1. Employee ID
-//                 empId !== undefined ? empId : null, 
-
-//                 // 2. Name Parts (Use || null to handle empty fields)
-//                 formFields.first_name || null,
-//                 formFields.middle_name || null,
-//                 formFields.last_name || null,
-//                 formFields.name_suffix || null,
-
-//                 // 3. Full Name (Safe Uppercase: checks if value exists first)
-//                 (formFields.full_name ? formFields.full_name.toUpperCase() : null),
-
-//                 // 4. Contact & Personal Info
-//                 formFields.email || null,
-//                 formFields.phone || null,
-//                 formFields.birthDate || null,
-//                 formFields.hireDate || null,
-
-//                 // 5. Employment Details
-//                 formFields.jobTitle || null,
-//                 formFields.employmentStatus || null,
-//                 formFields.loc_store || null,
-//                 formFields.hub_store || null,
-
-//                 // 6. Address Components
-//                 formFields.addy1 || null,
-//                 // This checks if the value is 'n/a' (case-insensitive) OR empty, and returns null
-//                 (formFields.addy2?.toLowerCase() === 'n/a' || !formFields.addy2) ? null : formFields.addy2,
-//                 formFields.city || null,
-//                 // This checks if the value is 'n/a' (case-insensitive) OR empty, and returns null
-//                 (formFields.bgy?.toLowerCase() === 'n/a' || !formFields.bgy) ? null : formFields.bgy,
-//                 formFields.address || null
-//             ];
-
-
-//             //const dbResult = await dbConnection.query(sql, [
-// 			const dbResult = await conn.execute(sql, insertParams);
-
-//             console.log('Database insertion successful, rowCount:', dbResult[0].affectedRows);
-
-
-//             // --- 2. Insert into bogus_table_1 (same fields) ---
-//             // APRIL 20, 2K26, TAKING OUT THIS INSERT IN FAVOR OF TRIGGER 
-
-//             // const sql_bogus_1 = `INSERT INTO besi_users_${regions.toLowerCase()} (
-//             //     besi_id, full_name,  email, hub, location, position_code ) 
-//             //     VALUES (?,?,?,?,?,?)`;
-
-//             // const result_bogus_1 = await conn.execute(sql_bogus_1, [
-//             //     empId !== undefined ? empId : null,
-//             //     (formFields.full_name ? formFields.full_name.toUpperCase() : null),
-//             //     formFields.email || null,
-//             //     formFields.hub_store || null, // Assuming this field is part of the formFields; if not, adjust accordingly
-//             //     formFields.loc_store || null,
-//             //     formFields.jobTitle || null
-//             // ]);
-//             // console.log('Database insertion successful for new besi_users_xx, affectedRows:', result_bogus_1[0].affectedRows);
-
-//             // --- 3. Insert into asn_users (same fields) ---
-            
-//             // --- 4. Process and Upload All Files to FTP ---
-//             const uploadResults = await Promise.all(filePromises);
-//             console.log('======All files processed and uploaded to FTP:========', uploadResults);
-
-//             // If all database operations and file uploads were successful, commit the transaction
-//             await conn.commit();
-//             console.log('Database transaction committed.');
-
-//             // --- 5. Send Final Success Response ---
-//             res.json({
-//                 message: `Record added successfully!`,
-//                 voice: `Record Added Successfully!`,
-//                 status: true,
-//                 employeeName: formFields.full_name.toUpperCase(),
-//                 employeeId: empId,
-// 				regionId: regions,
-//                 positionId: formFields.jobTitle,
-//                 dateHired: formFields.hireDate,
-//                 address: formFields.address,
-//                 uploadDetails: uploadResults,
-//                 formFields: formFields
-//             });
-
-//         } catch (error) {
-//              // If any part of the try block failed, attempt to roll back the transaction
-//             if (conn) {
-//                 await conn.rollback();
-//                 console.error('Database transaction rolled back due to error.');
-//             }
-
-//             console.error('Error in /newemppost endpoint processing:', error);
-
-//             let userMessage = "An unexpected error occurred during employee creation or document upload.";
-            
-//             if (error.sqlMessage) {
-//                 userMessage = `Database error: ${error.sqlMessage}`;
-//             } else if (error.message) {
-//                 userMessage = `Processing error: ${error.message}`;
-//             } else if (error.error) {
-//                 // This specific error structure for file upload failure might need adjustment
-//                 userMessage = `File upload failed for ${error.fieldName}: ${error.error}`;
-//             }
-
-//             if (!res.headersSent) {
-//                 res.status(500).json({
-//                     error: userMessage,
-//                     voice: "Error occurred during employee creation or document upload.",
-//                     status: false,
-//                     details: error
-//                 });
-//             }
-//         } finally {
-//             // Always ensure the connection is closed/released
-//             if (conn) {
-//                 await conn.end(); // If using mysqls.createConnection
-//                 // If using a pool (e.g., mysqls.createPool().getConnection()), you'd use conn.release();
-//                 console.log('Database connection closed.');
-//             }
-//         } //eif
-//     });
-
-//     // --- Busboy: Handle Parsing Errors ---
-//     busboy.on('error', (err) => {
-//         console.error('Busboy parsing error:', err);
-//         if (!res.headersSent) {
-//             res.status(500).json({ status: false, error: 'File upload parsing error at request stream level.', details: err.message });
-//         }
-//     });
-
-//     // Pipe the incoming request stream to Busboy for parsing
-//     req.pipe(busboy);
-// });
-
 //================ ENDPOINT: /newemppost ==================//
 
 //===========CHECK EMAIL BEFORE ADDING RECORD============//
-
 router.get('/checkinputemail/:email/:region', async (req, res) => {
     const { email, region } = req.params;
     console.log('firing checkinputemail() from hr.js')
@@ -4848,7 +4567,7 @@ router.get('/q/:limit/:page',  async(req,res) => {
 
 router.get('/handshake', async(req,res) => {
 
-	res.json({status:true, wow:true})
+	res.json({status:true})
 })
 
 	return router;
