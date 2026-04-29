@@ -2576,6 +2576,7 @@ async function processAndUploadFile(
         /// TAKEN OUT MARCH 2 2K26 const baseName = path.basename(originalFilename, originalExtname).replace(/[^a-zA-Z0-9_.-]/g, '');
         let filePrefix = '';
         switch (uploadFieldName) {
+            case 'jms_picture': filePrefix = 'JMS_'; break; 
             case 'id_picture': filePrefix = 'USER_'; break;
             case 'id_specimen_picture': filePrefix = 'SPECIMEN_'; break;
             case 'id_gcash' : filePrefix = 'GCASH_'; break;
@@ -2814,7 +2815,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 sql = `UPDATE besi_employees_${xregion.toLowerCase()} SET 
                     first_name=?, middle_name=?, last_name=?, suffix=?, full_name=?, 
                     email=?, phone=?, birth_date=?, hire_date=?, position=?, employment_status=?, 
-                    location=?, hub=?, street_1=?, street_2=?, city=?, bgy=?, full_address=?
+                    location=?, hub=?, street_1=?, street_2=?, city=?, bgy=?, full_address=?, jms_id=?
                     WHERE emp_id = ?`;
             }
 
@@ -2863,7 +2864,10 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 queryParams = [finalEmpId !== undefined ? finalEmpId : null, ...dataFields];
             } else {
                 // For UPDATE: data fields come first, then emp_id for the WHERE clause
-                queryParams = [...dataFields, finalEmpId];
+                //queryParams = [...dataFields, finalEmpId];
+                 // For UPDATE: data fields come first, then jms_id (only for update), then emp_id for the WHERE clause
+                const jmsValue = formFields.jms_id ? formFields.jms_id : null;
+                queryParams = [...dataFields, jmsValue, finalEmpId];
             }
 
 
