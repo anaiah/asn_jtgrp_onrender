@@ -3376,6 +3376,8 @@ router.get('/gethub/:region/:location', async(req,res)=>{
     try {
         const sql = `SELECT hub FROM ${hubTable} WHERE region = ? AND location = ? ORDER BY hub`;  
         const results  = await conn.execute(sql,[regionName, locParam]  );
+
+        console.log( sql )
         
         res.status(200).json({ data: results[0] });
     }
