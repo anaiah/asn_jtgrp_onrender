@@ -250,19 +250,27 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
     console.log('==Firing route.printmasterfile() with body:', req.body);
 
+ const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
+    const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
+    const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
+    const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
+    const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
+
+
     try {
         const filters = {
-        name:     req.body.filter_name || "",
-        id:       req.body.filter_id || "",
-        region:   req.body.filter_region || "",
-        position: req.body.filter_position || "",
+            name: xname,
+            id: xid,
+            region: xregion,
+            hub: xhub,
+            position: xposition
         };
 
-        if (!filters.region) {
+        if (!xregion) {
         return res.status(400).send("Region is required");
         }
 
-        const regionClean   = filters.region.toLowerCase(); // smnl, cmnl, etc.
+        const regionClean   = xregion.toLowerCase(); // smnl, cmnl, etc.
         const userTableName = `besi_employees_${regionClean}`;
         const besiuserTable = `besi_users_${regionClean}`;
 
