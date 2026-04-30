@@ -250,12 +250,11 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
     console.log('==Firing route.printmasterfile() with body:', req.body);
 
- const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
+    const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
     const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
-
 
     try {
         const filters = {
