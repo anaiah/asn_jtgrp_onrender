@@ -548,16 +548,24 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
     // console.log( req.body) // Uncomment for debugging request body
 	console.log('==Firing searchempTimeKeep()  called by hris.printTimeKeep() ==');
 
+    const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
+    const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
+    const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
+    //const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
+    const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
+    const xdfrom = req.body.filter_date_from ?? req.body.xfilter_date_from ?? null;
+    const xdto = req.body.filter_date_to ?? req.body.xfilter_date_to ?? null;
+
     const filters = {
-        name: req.body.filter_name,
-        id: req.body.filter_id,
-        region: req.body.filter_region,
-        position: req.body.filter_position,
-        date_from: req.body.filter_date_from,
-        date_to: req.body.filter_date_to
+        name: xname,
+        id: xid,
+        region: xregion,
+        position: xposition,
+        date_from:xdfrom,
+        date_to: xdto
     };
 
-    if (!filters.region || filters.region.trim() === '') {
+    if (!xregion || xregion.trim() === '') {
         return res.status(400).json({ success: false, message: 'Region filter is required to identify the correct tables.' });
     }
 
