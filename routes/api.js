@@ -254,6 +254,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
     const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
+    const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
 
     try {
@@ -262,6 +263,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             id: xid,
             region: xregion,
             hub: xhub,
+            location: xlocation,
             position: xposition
         };
 
@@ -471,6 +473,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
     const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
+    const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
     const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
 
@@ -478,6 +481,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
         name: xname,
         id: xid,
         region: xregion,
+        location: xlocation,
         hub: xhub,
         position: xposition
     };
@@ -560,7 +564,8 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
     //const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
-    const xdfrom = req.body.filter_date_from ?? req.body.xfilter_date_from ?? null;
+    const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
+   const xdfrom = req.body.filter_date_from ?? req.body.xfilter_date_from ?? null;
     const xdto = req.body.filter_date_to ?? req.body.xfilter_date_to ?? null;
 
     const filters = {
@@ -568,6 +573,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
         id: xid,
         region: xregion,
         position: xposition,
+        location : xlocation,
         date_from:xdfrom,
         date_to: xdto
     };
@@ -786,7 +792,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
 function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
 	console.log('==buildPersonnelSearchQuery() with filters:', filters, 'isTimeKeep:', isTimeKeep);
 
-    let { name, id, region, hub, position, date_from, date_to } = filters;
+    let { name, id, region, hub, location, position, date_from, date_to } = filters;
     const params = [];
     const conditions = [];
 
@@ -915,6 +921,12 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
             params.push(position.trim());
             }
 
+            if ( location && location.trim() !== '') {
+            conditions.push(`e.location = ?`);
+            params.push(location.trim());
+            }
+
+
             if (conditions.length > 0) {
             sql += ` WHERE ` + conditions.join(' AND ');
             }
@@ -952,6 +964,12 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
             params.push(id.trim());
             }
 
+            if ( location && location.trim() !== '') {
+            conditions.push(`e.location = ?`);
+            params.push(location.trim());
+            }
+
+           
             if (position && position.trim() !== '') {
                 conditions.push(`e.position = '${position}' `);
                 params.push(position.trim());
