@@ -334,7 +334,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
         const [rows] = await conn.execute(sql, params);
 
-        console.log( rows )
+        //console.log( rows )
         await conn.end();
 
         // Build Excel
