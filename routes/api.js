@@ -460,13 +460,19 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
 //=====hris Search Employee====//
 router.post('/searchemp', upload.none(), async (req, res) => {
-	console.log( req.body )
+	console.log( '====FIRING /searchemp()====',req.body )
+    const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
+    const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
+    const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
+    const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
+    const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
+
 	const filters = {
-        name: req.body.filter_name,
-        id: req.body.filter_id,
-        region: req.body.filter_region,
-        hub: req.body.filter_hub,
-        position: req.body.filter_position
+        name: xname,
+        id: xid,
+        region: xregion,
+        hub: xhub,
+        position: xposition
     };
 
     try {
