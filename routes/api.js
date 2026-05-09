@@ -1915,8 +1915,8 @@ router.post('/download-grid-data-xls', async (req, res) => {
 router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
     console.log('firing login with Authenticate====== ', req.params.uid, req.params.pwd, req.params.region, ' ========')
 
-    let  { uid, pwd, region } = req.params;
-    let result; // Declare 'result' in a higher scope so it's accessible after the if/else
+    let { uid, pwd, region } = req.params;
+    let rows; // Changed 'result' to 'rows' for clarity after destructuring
     let user;   // Declare 'user' here as well, to ensure scope if no user is found
  
 	// console.log('Value of region:', region);
@@ -1937,19 +1937,25 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
         if (region && region.trim() !== "") {
             //console.log(region, uid); 
             const sql = `select * from besi_users_${region} where email=? and active=1`; // Assuming 'active' is a column to check if the user is active
-            result = await db.query(sql, [uid]); // Assign to the already declared 'result'
-            //console.log(sql, result[0]);
+            
+            // Refactored: Destructure to get only the data rows
+            const [resultRows] = await db.query(sql, [uid]); 
+            rows = resultRows;
+            
+            //console.log(sql, rows[0]);
 
 		//if region:null	//======LOGIN TO OLD USERS TABLE
         } else {
             const sql = `select * from asn_users where email=? and pwd=? and active=1`; // Assuming 'active' is a column to check if the user is active
-            result = await db.query(sql, [uid, pwd]); // Assign to the already declared 'result'
+            
+            // Refactored: Destructure to get only the data rows
+            const [resultRows] = await db.query(sql, [uid, pwd]); 
+            rows = resultRows;
         }
 
-        // db.query typically returns an array like [[rows], [fields]].
-        // We need to check if result[0] (the array of rows) exists and has length > 0.
-        if (result && result[0] && result[0].length > 0) {
-            user = result[0][0]; // Get the first user object from the rows array
+        // Refactored: Simply check if rows exists and has data
+        if (rows && rows.length > 0) {
+            user = rows[0]; // Get the first user object from the rows array
 
 			// --- STEP 2: Conditional Re-query for Region based on grp_id ---
 			if (user.grp_id === 1) { // If the user is a rider (or grp_id 1)
@@ -1959,11 +1965,13 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
 				if (user.hub) {
 					// Query asn_hub using the 'hub' field from asn_users
 					const hubRegionSql = `SELECT region FROM asn_hub WHERE hub = ?`;
-					const hubRegionResult = await db.query(hubRegionSql, [user.hub]);
+					
+                    // Refactored: Destructure result
+                    const [hubRows] = await db.query(hubRegionSql, [user.hub]);
 
-					if (hubRegionResult && hubRegionResult[0] && hubRegionResult[0].length > 0) {
+					if (hubRows && hubRows.length > 0) {
 						// Get the region value from asn_hub and attach it to the user object
-						user.region = hubRegionResult[0][0].region; 
+						user.region = hubRows[0].region; 
 						console.log('Rider region fetched from asn_hub:', user.region);
 					} else {
 						console.log('No matching region found in asn_hub for user.hub:', user.hub);
@@ -1983,8 +1991,8 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
             let aData = [];
             let obj = {
                 email: user.email,
-                fname: user.full_name.toUpperCase(),
-                message: `Welcome!, ${user.full_name.toUpperCase()}!!! `,
+                fname: user.full_name ? user.full_name.toUpperCase() : 'USER', // Added check for safety
+                message: `Welcome!, ${user.full_name ? user.full_name.toUpperCase() : ''}!!! `,
                 voice: `${user.full_name}!!`,
                 grp_id: user.grp_id || user.position_code,
                 pic: user.pic || null,
@@ -2028,6 +2036,125 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
         return res.status(500).json(xdata);
     }
 });
+
+
+//===== original, changekd on may 9, 2026======
+// router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
+//     console.log('firing login with Authenticate====== ', req.params.uid, req.params.pwd, req.params.region, ' ========')
+
+//     let  { uid, pwd, region } = req.params;
+//     let result; // Declare 'result' in a higher scope so it's accessible after the if/else
+//     let user;   // Declare 'user' here as well, to ensure scope if no user is found
+ 
+// 	// console.log('Value of region:', region);
+// 	// console.log('Type of region:', typeof region);
+// 	// console.log('Is region truthy?', !!region); // Converts to boolean
+// 	// console.log('Is region.trim() empty?', (region && region.trim() === '')); // Only if region is truthy
+
+// 	if (typeof region === 'string' && region.toLowerCase() === 'null') {
+// 		region = null; // Convert the string "null" to the actual null value
+// 	}
+// 	// Or handle empty string inputs similarly if they might come as "undefined" string
+// 	if (typeof region === 'string' && region.toLowerCase() === 'undefined') {
+// 		region = undefined;
+// 	}
+
+//     try {
+//          // Check if region is valid
+//         if (region && region.trim() !== "") {
+//             //console.log(region, uid); 
+//             const sql = `select * from besi_users_${region} where email=? and active=1`; // Assuming 'active' is a column to check if the user is active
+//             result = await db.query(sql, [uid]); // Assign to the already declared 'result'
+//             //console.log(sql, result[0]);
+
+// 		//if region:null	//======LOGIN TO OLD USERS TABLE
+//         } else {
+//             const sql = `select * from asn_users where email=? and pwd=? and active=1`; // Assuming 'active' is a column to check if the user is active
+//             result = await db.query(sql, [uid, pwd]); // Assign to the already declared 'result'
+//         }
+
+//         // db.query typically returns an array like [[rows], [fields]].
+//         // We need to check if result[0] (the array of rows) exists and has length > 0.
+//         if (result && result[0] && result[0].length > 0) {
+//             user = result[0][0]; // Get the first user object from the rows array
+
+// 			// --- STEP 2: Conditional Re-query for Region based on grp_id ---
+// 			if (user.grp_id === 1) { // If the user is a rider (or grp_id 1)
+// 				console.log('User is a rider (grp_id 1). Fetching region from asn_hub...');
+
+// 				// Ensure the user has a 'hub' value to query with
+// 				if (user.hub) {
+// 					// Query asn_hub using the 'hub' field from asn_users
+// 					const hubRegionSql = `SELECT region FROM asn_hub WHERE hub = ?`;
+// 					const hubRegionResult = await db.query(hubRegionSql, [user.hub]);
+
+// 					if (hubRegionResult && hubRegionResult[0] && hubRegionResult[0].length > 0) {
+// 						// Get the region value from asn_hub and attach it to the user object
+// 						user.region = hubRegionResult[0][0].region; 
+// 						console.log('Rider region fetched from asn_hub:', user.region);
+// 					} else {
+// 						console.log('No matching region found in asn_hub for user.hub:', user.hub);
+// 						// You might want to set a default or null here if no region is found
+// 						user.region = null; 
+// 					}
+// 				} else {
+// 					console.log('Rider (grp_id 1) has no "hub" assigned in asn_users table.');
+// 					user.region = null; // No hub to look up, so no region
+// 				}
+
+// 			}//eif
+
+
+//             console.log('User found:', user.email, user.region); // Log for debugging
+
+//             let aData = [];
+//             let obj = {
+//                 email: user.email,
+//                 fname: user.full_name.toUpperCase(),
+//                 message: `Welcome!, ${user.full_name.toUpperCase()}!!! `,
+//                 voice: `${user.full_name}!!`,
+//                 grp_id: user.grp_id || user.position_code,
+//                 pic: user.pic || null,
+//                 ip_addy: '',
+//                 hub: user.hub || null,
+// 				besi_id: user.besi_id || null,
+// 				ocw_id: user.ocw_id ||  null,
+// 				jms_id: user.jms_id || null,
+//                 id: user.id,
+//                 region: user.region || region,
+//                 position: user.position || user.position_code,
+//                 found: true
+//             };
+//             aData.push(obj);
+// 			console.log(aData)
+//             return res.status(200).json(aData);
+
+//         } else {
+//             // No user found, or query returned empty array
+//             console.log('No matching record found for provided credentials.');
+//             const xdata = [{
+//                 message: "No Matching Record!",
+//                 voice: "No Matching Record!",
+//                 found: false
+//             }];
+//             // Use 401 Unauthorized for authentication failure (no matching record)
+//             return res.status(401).json(xdata);
+//         }
+
+//     } catch (err) {
+//         // Log the actual error for better debugging
+//         console.error('Error in Login:', err);
+
+//         const xdata = [{
+//             message: "An unexpected error occurred during login!", // More generic for actual server errors
+//             voice: "Login Error!",
+//             found: false
+//         }];
+
+//         // Use 500 Internal Server Error for unexpected errors caught in the try/catch
+//         return res.status(500).json(xdata);
+//     }
+// });
 
 
 //=== end html routes
