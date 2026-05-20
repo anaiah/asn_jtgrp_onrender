@@ -54,19 +54,29 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({limit: '50mb', extended:false}))
 
 // 3. SECURE EXPRESS CORS MIDDLEWARE: Handles preflight rules properly for Cloudflare
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     if (!origin) return callback(null, true);
+//     if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
+//       return callback(null, true);
+//     } else {
+//       return callback(new Error('CORS block by Express API'), false);
+//     }
+//   },
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+//   credentials: true
+// }));
+
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('CORS block by Express API'), false);
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-  credentials: true
-}));
+    origin:'*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    credentials: true
+}))
+
+app.options('*', cors()); // Enable pre-flight for all routes
+
 
 //======== END NODEJS CORS SETTING
 const getRandomPin = (chars, len)=>[...Array(len)].map(
