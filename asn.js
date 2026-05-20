@@ -115,7 +115,7 @@ app.use(cookieParser())
 let listClient = []
 let nLogged = 0
 let xmsg
-let userMode, userName
+let userMode, userName 
 
 let connectedSockets = []
 
