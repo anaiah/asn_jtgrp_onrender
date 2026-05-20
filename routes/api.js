@@ -3444,7 +3444,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
 
 router.get('/checkinputemail/:email/:region', async (req, res) => {
     const { email, region } = req.params;
-    console.log('firing checkinputemail() from hr.js')
+    console.log('======firing checkinputemail() from hr.js')
 
     try {
         // SQL query to search the specific table
