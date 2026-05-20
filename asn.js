@@ -2,7 +2,12 @@
 const express = require('express')
 const app = express()
 
+// 1. CRITICAL FOR CLOUDFLARE: Tells Express it is behind a proxy (Cloudflare -> Render)
+// This must be declared right after initializing express
+app.set('trust proxy', 1);
+
 const bodyParser = require('body-parser')
+const cors = require('cors') // Import standard cors package
 
 // in some file
 const EventEmitter = require('events');
@@ -16,21 +21,32 @@ const { connectDb, closeDb } = require('./db')
 const http = require('http')
 
 //===== for socket.io
-const server_https = http.createServer( app);
+const server_https = http.createServer(app);
 
-//const { Server } = require('socket.io');
- 
-//===setting of socket.io
-//const io = new Server(server_https);
-const io = require("socket.io")( server_https, {
-    transports:['websocket','polling'],
+// 2. STABLE CORS FOR SOCKET.IO: Define explicit domains to allow instead of a wildcard
+const allowedOrigins = [
+  'https://asianowapp.com',
+  'https://www.asianowapp.com',
+  //'https://app.vantaztic.com',
+  //'https://osndp1.onrender.com'
+];
+
+const io = require("socket.io")(server_https, {
+    transports: ['websocket', 'polling'],
     cors: {
-      origin: "*", //bring back to https://asianowapp.com
-      methods: ["GET", "POST","PUT","DELETE"],
-      //allowedHeaders: ["vantaztic-header"],
-      //credentials: true
+      origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or server-to-server)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
+          return callback(null, true);
+        } else {
+          return callback(new Error('CORS block by Socket.io'), false);
+        }
+      },
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      credentials: true
     }
-  })
+})
 
 const path = require('path')
 
@@ -43,64 +59,40 @@ app.use(express.urlencoded({limit: '50mb', extended:true}))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({limit: '50mb', extended:false}))
 
-//=== this is !important for CORS especially for different servers calling====//
-//=== this is !important for CORS especially for different servers calling====//
-//const allowedOrigins = ["https://app.vantaztic.com","https://app.vantaztic.com","https://osndp1.onrender.com","http://localhost:4001"]
-
-const allowedOrigins = "*"
-/*
-app.use(function(req, res, next) {
-    let origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.header("Access-Control-Allow-Origin", origin); // restrict it to the required domain
+// 3. SECURE EXPRESS CORS MIDDLEWARE: Handles preflight rules properly for Cloudflare
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('CORS block by Express API'), false);
     }
-    res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    next();
-});
-*/
-
-var allowCrossDomain = function(req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-    res.header('Access-Control-Allow-Headers', 'Content-Type,Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    next();
-}
-
-
-app.use(allowCrossDomain);
-
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  credentials: true
+}));
 
 //======== END NODEJS CORS SETTING
 const getRandomPin = (chars, len)=>[...Array(len)].map(
     (i)=>chars[Math.floor(Math.random()*chars.length)]
  ).join('');
  
-//======== END NODEJS CORS SETTING
 app.get('/test',(req, res)=>{
     const apitest = getRandomPin('0123456789',6)
     console.log(apitest, ' API Ready to Serve')
     res.status(200).send(`${apitest} API ready to serve!`)
-    //res.sendFile(path.join(__dirname , 'index.html'))
 })
 
-//===local routing
-/*
-app.get('/',(req, res)=>{
-    res.send('API ready to serve!')
-    //res.sendFile(path.join(__dirname , 'index.html'))
-})
-*/
 db.connectDb()
   .then(con => {
     console.log('BETTER EDGE J&T GROUP DATABASE CONNECTED!');
-    // use con...
     db.closeDb(con);
   })
   .catch(err => {
     console.error('DB connection failed:', err);
   });
-
 
 //===============Main Routes
 const usersRouter = require('./routes/api')(io);
@@ -130,7 +122,6 @@ let connectedSockets = []
 //listen socket.io
 io.on('connection', (socket) => {
 
-
     if(socket.handshake.query.userName){
 		const userNames = socket.handshake.query.userName
 		const userNamex = JSON.parse(userNames)
@@ -153,101 +144,52 @@ io.on('connection', (socket) => {
 		console.log('*** NEW BETTER EDGE J&T GROUP  SOCKET.IO SERVICES STARTED ***\n', connectedSockets)	
 		
 		console.log(`NEW BETTER EDGE J&T GROUP 12142K24 Connected ${nLogged}`)
-		
-		
-	}//============eif
+	}
 
     socket.on('sendtoOpMgr', (data) => {
         let xdata = data
-        
-        //loop thru array socket 
         connectedSockets.forEach(socketInfo => {
             if(parseInt(socketInfo.mode)===5){
                socket.to( socketInfo.socketId ).emit('loadchart', data ) 
                console.log(`Fired Event 'loadchart' to USER: ${socketInfo.userName}, ID: ${socketInfo.socketId }`)
-            }//eif
+            }
         })
-        // const finder = connectedSockets.findIndex( x => x.mode===5)
-        
-        // //console.log(finder)
-
-        // if(finder >= 0){ //if found
-        //     //give message to the intended client
-        //     socket.to( connectedSockets[finder].socketId).emit('loadchart', data )
-        //     console.log('found opmgr', connectedSockets[finder].socketId)
-        // }
-
-        // if(finder ==-1){
-        //     //if intended client not connected, send back message to user sender
-        //     socket.emit('noconnect', data)
-        // }
-    })//end listener	
+    })
 
     socket.on('init', (data) => {
         let xdata = data
-        
         const finder = connectedSockets.findIndex( x => x.mode==5)
-        
-        //console.log(finder)
 
-        if(finder >= 0){ //if found
-            //give message to the intended client
+        if(finder >= 0){ 
             socket.to( connectedSockets[finder].socketId).emit('xinit', data )
             console.log('@@@initially found opmgr', connectedSockets[finder].socketId)
         }
 
         if(finder ==-1){
-            //if intended client not connected, send back message to user sender
             socket.emit('noconnect', data)
         }
-    })//end listener	
-	//console.log('*** SOCKET.IO SERVICES STARTED ***')
-
-    //nLogged++
-
-    //preliminary logged info
-    io.emit('logged',`User connected: ${nLogged }`)
-    
-    console.log(`user connected ${nLogged}`)
-    /*
-    console.log('=====CONNECTING IO SOCKET.IO=====')
-
-    listClient.push({"id":socket.id })
-    nLogged++
-
-    //console.log('NUMBER OF LOGGED USERS : ', nLogged)
-    io.emit('logged',`NUMBER OF USERS: ${nLogged }`)
-
-    Object.keys(  listClient ).forEach(key => {
-        console.log(`**${listClient[key].id} connected` )
     })
-    */
-    //if user disconnect
+
+    io.emit('logged',`User connected: ${nLogged }`)
+    console.log(`user connected ${nLogged}`)
+    
     socket.on('disconnect', (id) => {
 		console.log('disconnecting....')
-		
-			nLogged--
-		
-            if(nLogged <= 0){
-                nLogged = 0
-            }
-		//const togo = connectedSockets.find(o=>o.socketId === socket.id)
-        
+		nLogged--
+		if(nLogged <= 0){
+			nLogged = 0
+		}
         const togo = connectedSockets.findIndex( x => x.socketId === socket.id)
-        
-        connectedSockets.splice(togo, 1 )
-
-        console.log( connectedSockets)
-
+        if(togo !== -1) {
+            connectedSockets.splice(togo, 1)
+        }
+        console.log(connectedSockets)
         console.log(`AsiaNow User Connected ${nLogged}`)
-        //io.emit('logged',`Zonked connected: ${nLogged }`)
     })
     
-})//end io conn
-//====== server listen to por
-// const PORT = process.env.PORT || 3000; //node.js for hostinger
-// app.listen(PORT, '0.0.0.0', () => console.log(`API listening on ${PORT}`));
-const PORT = process.env.PORT||10000 //<-- bring back if render.com
+})
+
+const PORT = process.env.PORT||10000 
 
 server_https.listen( PORT ,()=>{
     console.log(`BETTER EDGE J&T GROUP API -- ALIVE AND listening to port ${PORT}`)
