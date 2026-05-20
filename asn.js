@@ -31,22 +31,16 @@ const allowedOrigins = [
   //'https://osndp1.onrender.com'
 ];
 
-const io = require("socket.io")(server_https, {
-    transports: ['websocket', 'polling'],
+//const io = new Server(server_https);
+const io = require("socket.io")( server_https, {
+    transports:['websocket','polling'],
     cors: {
-      origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or server-to-server)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
-          return callback(null, true);
-        } else {
-          return callback(new Error('CORS block by Socket.io'), false);
-        }
-      },
-      methods: ["GET", "POST", "PUT", "DELETE"],
-      credentials: true
+      origin: "*", //bring back to https://asianowapp.com
+      methods: ["GET", "POST","PUT","DELETE"],
+      //allowedHeaders: ["vantaztic-header"],
+      //credentials: true
     }
-})
+  })
 
 const path = require('path')
 
