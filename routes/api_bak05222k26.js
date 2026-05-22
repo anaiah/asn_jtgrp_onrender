@@ -74,12 +74,12 @@ const e = require('express')
 
 module.exports = (io) => {
 
-	const dbconfig  ={
-	//host: '153.92.15.50',//'srv1759.hstgr.io',
-	host: 'srv1759.hstgr.io',
-	user: 'u899193124_asianowjt',
-	password: 'M312c4@g125c3',
-	database: 'u899193124_asianowjt'
+    const dbconfig  ={
+    //host: '153.92.15.50',//'srv1759.hstgr.io',
+    host: 'srv1759.hstgr.io',
+    user: 'u899193124_asianowjt',
+    password: 'M312c4@g125c3',
+    database: 'u899193124_asianowjt'
     }
 
 
@@ -376,7 +376,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         headerRow.font = { bold: true };
 
         //=======set alignments for header row
- 		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID 1
+        headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID 1
         headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME 2
         
         headerRow.getCell('C').alignment = { horizontal: 'left'};   // address 3
@@ -469,7 +469,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
 //=====hris Search Employee====//
 router.post('/searchemp', upload.none(), async (req, res) => {
-	console.log( '====FIRING /searchemp()====',req.body )
+    console.log( '====FIRING /searchemp()====',req.body )
     const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
@@ -477,7 +477,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
     const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
 
-	const filters = {
+    const filters = {
         name: xname,
         id: xid,
         region: xregion,
@@ -496,10 +496,10 @@ router.post('/searchemp', upload.none(), async (req, res) => {
         // Execute the query using the mysql2 connection pool
         const [rows] = await db.query(sql, params); // pool.execute returns [rows, fields]
         // =====================================================================
-		
+        
         //console.log(rows) //show result, taken out
 
-		return res.status(200).json({success:'true',msg:'SUCCESS',xdata:rows})
+        return res.status(200).json({success:'true',msg:'SUCCESS',xdata:rows})
         //res.json(rows); // Send the query results back to the frontend
 
     } catch (error) {
@@ -507,7 +507,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
         // Send a user-friendly error message
         res.status(400).json({ success: false, message: error.message });
     }
-	
+    
 });
 
 
@@ -532,7 +532,7 @@ function formatDateTimeToMMDDYYHHMM(dateTimeString) {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     //return `${month}-${day}-${year} ${hours}:${minutes}`;
-	return `${hours}:${minutes}`;
+    return `${hours}:${minutes}`;
 }
 
 // Helper function to generate an array of YYYY-MM-DD date strings within a range
@@ -557,7 +557,7 @@ function getDatesInRange(startDateStr, endDateStr) {
 // Assuming 'db' is your mysql2 connection pool and 'upload' is your multer setup
 router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
     // console.log( req.body) // Uncomment for debugging request body
-	console.log('==Firing searchempTimeKeep()  called by hris.printTimeKeep() ==');
+    console.log('==Firing searchempTimeKeep()  called by hris.printTimeKeep() ==');
 
     const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
@@ -565,7 +565,7 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
     //const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
     const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
-    const xdfrom = req.body.filter_date_from ?? req.body.xfilter_date_from ?? null;
+   const xdfrom = req.body.filter_date_from ?? req.body.xfilter_date_from ?? null;
     const xdto = req.body.filter_date_to ?? req.body.xfilter_date_to ?? null;
 
     const filters = {
@@ -650,11 +650,6 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
                     ot_hours: parseFloat(row.tk_ot_hours || 0),
                     late_hours: parseFloat(row.tk_late_hours || 0), // <--- NEW: Add late_hours to daily record
                     for_approval: row.tk_for_approval || 0, // <--- NEW: Add for_approval to daily record
-                    
-                    // --- REFACTOR: ADD SHIFT START FROM DB ---
-                    // Assuming buildPersonnelSearchQuery aliases it as tk_shift_start
-                    shift_start: row.tk_shift_start || row.shift_start || null, 
-
                     _raw_login_time: row.tk_login_time,
                     _raw_logout_time: row.tk_logout_time
                 });
@@ -685,50 +680,58 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
             employee.total_worked_days = 0; // Reset before counting for each employee
             employee.total_late_hours = 0; // <--- NEW: Reset before summing for each employee
 
-            // --- SECOND PASS: Building login_details array ---
             allDatesInPeriod_YYYYMMDD.forEach(currentDate_YYYYMMDD => {
                 const record = employee.timekeeping_records_by_date.get(currentDate_YYYYMMDD);
 
                 if (record) {
-                    // --- CASE 1: THERE IS A TIMEKEEPING RECORD ---
-                    loginDetailsArray.push({
-                        id: record.id,
-                        xdate: record.xdate,
-                        login: record.login,
-                        logout: record.logout,
-                        reason: record.reason,
-                        total_hours: (record.total_hours > 0 ? record.total_hours : 0),
-                        ot_hours: (record.total_hours > 0 ? record.ot_hours : 0),
-                        late_hours: (record.total_hours > 0 ? record.late_hours : 0),
-                        for_approval: record.for_approval,
 
-                        // ADDED THIS LINE:
-                        shift: record.shift_start ? formatShiftDisplay(record.shift_start) : 'N/A'
-                        
-                    });
+                        //===============the login details array !important
+                        loginDetailsArray.push({
+                            id: record.id,
+                            xdate: record.xdate,
+                            login: record.login,
+                            logout: record.logout,
+                            reason: record.reason,
+                            total_hours: ( record.total_hours > 0  ? record.total_hours : 0), // Ensure total_hours is 0 if null/undefined/negative
+                            ot_hours: ( record.total_hours > 0  ? record.ot_hours : 0), // Ensure ot_hours is 0 if null/undefined/negative
+                            late_hours: (record.total_hours > 0  ? record.late_hours : 0), // <--- NEW: Add late_hours to daily record
+                            for_approval: record.for_approval
+                        });
                     
-                    // (Your existing totals aggregation logic here...)
-                    if(record.for_approval <= 0 ){ 
+                    // Aggregate totals from actual records that were found
+                    //==========IMPORTANT LINE, IF YOU WANT TO COUNT ALL HOURS INCLUDING PENDING APPROVAL, 
+                    // UNCOMMENT THE BELOW AND COMMENT OUT THE IF CONDITION
+                    if(record.for_approval <= 0 ){ // Only count hours for records that are not pending approval
                         employee.total_worked_hours += record.total_hours;
                         employee.total_overtime_hours += record.ot_hours;
-                        employee.total_late_hours += record.late_hours;
-                    }
+                        employee.total_late_hours += record.late_hours; // <--- NEW: Aggregate total_late_hours
+                    }else{
+                        employee.total_worked_hours += 0;
+                        employee.total_overtime_hours += 0;
+                        employee.total_late_hours += 0; // <--- NEW: Aggregate total_late_hours
+                    }//EIF
 
+                    // Check for complete login/logout for this day
+                    if (record.login !== null && record.login !== ''
+                         && record.logout !== null && record.logout !== '' 
+                         && ( record.for_approval <= 0 && record.total_hours > 0) ) {
+
+                        employee.total_worked_days ++;
+                    }
                 } else {
-                    // --- CASE 2: NO RECORD FOR THIS DATE (Index 0 in your example) ---
+                    // No record for this date, push an empty one with the date
                     loginDetailsArray.push({
-                        id: null,
+                        id:null,
                         xdate: formatDateToMMDDYY(currentDate_YYYYMMDD),
                         login: null,
                         logout: null,
-                        reason: null,
+                        reason:null,
                         total_hours: 0,
                         ot_hours: 0,
-                        late_hours: 0,
-                        for_approval: 0,
-                        // ADDED THIS LINE (Set to null or '' so the property exists):
-                        shift: null 
+                        late_hours: 0, // <--- NEW: Default late_hours to 0 for missing records
+                        for_approval:0
                     });
+                    // total_worked_days is NOT incremented for days without records
                 }
             });
 
@@ -752,6 +755,14 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
 
         formattedResults.sort((a, b) => a.full_name.localeCompare(b.full_name));
 
+        // --- FINAL CHECK BEFORE SENDING RESPONSE ---
+        // console.log('\n--- FINAL FORMATTED RESULTS (first item) ---');
+        // if (formattedResults.length > 0) {
+        //     console.log(JSON.stringify(formattedResults[0], null, 2));
+        // }
+        // console.log('-------------------------------------------\n');
+        // --- END FINAL CHECK ---
+
         return res.status(200).json({success: true, msg: 'SUCCESS', xdata: formattedResults});
 
     } catch (error) {
@@ -759,25 +770,6 @@ router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
         res.status(500).json({ success: false, message: 'An error occurred while fetching data. Please try again later.' });
     }
 });
-
-// Helper function to format "09:00:00" to "9:00 AM"
-function formatShiftDisplay(timeStr) {
-
-    console.log('==formatShiftDisplay() called with timeStr:', timeStr);
-
-    if (!timeStr) return 'N/A';
-    try {
-        const [hours, minutes] = timeStr.split(':');
-        let h = parseInt(hours);
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        h = h % 12;
-        h = h ? h : 12; // convert 0 to 12
-        return `${h}:${minutes} ${ampm}`;
-    } catch (e) {
-        return timeStr;
-    }
-}
-
 
 // Helper functions (assuming these are defined elsewhere in your code)
 // function buildPersonnelSearchQuery(filters, includeTimekeepData) { ... }
@@ -798,7 +790,7 @@ function formatShiftDisplay(timeStr) {
  * @returns {{sql: string, params: Array, dateRange?: {from: string, to: string}}} An object containing the generated SQL query, its parameters, and the effective date range if timekeeping data is requested.
  */
 function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
-	console.log('==buildPersonnelSearchQuery() with filters:', filters, 'isTimeKeep:', isTimeKeep);
+    console.log('==buildPersonnelSearchQuery() with filters:', filters, 'isTimeKeep:', isTimeKeep);
 
     let { name, id, region, hub, location, position, date_from, date_to } = filters;
     const params = [];
@@ -846,7 +838,6 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 u.position_code,
                 e.employment_status,
                 tk.id AS tk_id,
-                tk.shift_start AS tk_shift_start,
                 tk.reason as tk_reason,
                 tk.entry_date AS tk_entry_date,
                 tk.timekeep_approved as tk_approved,  -- <--- NEW: Select timekeep_approved to determine if the record is pending approval
@@ -1319,23 +1310,23 @@ router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
     // Fetch current series JSON once
     const [seriesRows] = await conn.execute(`SELECT series_data FROM ${seriesTable} WHERE id=1`);
 
-	let seriesData;
-	if (seriesRows.length && seriesRows[0]?.series_data) {
-		try {
-			seriesData = JSON.parse(seriesRows[0].series_data);
-		} catch (e) {
-			console.error('Failed to parse series_data JSON', e);
-			seriesData = [
-			{ "code": "01", "series": 1 },
-			{ "code": "02", "series": 1 }
-			];
-		}
-		} else {
-		seriesData = [
-			{ "code": "01", "series": 1 },
-			{ "code": "02", "series": 1 }
-		];
-	}
+    let seriesData;
+    if (seriesRows.length && seriesRows[0]?.series_data) {
+        try {
+            seriesData = JSON.parse(seriesRows[0].series_data);
+        } catch (e) {
+            console.error('Failed to parse series_data JSON', e);
+            seriesData = [
+            { "code": "01", "series": 1 },
+            { "code": "02", "series": 1 }
+            ];
+        }
+        } else {
+        seriesData = [
+            { "code": "01", "series": 1 },
+            { "code": "02", "series": 1 }
+        ];
+    }
 
     // Find the current series for this position, or initialize
     let seriesObj = seriesData.find(s => s.code === poscode);
@@ -1364,65 +1355,65 @@ router.post('/xlshris', upload.single('hris_upload_file'), async (req, res) => {
     const data = xlsx.utils.sheet_to_json(worksheet);
 
     for (const record of data) {
-		if (!record || Object.values(record).every(val => val === null || val === '')) {
-			continue; // skip empty
-		}
+        if (!record || Object.values(record).every(val => val === null || val === '')) {
+            continue; // skip empty
+        }
 
-		// Destructure fields
-		const {
-			ocw_id,
-			jms_id,
-			first_name,
-			middle_name,
-			last_name,
-			full_name,
-			date_hired,
-			email,
-			hub,
-			position_code
-		} = record;
+        // Destructure fields
+        const {
+            ocw_id,
+            jms_id,
+            first_name,
+            middle_name,
+            last_name,
+            full_name,
+            date_hired,
+            email,
+            hub,
+            position_code
+        } = record;
 
-		const formattedDateHired = formatDate(date_hired);
-		const emailLower = (email ?? '').toLowerCase();
+        const formattedDateHired = formatDate(date_hired);
+        const emailLower = (email ?? '').toLowerCase();
 
-		// Generate emp_id using lastSeriesNumber
-		const datePart = getDateString(formattedDateHired) || getDateString(new Date());
-		const seqStr = ('0000' + lastSeriesNumber).slice(-4); // pad 4 digits
+        // Generate emp_id using lastSeriesNumber
+        const datePart = getDateString(formattedDateHired) || getDateString(new Date());
+        const seqStr = ('0000' + lastSeriesNumber).slice(-4); // pad 4 digits
 
-		const emp_id = `BE-${regionCode.toUpperCase()}-${datePart}-${poscode}${seqStr}`;
+        const emp_id = `BE-${regionCode.toUpperCase()}-${datePart}-${poscode}${seqStr}`;
 
-		// Insert user
-		const query = `INSERT INTO ${xtable} (besi_id, ocw_id, jms_id, first_name, middle_name, last_name, full_name, date_hired, email, hub, position_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-		
-		// Replace undefined with null
-		const params = [
-			emp_id,
-			ocw_id ?? null,
-			jms_id ?? null,
-			first_name ?? null,
-			middle_name ?? null,
-			last_name ?? null,
-			full_name ?? null,
-			formattedDateHired , // use formatted date here
-			emailLower,
-			hub ?? null,
-			position_code ?? null
-		];
+        // Insert user
+        const query = `INSERT INTO ${xtable} (besi_id, ocw_id, jms_id, first_name, middle_name, last_name, full_name, date_hired, email, hub, position_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        
+        // Replace undefined with null
+        const params = [
+            emp_id,
+            ocw_id ?? null,
+            jms_id ?? null,
+            first_name ?? null,
+            middle_name ?? null,
+            last_name ?? null,
+            full_name ?? null,
+            formattedDateHired , // use formatted date here
+            emailLower,
+            hub ?? null,
+            position_code ?? null
+        ];
 
-		await conn.execute(query, params);
+        await conn.execute(query, params);
 
-		// Increment for next record
-		lastSeriesNumber += 1;
-	}
+        // Increment for next record
+        lastSeriesNumber += 1;
+    }
 
-	// Now update the series table with latest number
-	seriesObj.series = lastSeriesNumber; // update the object
-	await conn.execute(`UPDATE ${seriesTable} SET series_data = ? WHERE id=1`, [JSON.stringify(seriesData)]);
+    // Now update the series table with latest number
+    seriesObj.series = lastSeriesNumber; // update the object
+    await conn.execute(`UPDATE ${seriesTable} SET series_data = ? WHERE id=1`, [JSON.stringify(seriesData)]);
 
-	await conn.end();
+    await conn.end();
 
-	console.log('SUCCESS: Excel uploaded and data inserted. Series updated.');
-	res.status(200).json({ message: 'H.R.I.S. Excel File uploaded and data saved!', status: true });
+    console.log('SUCCESS: Excel uploaded and data inserted. Series updated.');
+    res.status(200).json({ message: 'H.R.I.S. Excel File uploaded and data saved!', status: true });
 
   } catch (error) {
     console.error('Error:', error);
@@ -1454,38 +1445,39 @@ const hrisDate = () => {
 // Assume 'hrisDate' is a helper function that returns an array [today_date_str, now_datetime_str]
 
 // Helper function to calculate late hours
-function calculateLateHours(loginDateTimeStr, shiftStartStr) {
-    if (!shiftStartStr) return 0.00;
+function calculateLateHours(loginDateTimeStr, onTimeThresholdHour = 9, onTimeThresholdMinute = 0, onTimeThresholdSecond = 0) {
+    const actualLoginDate = new Date(loginDateTimeStr);
 
-    // We use the string directly to avoid JS applying local timezone offsets
-    // loginDateTimeStr looks like "2024-05-22 21:00:00"
-    const actualLogin = new Date(loginDateTimeStr.replace(' ', 'T')); 
-    
-    const threshold = new Date(actualLogin);
-    const [sHour, sMin, sSec] = shiftStartStr.split(':');
-    threshold.setHours(parseInt(sHour), parseInt(sMin), parseInt(sSec || 0), 0);
+    // Create a Date object representing the "on-time" threshold (e.g., 9:00:00 AM)
+    // on the same day as the actual login.
+    const onTimeThresholdDate = new Date(actualLoginDate);
+    onTimeThresholdDate.setHours(onTimeThresholdHour, onTimeThresholdMinute, onTimeThresholdSecond, 0);
 
-    const diffMs = actualLogin - threshold;
-    return diffMs > 0 ? parseFloat((diffMs / 3600000).toFixed(2)) : 0.00;
+    // Only calculate late hours if the actual login is after the threshold
+    if (actualLoginDate > onTimeThresholdDate) {
+        const lateDurationMs = actualLoginDate.getTime() - onTimeThresholdDate.getTime();
+        // Convert milliseconds to hours and round to 2 decimal places
+        return parseFloat((lateDurationMs / (1000 * 60 * 60)).toFixed(2));
+    }
+    return 0.00; // Not late
 }
-
 
 
 //=============TIMEKEEPING POST
 router.post('/timekeep', upload.none(), async (req, res) => {
     const region = req.body.region;
-    const userId = parseInt(req.body.user_id);
-    const actionType = req.body.action_type; // "1" for Login, "2" for Logout
-    const shiftStart = req.body.shift_start; // The "HH:mm:ss" value from dropdown
-
     const [today_date_str, now_datetime_str] = nuDate(); 
-    const xtable = `besi_timekeep_${region.toLowerCase()}`;
+    const xtable = `besi_timekeep_${region}`;
+    const userId = parseInt(req.body.user_id);
+    const actionType = req.body.action_type; 
 
     try {
-        // --- STEP 1: Look for an open session ---
+        // --- STEP 1: Put it here! ---
+        // We look for a record that has a login but NO logout.
+        // The "INTERVAL 16 HOUR" handles the "forgot to logout" scenario.
         const findOpenSessionSql = `
             SELECT id, login_time, logout_time, entry_date
-            FROM ${xtable}
+            FROM ${xtable.toLowerCase()}
             WHERE user_id = ? 
               AND logout_time IS NULL
               AND login_time > NOW() - INTERVAL 16 HOUR
@@ -1497,25 +1489,27 @@ router.post('/timekeep', upload.none(), async (req, res) => {
 
         // --- Logic for Login Action (actionType === "1") ---
         if (actionType === "1") {
+            // If an open session exists, they haven't clocked out from the previous shift
             if (openEntry) {
                 return res.status(200).json({
-                    success: false, // Changed to false because they shouldn't log in twice
+                    success: true,
                     msg: `You are still logged in from ${new Date(openEntry.login_time).toLocaleString()}!`,
                     errCode: 'ERR_DUP_LOGIN'
                 });
             }
 
-            // Calculate Late Hours using the dynamic shift start from dropdown
-            const calculatedLateHours = calculateLateHours(now_datetime_str, shiftStart);
+            const calculatedLateHours = calculateLateHours(now_datetime_str);
             
+            // New shift: INSERT using today_date_str as the reference date
             const insertLoginSql = `
-                INSERT INTO ${xtable} (user_id, entry_date, login_time, late_hours, shift_start)
-                VALUES (?, ?, ?, ?, ?);
+                INSERT INTO ${xtable} (user_id, entry_date, login_time, late_hours)
+                VALUES (?, ?, ?, ?);
             `;
-            await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str, calculatedLateHours, shiftStart]);
+            await db.query(insertLoginSql, [userId, today_date_str, now_datetime_str, calculatedLateHours]);
 
             return res.status(200).json({
                 success: true,
+                time: now_datetime_str,
                 msg: 'Login recorded successfully!',
                 late_hours: calculatedLateHours
             });
@@ -1523,9 +1517,10 @@ router.post('/timekeep', upload.none(), async (req, res) => {
 
         // --- Logic for Logout Action (actionType === "2") ---
         else if (actionType === "2") {
+            // For logout, we MUST have an openEntry (even if it was from "yesterday")
             if (!openEntry) {
                 return res.status(200).json({
-                    success: false,
+                    success: true,
                     msg: 'No active login found. You must log in first!',
                     errCode: 'ERR_NO_LOGIN'
                 });
@@ -1534,14 +1529,15 @@ router.post('/timekeep', upload.none(), async (req, res) => {
             const loginTime = new Date(openEntry.login_time);
             const logoutTime = new Date(now_datetime_str);
 
-            // Calculate total_hours
+            // Calculate total_hours (Works perfectly across midnight because we use full timestamps)
             const timeDiffMs = logoutTime.getTime() - loginTime.getTime();
             const calculatedTotalHours = parseFloat((timeDiffMs / (1000 * 60 * 60)).toFixed(2));
 
-            // OT Calculation (Anything over 9 hours)
+            // OT Calculation
             const regularHoursThreshold = 9;
             const calculatedOtHours = parseFloat(Math.max(0, calculatedTotalHours - regularHoursThreshold).toFixed(2));
 
+            // Update the specific record we found in Step 1
             const updateLogoutSql = `
                 UPDATE ${xtable}
                 SET logout_time = ?, total_hours = ?, ot_hours = ?
@@ -1551,6 +1547,7 @@ router.post('/timekeep', upload.none(), async (req, res) => {
 
             return res.status(200).json({
                 success: true,
+                time: now_datetime_str,
                 msg: 'Logout recorded successfully!',
                 total_hours: calculatedTotalHours,
                 ot_hours: calculatedOtHours
@@ -1641,8 +1638,8 @@ router.post('/download-grid-data-xls', async (req, res) => {
 
         worksheet.getCell('A2').value = 'TEXTRON BLDG., 168 Luna Mencias St.,';
         worksheet.getCell('A3').value = 'Addition Hills, San Juan City';
-		worksheet.getCell('A4').value = 'Metro Manila, Philippines';
-		
+        worksheet.getCell('A4').value = 'Metro Manila, Philippines';
+        
 
         // --- 2. Dynamically Generate Date Range for Header (Row 4) ---
         let reportDateRange = 'Report Date Range Not Available';
@@ -1706,8 +1703,8 @@ router.post('/download-grid-data-xls', async (req, res) => {
         headerRow.getCell('H').value = 'OT HOUR';
         headerRow.font = { bold: true };
 
-		//=======set alignments for header row
- 		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID
+        //=======set alignments for header row
+        headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID
         headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME
         headerRow.getCell('C').alignment = { horizontal: 'center' };  // AREA (example, could be left)
         headerRow.getCell('D').alignment = { horizontal: 'center' };    // POSITION
@@ -1777,18 +1774,18 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
     let rows; // Changed 'result' to 'rows' for clarity after destructuring
     let user;   // Declare 'user' here as well, to ensure scope if no user is found
  
-	// console.log('Value of region:', region);
-	// console.log('Type of region:', typeof region);
-	// console.log('Is region truthy?', !!region); // Converts to boolean
-	// console.log('Is region.trim() empty?', (region && region.trim() === '')); // Only if region is truthy
+    // console.log('Value of region:', region);
+    // console.log('Type of region:', typeof region);
+    // console.log('Is region truthy?', !!region); // Converts to boolean
+    // console.log('Is region.trim() empty?', (region && region.trim() === '')); // Only if region is truthy
 
-	if (typeof region === 'string' && region.toLowerCase() === 'null') {
-		region = null; // Convert the string "null" to the actual null value
-	}
-	// Or handle empty string inputs similarly if they might come as "undefined" string
-	if (typeof region === 'string' && region.toLowerCase() === 'undefined') {
-		region = undefined;
-	}
+    if (typeof region === 'string' && region.toLowerCase() === 'null') {
+        region = null; // Convert the string "null" to the actual null value
+    }
+    // Or handle empty string inputs similarly if they might come as "undefined" string
+    if (typeof region === 'string' && region.toLowerCase() === 'undefined') {
+        region = undefined;
+    }
 
     try {
          // Check if region is valid
@@ -1802,7 +1799,7 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
             
             //console.log(sql, rows[0]);
 
-		//if region:null	//======LOGIN TO OLD USERS TABLE
+        //if region:null	//======LOGIN TO OLD USERS TABLE
         } else {
             const sql = `select * from asn_users where email=? and pwd=? and active=1`; // Assuming 'active' is a column to check if the user is active
             
@@ -1815,33 +1812,33 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
         if (rows && rows.length > 0) {
             user = rows[0]; // Get the first user object from the rows array
 
-			// --- STEP 2: Conditional Re-query for Region based on grp_id ---
-			if (user.grp_id === 1) { // If the user is a rider (or grp_id 1)
-				console.log('User is a rider (grp_id 1). Fetching region from asn_hub...');
+            // --- STEP 2: Conditional Re-query for Region based on grp_id ---
+            if (user.grp_id === 1) { // If the user is a rider (or grp_id 1)
+                console.log('User is a rider (grp_id 1). Fetching region from asn_hub...');
 
-				// Ensure the user has a 'hub' value to query with
-				if (user.hub) {
-					// Query asn_hub using the 'hub' field from asn_users
-					const hubRegionSql = `SELECT region FROM asn_hub WHERE hub = ?`;
-					
+                // Ensure the user has a 'hub' value to query with
+                if (user.hub) {
+                    // Query asn_hub using the 'hub' field from asn_users
+                    const hubRegionSql = `SELECT region FROM asn_hub WHERE hub = ?`;
+                    
                     // Refactored: Destructure result
                     const [hubRows] = await db.query(hubRegionSql, [user.hub]);
 
-					if (hubRows && hubRows.length > 0) {
-						// Get the region value from asn_hub and attach it to the user object
-						user.region = hubRows[0].region; 
-						console.log('Rider region fetched from asn_hub:', user.region);
-					} else {
-						console.log('No matching region found in asn_hub for user.hub:', user.hub);
-						// You might want to set a default or null here if no region is found
-						user.region = null; 
-					}
-				} else {
-					console.log('Rider (grp_id 1) has no "hub" assigned in asn_users table.');
-					user.region = null; // No hub to look up, so no region
-				}
+                    if (hubRows && hubRows.length > 0) {
+                        // Get the region value from asn_hub and attach it to the user object
+                        user.region = hubRows[0].region; 
+                        console.log('Rider region fetched from asn_hub:', user.region);
+                    } else {
+                        console.log('No matching region found in asn_hub for user.hub:', user.hub);
+                        // You might want to set a default or null here if no region is found
+                        user.region = null; 
+                    }
+                } else {
+                    console.log('Rider (grp_id 1) has no "hub" assigned in asn_users table.');
+                    user.region = null; // No hub to look up, so no region
+                }
 
-			}//eif
+            }//eif
 
 
             console.log('User found:', user.email, user.region); // Log for debugging
@@ -1856,16 +1853,16 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
                 pic: user.pic || null,
                 ip_addy: '',
                 hub: user.hub || null,
-				besi_id: user.besi_id || null,
-				ocw_id: user.ocw_id ||  null,
-				jms_id: user.jms_id || null,
+                besi_id: user.besi_id || null,
+                ocw_id: user.ocw_id ||  null,
+                jms_id: user.jms_id || null,
                 id: user.id,
                 region: user.region || region,
                 position: user.position || user.position_code,
                 found: true
             };
             aData.push(obj);
-			console.log(aData)
+            console.log(aData)
             return res.status(200).json(aData);
 
         } else {
@@ -2019,140 +2016,137 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
 
 //==== GET initial chart data
 router.get('/initialchart', async(req,res)=>{
-	//return res.status(200).json()
-	const retdata = {success:'ok'}
-	//get chart data
-	getChartData(req, res, retdata )
+    //return res.status(200).json()
+    const retdata = {success:'ok'}
+    //get chart data
+    getChartData(req, res, retdata )
 
 })
 
 //=== date funcs====
 const nuDateMysql=(date)=>{
-	const pad=(n)=> n < 10 ? '0' + n : n;
-	
-	return date.getFullYear()+'-'+
-	pad(date.getMonth()+1)+'-'+
-	pad(date.getDate())+'-'+
-	pad(date.getHours())+':'+
-	pad(date.getMinutes())+':'+
-	pad(date.getSeconds());
+    const pad=(n)=> n < 10 ? '0' + n : n;
+    
+    return date.getFullYear()+'-'+
+    pad(date.getMonth()+1)+'-'+
+    pad(date.getDate())+'-'+
+    pad(date.getHours())+':'+
+    pad(date.getMinutes())+':'+
+    pad(date.getSeconds());
 }
 
 const nuDate = () =>{
 
-    // 1. Get current UTC time
-    const now = new Date();
-    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    //*** USE THIS FOR LOCALHOST NODEJS */
+
+    // const now = new Date()
+    // const nuDate = now.toISOString().slice(0,10)
     
-    // 2. Manually add 8 hours for Manila (8 * 60 * 60 * 1000)
-    const manilaMs = utcMs + (8 * 3600000);
-    const manilaDate = new Date(manilaMs);
+    // const localtime = nuDateMysql(now)
 
-    // 3. Format YYYY-MM-DD
-    const yyyy = manilaDate.getFullYear();
-    const mm = String(manilaDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(manilaDate.getDate()).padStart(2, '0');
-    const dateStr = `${yyyy}-${mm}-${dd}`;
+    // return[ nuDate, localtime]
 
-    // 4. Format HH:mm:ss
-    const hh = String(manilaDate.getHours()).padStart(2, '0');
-    const min = String(manilaDate.getMinutes()).padStart(2, '0');
-    const ss = String(manilaDate.getSeconds()).padStart(2, '0');
+    /* === WE USE THIS FOR RENDER.COM VERSION
+    */
+    const offset = 8
+    const malidate = new Date()
+    const tamadate = new Date(malidate.getTime()+offset * 60 * 60 * 1000)
+    const nuDate = tamadate.toISOString().slice(0,10)
     
-    const fullDateTime = `${dateStr} ${hh}:${min}:${ss}`;
+    //const datetimestr = nuDateMysql(tamadate)
 
-    return [dateStr, fullDateTime];
+    return [nuDate, tamadate]
+    
 }
-
 
 //============save LOGIN FIRST====
 router.post('/savetologin/:empid', async (req, res) => {
-	//console.log('saving to login....', req.body)
-	console.log('=========SAVING TO LOGIN()============',req.params.empid)
-	
-	try {
-		const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
-	
-		const [datestr, datetimestr] = nuDate()
+    //console.log('saving to login....', req.body)
+    console.log('=========SAVING TO LOGIN()============',req.params.empid)
+    
+    try {
+        const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
+    
+        const [datestr, datetimestr] = nuDate()
 
-    	const [rows, fields] = await db.query(sql, [ 
-					parseInt(req.params.empid), 
-					parseInt(req.body.f_parcel), 
-					req.body.transnumber, 
-					datestr,
-					datetimestr
-				]);
+        const [rows, fields] = await db.query(sql, [ 
+                    parseInt(req.params.empid), 
+                    parseInt(req.body.f_parcel), 
+                    req.body.transnumber, 
+                    datestr,
+                    datetimestr
+                ]);
 
-		const retdata = {success:'ok'} 
-		//get chart data
-		getChartData(req, res, retdata )
+        const retdata = {success:'ok'} 
+        //get chart data
+        getChartData(req, res, retdata )
 
-		console.log("SAVING LOGIN gettingchart data")
+        console.log("SAVING LOGIN gettingchart data")
 
-	} catch (err) {
-		console.error('Error:', err);
+    } catch (err) {
+        console.error('Error:', err);
 
-		if(err.code === 'ER_DUP_ENTRY'){
-			return res.status(200).json({success:'fail',msg:'YOU ALREADY HAVE A DATA SAVED FOR TODAY!!!'})
-		//return res.status(500).json({error:"error!"})
-		}else{
-			return res.status(200).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
-		}
-		
-	}
+        if(err.code === 'ER_DUP_ENTRY'){
+            return res.status(200).json({success:'fail',msg:'YOU ALREADY HAVE A DATA SAVED FOR TODAY!!!'})
+        //return res.status(500).json({error:"error!"})
+        }else{
+            return res.status(200).json({success:'fail',msg:'DATABASE ERROR, PLEASE TRY AGAIN!!!'})
+        }
+        
+    }
 
 })
 //===========END LOGIN SAVE====
 
 //=============ADD RIDER TRANSACTION J&T GRP====//
 router.post('/savetransaction/:empid', async (req, res) => {
-	//console.log('==SAVE TRANSACTION INFO',req.body)
-	console.log('=========SAVE TRANSACTION INFO========',req.params.empid,', ',req.body.ff_transnumber)
-	
- 	try {
-		const [datestr, datetimestr] = nuDate()
+    //console.log('==SAVE TRANSACTION INFO',req.body)
+    console.log('=========SAVE TRANSACTION INFO========',req.params.empid,', ',req.body.ff_transnumber)
+    
+    try {
+        const [datestr, datetimestr] = nuDate()
 
-		const sql = ` UPDATE asn_transaction 
-			SET 
-			parcel=?,
-			actual_parcel =?, 
-			amount = ?, 
-			actual_amount = ?, 
-			remarks = ? ,
-			logout_time = ?
-			WHERE emp_id = ?
-			and transaction_number = ? `
+        const sql = ` UPDATE asn_transaction 
+            SET 
+            parcel=?,
+            actual_parcel =?, 
+            amount = ?, 
+            actual_amount = ?, 
+            remarks = ? ,
+            logout_time = ?
+            WHERE emp_id = ?
+            and transaction_number = ? `
 
-		const escapedText = req.body.ff_remarks.replace(/\r\n|\r|\n/g, ','); // Replace all newline variations with <br>
-					
-		const [rows, fields] = await db.query(sql , [	
-					parseInt(req.body.x_parcel),
-					parseInt(req.body.ff_parcel),
-					parseFloat(req.body.f_amount), 
-					parseFloat(req.body.ff_amount), 
-					escapedText	,
-					datetimestr,
-					parseInt(req.params.empid),
-					req.body.ff_transnumber
-				]);
+        const escapedText = req.body.ff_remarks.replace(/\r\n|\r|\n/g, ','); // Replace all newline variations with <br>
+                    
+        const [rows, fields] = await db.query(sql , [	
+                    parseInt(req.body.x_parcel),
+                    parseInt(req.body.ff_parcel),
+                    parseFloat(req.body.f_amount), 
+                    parseFloat(req.body.ff_amount), 
+                    escapedText	,
+                    datetimestr,
+                    parseInt(req.params.empid),
+                    req.body.ff_transnumber
+                ]);
 
-		const retdata = {
-			message: "Transaction added Successfully!",
-			voice:"Transaction Added Successfully!",
-			status:true
-		}
+        const retdata = {
+            message: "Transaction added Successfully!",
+            voice:"Transaction Added Successfully!",
+            status:true
+        }
 
-		//get chart data
-		getChartData(req, res, retdata )
+        //get chart data
+        getChartData(req, res, retdata )
 
-	} catch (err) {
-		console.error("UPDATE INSERT error", err);
-		//results[0]
-		return res.status(200).json({						
-			status:false
-		})	
-	
-	}
+    } catch (err) {
+        console.error("UPDATE INSERT error", err);
+        //results[0]
+        return res.status(200).json({						
+            status:false
+        })	
+    
+    }
  
 })
 
@@ -2160,112 +2154,112 @@ router.post('/savetransaction/:empid', async (req, res) => {
 //===get chart data
 const getChartData = async(req,res, retdata) =>{
 
-	try {
+    try {
 
-		const [datestr, datetimestr] = nuDate()
-		
-		//=== GET REALTIME DATA========
-		sql = `SELECT 
-			a.region,
-			count(c.xname) as reg,
-			count(b.emp_id) as logged,
-			COALESCE(CAST(round( count(b.emp_id)  / count(c.xname) *100,0) AS SIGNED),0)  as attendance_pct,
-			COALESCE(CAST(round(SUM(b.parcel),0)AS SIGNED),0) AS parcel,
-			COALESCE(CAST(round(SUM(b.actual_parcel),0)AS SIGNED), 0) AS parcel_delivered,
-			COALESCE(round(SUM(b.amount),2), 0) AS amount,
-			COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted,
-			COALESCE(CAST(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0)AS SIGNED),0) as qty_pct
-			FROM asn_hub a
-			LEFT JOIN asn_users c 
-			ON c.hub = a.hub
-			LEFT JOIN asn_transaction b 
-			ON b.emp_id = c.id
-			and b.created_at = '${datestr}' 
-			and c.grp_id = 1 and c.active = 1  
-			GROUP BY a.region 
-			ORDER by a.region;`
+        const [datestr, datetimestr] = nuDate()
+        
+        //=== GET REALTIME DATA========
+        sql = `SELECT 
+            a.region,
+            count(c.xname) as reg,
+            count(b.emp_id) as logged,
+            COALESCE(CAST(round( count(b.emp_id)  / count(c.xname) *100,0) AS SIGNED),0)  as attendance_pct,
+            COALESCE(CAST(round(SUM(b.parcel),0)AS SIGNED),0) AS parcel,
+            COALESCE(CAST(round(SUM(b.actual_parcel),0)AS SIGNED), 0) AS parcel_delivered,
+            COALESCE(round(SUM(b.amount),2), 0) AS amount,
+            COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted,
+            COALESCE(CAST(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0)AS SIGNED),0) as qty_pct
+            FROM asn_hub a
+            LEFT JOIN asn_users c 
+            ON c.hub = a.hub
+            LEFT JOIN asn_transaction b 
+            ON b.emp_id = c.id
+            and b.created_at = '${datestr}' 
+            and c.grp_id = 1 and c.active = 1  
+            GROUP BY a.region 
+            ORDER by a.region;`
 
-		const [result, fields] = await db.query(sql);
-		
-		res.status(200).json( { success:'ok',data:result} )
+        const [result, fields] = await db.query(sql);
+        
+        res.status(200).json( { success:'ok',data:result} )
 
 
-	} catch (err) {
-		console.error("get data error getchartdata()", err);
-		//results[0].
-		return res.send(500).json({						
-			error:err
-		})
-	}
+    } catch (err) {
+        console.error("get data error getchartdata()", err);
+        //results[0].
+        return res.send(500).json({						
+            error:err
+        })
+    }
 
 
 }//end func
 
 //===socket emit
 const sendSocket = (xdata) => {
-	io.emit('potek', xdata)
-	console.log('io.emit sakses',xdata)
+    io.emit('potek', xdata)
+    console.log('io.emit sakses',xdata)
 }
 
 
 //===== piechart for rider====// 
 router.get('/getpiedata/:empid', async(req,res)=>{
-	try {
+    try {
 
-		var series = new Date() 
-		var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
-		var yyyy = series.getFullYear()
+        var series = new Date() 
+        var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
+        var yyyy = series.getFullYear()
 
-		series = yyyy+'-'+mm
-		
-		console.log('/getpiedata()')
-		
-		const sql =`select 
-			round( ( sum(actual_parcel) / sum(parcel) )   * 100 ) as delivered_pct,
-			round( 100 - ( sum(actual_parcel) / sum(parcel) ) * 100 ) as undelivered_pct,
-			created_at,
-			emp_id
-			from asn_transaction
-			where SUBSTRING(created_at,1,7) like '${series}%' 
-			and emp_id ='${req.params.empid}' `
-	
-		const [results, fields] = await db.query( sql );
-		
-		res.status(200).json({data:results})
+        series = yyyy+'-'+mm
+        
+        console.log('/getpiedata()')
+        
+        const sql =`select 
+            round( ( sum(actual_parcel) / sum(parcel) )   * 100 ) as delivered_pct,
+            round( 100 - ( sum(actual_parcel) / sum(parcel) ) * 100 ) as undelivered_pct,
+            created_at,
+            emp_id
+            from asn_transaction
+            where SUBSTRING(created_at,1,7) like '${series}%' 
+            and emp_id ='${req.params.empid}' `
+    
+        const [results, fields] = await db.query( sql );
+        
+        res.status(200).json({data:results})
 
-	} catch (err) {
-		console.error('Error:', err);
-		res.status(500).send('Error occurred');
-	}
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
 
 })
 //===== end piechart for rider====//
 
 //===test menu-submenu array->json--->
 router.get('/xmenu/:grpid', async(req,res)=>{
-	connectDb()
+    connectDb()
     .then((db)=>{ 
 
-		sql2 =`SELECT 
-			grp_id,
-			menu, menu_icon,
-			JSON_ARRAYAGG(
-						JSON_OBJECT(
-							'sub', submenu,
-							'icon', submenu_icon
-						)
-					) AS list
-			FROM asn_menu 
-			WHERE grp_id = ${req.params.grpid}`
+        sql2 =`SELECT 
+            grp_id,
+            menu, menu_icon,
+            JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'sub', submenu,
+                            'icon', submenu_icon
+                        )
+                    ) AS list
+            FROM asn_menu 
+            WHERE grp_id = ${req.params.grpid}`
 
-		//console.log(sql)
-		console.log(sql2)
+        //console.log(sql)
+        console.log(sql2)
 
-		db.query( sql2 , null , (error, results)=>{
-			console.log( error,results )
-		})
+        db.query( sql2 , null , (error, results)=>{
+            console.log( error,results )
+        })
 
-	}).catch((error)=>{
+    }).catch((error)=>{
         res.status(500).json({error:'Error'})
     }) 
 
@@ -2274,25 +2268,25 @@ router.get('/xmenu/:grpid', async(req,res)=>{
 //===test menu-submenu array->json--->
 router.get('/menu/:grpid', async(req,res)=>{
 
-	try {
-		sql = `SELECT menu,
-			menu_icon,
-			grouplist, 
-			JSON_ARRAYAGG( 
-			JSON_OBJECT( 'sub', submenu, 'icon', submenu_icon, 'href', href )) AS list 
-			FROM asn_menu 
-			WHERE FIND_IN_SET('${req.params.grpid}', grouplist)> 0 
-			GROUP BY menu 
-			ORDER BY sequence;`
-		
-		const [results, fields] = await db.query(sql);
-		
-		res.status(200).json( results )
+    try {
+        sql = `SELECT menu,
+            menu_icon,
+            grouplist, 
+            JSON_ARRAYAGG( 
+            JSON_OBJECT( 'sub', submenu, 'icon', submenu_icon, 'href', href )) AS list 
+            FROM asn_menu 
+            WHERE FIND_IN_SET('${req.params.grpid}', grouplist)> 0 
+            GROUP BY menu 
+            ORDER BY sequence;`
+        
+        const [results, fields] = await db.query(sql);
+        
+        res.status(200).json( results )
 
-	} catch (err) {
-		console.error('Error:', err);
-		res.status(500).send('Error occurred');
-	}
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Error occurred');
+    }
 
 })
 
@@ -2300,178 +2294,178 @@ router.get('/menu/:grpid', async(req,res)=>{
 //==== for grid monthly transaction riders =======//
 router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 
-	let connection;
-	var series = new Date() 
-	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
-	var yyyy = series.getFullYear()
+    let connection;
+    var series = new Date() 
+    var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
+    var yyyy = series.getFullYear()
 
-	const xseries = yyyy+'-'+mm +'-01'
-	const series2 = yyyy+'-'+mm
+    const xseries = yyyy+'-'+mm +'-01'
+    const series2 = yyyy+'-'+mm
 
-	if(typeof req.params.empid === 'undefined'){
-		return res.status(500).json({error:'Error! Please Try Again!'})
-	}
+    if(typeof req.params.empid === 'undefined'){
+        return res.status(500).json({error:'Error! Please Try Again!'})
+    }
 
-	try {
-		// Get a connection from the pool
-		connection = await db.getConnection();
+    try {
+        // Get a connection from the pool
+        connection = await db.getConnection();
 
-		// Set your SQL statements
-		sql = `
-			select DATE_FORMAT(a.Dates,'%Y-%m-%d') as Dates
-			from ( select last_day('${xseries}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
-			from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
-			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
-			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
-			where a.Dates between '${xseries}' and last_day('${xseries}') order by a.Dates`
+        // Set your SQL statements
+        sql = `
+            select DATE_FORMAT(a.Dates,'%Y-%m-%d') as Dates
+            from ( select last_day('${xseries}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
+            from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
+            join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
+            join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
+            where a.Dates between '${xseries}' and last_day('${xseries}') order by a.Dates`
 
-		sql2 =`SELECT id,emp_id,
-				transaction_number,
-				sum(parcel) as parcel,
-				sum(actual_parcel) as actual_parcel,
-				sum(amount) as amount,
-				sum(actual_amount) as actual_amount,
-				remarks,
-				DATE_FORMAT(created_at,'%Y-%m-%d') as created_at
-				FROM asn_transaction
-				WHERE SUBSTRING(created_at,1,7) like '${series2}%' 
-				and emp_id =${req.params.empid} 
-				GROUP BY DATE_FORMAT(created_at,'%Y-%m-%d') `	 
+        sql2 =`SELECT id,emp_id,
+                transaction_number,
+                sum(parcel) as parcel,
+                sum(actual_parcel) as actual_parcel,
+                sum(amount) as amount,
+                sum(actual_amount) as actual_amount,
+                remarks,
+                DATE_FORMAT(created_at,'%Y-%m-%d') as created_at
+                FROM asn_transaction
+                WHERE SUBSTRING(created_at,1,7) like '${series2}%' 
+                and emp_id =${req.params.empid} 
+                GROUP BY DATE_FORMAT(created_at,'%Y-%m-%d') `	 
 
-		// Execute the queries
-		const [results] = await connection.query(`${sql}; ${sql2}`, [null, null]);
+        // Execute the queries
+        const [results] = await connection.query(`${sql}; ${sql2}`, [null, null]);
 
-		// Process results
-		const results0 = results[0];
-		const results1 = results[1];
+        // Process results
+        const results0 = results[0];
+        const results1 = results[1];
 
-		for (let zkey in results0) {
-			try {
-				const transIdx = results1.findIndex(x => x.created_at === results0[zkey].Dates);
-				results0[zkey].Dates = `${results0[zkey].Dates}`;
+        for (let zkey in results0) {
+            try {
+                const transIdx = results1.findIndex(x => x.created_at === results0[zkey].Dates);
+                results0[zkey].Dates = `${results0[zkey].Dates}`;
 
-				if (transIdx < 0) {
-					// no record
-					results0[zkey].parcel = 0;
-					results0[zkey].delivered = 0;
-					results0[zkey].total_amount = 0;
-					results0[zkey].amount_remitted = 0;
-					results0[zkey].remarks = "";
-				} else {
-					results0[zkey].parcel = results1[transIdx].parcel;
-					results0[zkey].delivered = `${results1[transIdx].actual_parcel}`;
-					results0[zkey].total_amount = parseFloat(results1[transIdx].amount);
-					results0[zkey].amount_remitted = parseFloat(results1[transIdx].actual_amount);
-					results0[zkey].remarks = results1[transIdx].remarks;
-				}
-			} catch (innerErr) {
-				// handle processing errors
-				throw innerErr; // propagate
-			}
-		}
+                if (transIdx < 0) {
+                    // no record
+                    results0[zkey].parcel = 0;
+                    results0[zkey].delivered = 0;
+                    results0[zkey].total_amount = 0;
+                    results0[zkey].amount_remitted = 0;
+                    results0[zkey].remarks = "";
+                } else {
+                    results0[zkey].parcel = results1[transIdx].parcel;
+                    results0[zkey].delivered = `${results1[transIdx].actual_parcel}`;
+                    results0[zkey].total_amount = parseFloat(results1[transIdx].amount);
+                    results0[zkey].amount_remitted = parseFloat(results1[transIdx].actual_amount);
+                    results0[zkey].remarks = results1[transIdx].remarks;
+                }
+            } catch (innerErr) {
+                // handle processing errors
+                throw innerErr; // propagate
+            }
+        }
 
-		// Done, send response
-		res.status(200).json(results0);
-		
-	} catch (err) {
-		console.error('Error in route:', err);
-		res.status(500).json({ error: 'Server Error' });
-	} finally {
-		if (connection) {
-		connection.release(); // release back to pool
-		}
-	}
+        // Done, send response
+        res.status(200).json(results0);
+        
+    } catch (err) {
+        console.error('Error in route:', err);
+        res.status(500).json({ error: 'Server Error' });
+    } finally {
+        if (connection) {
+        connection.release(); // release back to pool
+        }
+    }
 })
 
 //============= get monthly transaction riders =======//
 router.get('/getmonthlytransaction/:empid', async(req,res)=>{
-	var series = new Date() 
-	var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
-	var yyyy = series.getFullYear()
+    var series = new Date() 
+    var mm = String( series.getMonth() + 1).padStart(2, '0') //January is 0!
+    var yyyy = series.getFullYear()
 
-	series = yyyy+'-'+mm +'-01'
-	const series2 = yyyy+'-'+mm
+    series = yyyy+'-'+mm +'-01'
+    const series2 = yyyy+'-'+mm
 
-	//console.log( 'series2 ',series2 )
+    //console.log( 'series2 ',series2 )
 
-	let sql, sql2
+    let sql, sql2
 
-	connectDb()
+    connectDb()
     .then((db)=>{ 
 
-		//====take-out comma after sql statement it will error if multiple statements is set to true
-		//DATE_FORMAT(a.Dates,'%d-%b %Y, %a') as Dates
-		sql = `
-			select DATE_FORMAT(a.Dates,'%Y-%m-%d') as Dates
-			from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
-			from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
-			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
-			join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
-			where a.Dates between '${series}' and last_day('${series}') order by a.Dates`
+        //====take-out comma after sql statement it will error if multiple statements is set to true
+        //DATE_FORMAT(a.Dates,'%d-%b %Y, %a') as Dates
+        sql = `
+            select DATE_FORMAT(a.Dates,'%Y-%m-%d') as Dates
+            from ( select last_day('${series}') - INTERVAL (a.a + (10 * b.a) + (100 * c.a)) DAY as Dates
+            from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a cross 
+            join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b cross 
+            join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c ) a
+            where a.Dates between '${series}' and last_day('${series}') order by a.Dates`
 
-		sql2 =`SELECT * from
-				where SUBSTRING(created_at,1,7) like '${series2}%' 
-				and emp_id ='${req.params.empid}' `	
+        sql2 =`SELECT * from
+                where SUBSTRING(created_at,1,7) like '${series2}%' 
+                and emp_id ='${req.params.empid}' `	
 
-		//console.log(sql)
-		//console.log(sql2)
-		
-		let xtable = `
-			<table class="table"> 
-			<thead>
-				<tr>
-				<th>Date</th>
-				<th>Parcel</th>
-				<th>Delivered>
-				<th>Total Amount</th>
-				<th>Amount Remitted</th>
-				<th>Remarks</th>
-				</tr>
-			</thead>
-			<tbody>`
+        //console.log(sql)
+        //console.log(sql2)
+        
+        let xtable = `
+            <table class="table"> 
+            <thead>
+                <tr>
+                <th>Date</th>
+                <th>Parcel</th>
+                <th>Delivered>
+                <th>Total Amount</th>
+                <th>Amount Remitted</th>
+                <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>`
 
-		db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
+        db.query( `${sql}; ${sql2}`, [null, null], (error, results)=>{
 
-		console.log(results[0],results[1])
-			let trans, tick
+        console.log(results[0],results[1])
+            let trans, tick
 
-			for(let zkey in results[0]){
+            for(let zkey in results[0]){
 
-				trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
+                trans = results[1].findIndex( x => x.created_at === results[0][zkey].Dates)
 
-				if(trans<0){ //no record
-					tick= null
-				}else{
-					if( parseInt(results[1][trans].parcel) > parseInt(results[1][trans].actual_parcel) ){
-						tick=`<i class="ti ti-arrow-down-right text-danger"></i>&nbsp;${results[1][trans].actual_parcel}`
-					}else{
-						tick= results[1][trans].actual_parcel
-					}
-					
-				}//eif
-				
+                if(trans<0){ //no record
+                    tick= null
+                }else{
+                    if( parseInt(results[1][trans].parcel) > parseInt(results[1][trans].actual_parcel) ){
+                        tick=`<i class="ti ti-arrow-down-right text-danger"></i>&nbsp;${results[1][trans].actual_parcel}`
+                    }else{
+                        tick= results[1][trans].actual_parcel
+                    }
+                    
+                }//eif
+                
 
-				xtable+= `<tr>
-				<td>${results[0][zkey].Dates}&nbsp;${(trans>=0 ? '<i style="color:green;font-size:15px;" class="ti ti-check"></i>': '<i style="color:red;font-size:11px;" class="ti ti-x"></i>')}</td>
-				<td >${(trans>=0 ? results[1][trans].parcel : '&nbsp;')}</td>
-				<td >${(trans>=0 ? tick : '&nbsp;')}</td>
-				<td >${(trans>=0 ? results[1][trans].amount : '&nbsp;')}</td>
-				<td >${(trans>=0 ? results[1][trans].actual_amount : '&nbsp;')}</td>
-				<td >${(trans>=0 ? results[1][trans].remarks : '&nbsp;')}</td>
-				<tr>`
+                xtable+= `<tr>
+                <td>${results[0][zkey].Dates}&nbsp;${(trans>=0 ? '<i style="color:green;font-size:15px;" class="ti ti-check"></i>': '<i style="color:red;font-size:11px;" class="ti ti-x"></i>')}</td>
+                <td >${(trans>=0 ? results[1][trans].parcel : '&nbsp;')}</td>
+                <td >${(trans>=0 ? tick : '&nbsp;')}</td>
+                <td >${(trans>=0 ? results[1][trans].amount : '&nbsp;')}</td>
+                <td >${(trans>=0 ? results[1][trans].actual_amount : '&nbsp;')}</td>
+                <td >${(trans>=0 ? results[1][trans].remarks : '&nbsp;')}</td>
+                <tr>`
 
-			}//endfor
+            }//endfor
 
-			xtable+=	
-			`</tbody>
-			</table>`
+            xtable+=	
+            `</tbody>
+            </table>`
 
-			closeDb(db);//CLOSE connection
-			//console.log(xtable)
-			res.status(200).send(xtable)
-		})
-	
-	}).catch((error)=>{
+            closeDb(db);//CLOSE connection
+            //console.log(xtable)
+            res.status(200).send(xtable)
+        })
+    
+    }).catch((error)=>{
         res.status(500).json({error:'Error'})
     }) 
 })
@@ -2503,31 +2497,31 @@ async function generateEmpId( region, date_hired, poscode ) {
 
     console.log('*** getting sequence ***', sql, seriesRows )
     
-	let seriesData;
-	if (seriesRows.length && seriesRows[0]?.series_data) {
-		try {
-			seriesData = JSON.parse(seriesRows[0].series_data);
-		} catch (e) {
-			console.error('Failed to parse series_data JSON', e);
-			seriesData = [
-			{ "code": "01", "series": 1 },
-			{ "code": "02", "series": 1 },
+    let seriesData;
+    if (seriesRows.length && seriesRows[0]?.series_data) {
+        try {
+            seriesData = JSON.parse(seriesRows[0].series_data);
+        } catch (e) {
+            console.error('Failed to parse series_data JSON', e);
+            seriesData = [
+            { "code": "01", "series": 1 },
+            { "code": "02", "series": 1 },
             { "code": "04", "series": 1 },
             { "code": "08", "series": 1 },
             { "code": "06", "series": 1 },
             
-			];
-		}
-	} else {
-		seriesData = [
-			{ "code": "01", "series": 1 },
-			{ "code": "02", "series": 1 },
+            ];
+        }
+    } else {
+        seriesData = [
+            { "code": "01", "series": 1 },
+            { "code": "02", "series": 1 },
             { "code": "04", "series": 1 },
             { "code": "08", "series": 1 },
             { "code": "06", "series": 1 },
             
-			];
-	}
+            ];
+    }
 
     // Find the current series for this position, or initialize
     let seriesObj = seriesData.find(s => s.code === poscode);
@@ -2557,16 +2551,16 @@ async function generateEmpId( region, date_hired, poscode ) {
     const emp_id = `BE-${region.toUpperCase()}-${datePart}-${poscode}${seqStr}`;
 
     // Increment for next record
-	lastSeriesNumber += 1;
+    lastSeriesNumber += 1;
 
     // Now update the series table with latest number
-	seriesObj.series = lastSeriesNumber; // update the object
+    seriesObj.series = lastSeriesNumber; // update the object
     const usql = `UPDATE ${seriesTable} SET series_data = ? WHERE id=1`;
-	await conn.execute(usql, [JSON.stringify(seriesData)]);
+    await conn.execute(usql, [JSON.stringify(seriesData)]);
 
     console.log( '**** update sql series ',usql )
 
-	await conn.end();
+    await conn.end();
 
     return emp_id;
 }
@@ -2644,7 +2638,7 @@ async function processAndUploadFile(
         // --- 2. FTP Upload ---
         console.log(`DEBUG: Starting FTP upload to ${remoteTargetFolder}/${processedFileName}`);
         
-		client = new Client();
+        client = new Client();
         await client.access(ftpClientConfig);
         await client.ensureDir(remoteTargetFolder);
         await client.uploadFrom(localTempProcessedPath, `${processedFileName}`);
@@ -2684,7 +2678,7 @@ async function processAndUploadFile(
 //================ Refactored /newemppost Endpoint (UNCHANGED from previous, just using new helper) ==================//
 router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req, res) => {
 
-	console.log('===FIRING /newemppost Endpoint===', req.params);
+    console.log('===FIRING /newemppost Endpoint===', req.params);
 
     const { xregion, dateHired, jobTitle, mode, empid } = req.params;
 
@@ -2699,25 +2693,25 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
     }else{
         finalEmpId = empid // REFACTORED: Removed 'let' to use outer scope variable. For update mode, we assume empId is passed in params and skip generation
     }
-	//===============================================
+    //===============================================
 
     const busboy = Busboy({ headers: req.headers });
 
     let formFields = {};
     let filePromises = []; // Array to hold promises for each file's processing and FTP upload
-	let regions
+    let regions
 
     // --- Busboy: Collect Text Fields ---
     busboy.on('field', (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) => {
         
-		formFields[fieldname] = val;
+        formFields[fieldname] = val;
 
-		// Reset finalEmpid whenever a new field is received, to ensure it's only set after file processing
+        // Reset finalEmpid whenever a new field is received, to ensure it's only set after file processing
     });
 
     // --- Busboy: Collect File Data ---
     busboy.on('file', (fieldname, file, fileInfo) => { // <--- CHANGED: fileInfo instead of filenam
-		
+        
         // Check if fileInfo is an object and contains a filename string
         if (!fileInfo || typeof fileInfo.filename !== 'string' || fileInfo.filename === '') {
             file.resume();
@@ -2747,7 +2741,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                         let subFolderName;
 
                         const region = formFields.region;
-						regions = region
+                        regions = region
 
                         switch (region) {
                             case 'SMNL': subFolderName = 'ncr_smnl_emp'; break;
@@ -2808,9 +2802,9 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
 
         let dbConnection = null
 
-		let conn = await mysqls.createConnection(dbconfig);
+        let conn = await mysqls.createConnection(dbconfig);
 
-		//**** next time try these instead coz of db.js for transactions
+        //**** next time try these instead coz of db.js for transactions
         // 
         // In your route...
         // let conn;
@@ -2827,7 +2821,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
  
 
         try {
-			
+            
             await conn.beginTransaction(); // Start a transaction
            
             // REFACTORED: Logic to switch between INSERT and UPDATE
@@ -2846,7 +2840,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                     WHERE emp_id = ?`;
             }
 
-			console.log('*****BESI ID IS ****** ', finalEmpId, sql)
+            console.log('*****BESI ID IS ****** ', finalEmpId, sql)
             //const department = formFields.department || "General Operations";
             // Ensure date_reg is handled; it was added client-side in FormData
             // If it's not a direct input, ensure it's still added
@@ -2899,7 +2893,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
 
 
             //const dbResult = await dbConnection.query(sql, [
-			const dbResult = await conn.execute(sql, queryParams);
+            const dbResult = await conn.execute(sql, queryParams);
 
             console.log(`Database ${mode} successful, rowCount:`, dbResult[0].affectedRows);
 
@@ -2945,7 +2939,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 status: true,
                 employeeName: formFields.full_name.toUpperCase(),
                 employeeId: finalEmpId,
-				regionId: regions,
+                regionId: regions,
                 positionId: formFields.jobTitle,
                 dateHired: formFields.hireDate,
                 address: formFields.address,
@@ -3099,9 +3093,9 @@ router.post('/printpdf/:empid/:empname/:region/:position/:addy/:datehired', asyn
     console.log('===FIRING /printpdf Endpoint===');
 
     //****************** create pdf ***************************** */
-	mypdf.newCreatePDF( req.params.empid, req.params.empname, req.params.region, req.params.position, req.params.addy, req.params.datehired, res)
+    mypdf.newCreatePDF( req.params.empid, req.params.empname, req.params.region, req.params.position, req.params.addy, req.params.datehired, res)
 
-	//******************END DOWNLOAD ******************* */
+    //******************END DOWNLOAD ******************* */
 });
 
 //===============NEW ENDPOINT HRIS get location =================//
@@ -3593,769 +3587,769 @@ router.post('/uploadsignature/:empId/:regions', async (req, res) => { // Removed
 
 //================ post image ==================//
 router.post('/postimage/:transnumber/:region',   async (req, res) => {
-	console.log('===FIRING /postimage===', req.params.transnumber )
+    console.log('===FIRING /postimage===', req.params.transnumber )
 
-	const cRegion = req.params.region;
+    const cRegion = req.params.region;
 
-	const busboy = Busboy({ headers: req.headers });
-		
+    const busboy = Busboy({ headers: req.headers });
+        
 
-	//busboy.on(file) is triggered for each file in the form data
-	busboy.on('file', function(fieldname, file, filename) {
+    //busboy.on(file) is triggered for each file in the form data
+    busboy.on('file', function(fieldname, file, filename) {
 
-		console.log( 'firing busboy on file() ==', filename, fieldname, path.extname( filename.filename) )
-		
-		let extname
+        console.log( 'firing busboy on file() ==', filename, fieldname, path.extname( filename.filename) )
+        
+        let extname
 
-		if( path.extname(filename.filename) ===".jpg" ||  path.extname(filename.filename) ==='.jpeg' ||  path.extname(filename.filename) ==='.png' ||  path.extname(filename.filename) ==='.gif'){
-			extname = ".jpg"
-		}else{
-			extname = path.extname(filename.filename)
-		} 
-		
-		// fieldname is 'fileUpload'
-		//var fstream = fs.createWriteStream('ASN-'+ filename + extname);
-		var fstream = fs.createWriteStream(`${req.params.transnumber}` + extname);
+        if( path.extname(filename.filename) ===".jpg" ||  path.extname(filename.filename) ==='.jpeg' ||  path.extname(filename.filename) ==='.png' ||  path.extname(filename.filename) ==='.gif'){
+            extname = ".jpg"
+        }else{
+            extname = path.extname(filename.filename)
+        } 
+        
+        // fieldname is 'fileUpload'
+        //var fstream = fs.createWriteStream('ASN-'+ filename + extname);
+        var fstream = fs.createWriteStream(`${req.params.transnumber}` + extname);
 
-		file.pipe(fstream);
-			
-		console.log( 'Writing Stream... ', fstream.path )
+        file.pipe(fstream);
+            
+        console.log( 'Writing Stream... ', fstream.path )
 
-		file.resume()
+        file.resume()
 
-		fstream.on('close', function () {
-			console.log('Closing Stream, Trying to Up load...')
+        fstream.on('close', function () {
+            console.log('Closing Stream, Trying to Up load...')
 
-			console.log('Compacting file size.... ')
+            console.log('Compacting file size.... ')
 
-			var xfile = 'A_'+fstream.path
+            var xfile = 'A_'+fstream.path
 
-			sharp( fstream.path ).resize({width:500}).jpeg({ quality: 30 }).toFile(xfile, async(err,info)=>{
+            sharp( fstream.path ).resize({width:500}).jpeg({ quality: 30 }).toFile(xfile, async(err,info)=>{
 
-				//console.log(err,'?')
-				if(!err){
+                //console.log(err,'?')
+                if(!err){
 
-					const client = new Client()
-					//client.ftp.verbose = true
+                    const client = new Client()
+                    //client.ftp.verbose = true
 
-					// DEFINE YOUR TARGET FOLDER HERE
-					// Note: This path is relative to your FTP user's root. 
-					// If your FTP user lands in /, you might need "/public_html/html/my_images"
-					switch (cRegion) {
-						case 'NCR-SMNL':
-							subFolderName = 'ncr_smnl_rcpt';
-							break;
-						case 'NCR-CMNL':
-							subFolderName = 'ncr_cmnl_rcpt';
-							break;
-						case 'NCR-CMNVA':
-							subFolderName = 'ncr_cmnva_rcpt';
-							break;
+                    // DEFINE YOUR TARGET FOLDER HERE
+                    // Note: This path is relative to your FTP user's root. 
+                    // If your FTP user lands in /, you might need "/public_html/html/my_images"
+                    switch (cRegion) {
+                        case 'NCR-SMNL':
+                            subFolderName = 'ncr_smnl_rcpt';
+                            break;
+                        case 'NCR-CMNL':
+                            subFolderName = 'ncr_cmnl_rcpt';
+                            break;
+                        case 'NCR-CMNVA':
+                            subFolderName = 'ncr_cmnva_rcpt';
+                            break;
                         case 'LUZ-NELU':
-							subFolderName = 'luz_nelu_rcpt';
-							break;
+                            subFolderName = 'luz_nelu_rcpt';
+                            break;
                         case 'LUZ-NWLU':
-							subFolderName = 'luz_nwlu_rcpt';
-							break;
+                            subFolderName = 'luz_nwlu_rcpt';
+                            break;
                         case 'MIN':
                             subFolderName = 'min_rcpt';
                             break;    
                         case 'BSL-BICOL': // Example: for National Capital Region
-							subFolderName = 'bsl_bicol_rcpt';
-							break;
-						case 'BSL-SMARLEYTE': // Example: for National Capital Region
-							subFolderName = 'bsl_smarleyte_rcpt';
-							break;
-						case 'WVIS-CENTRAL':
-							subFolderName = 'wvis_central_rcpt';
-							break;
-						case 'WVIS-BACOLOD': // Example: for National Capital Region
-							subFolderName = 'wvis_bacolod_rcpt';
-							break;
-						case 'WVIS-PANAY': // Example: for National Capital Region
-							subFolderName = 'wvis_panay_rcpt';
-							break;		
-					}//end switch
+                            subFolderName = 'bsl_bicol_rcpt';
+                            break;
+                        case 'BSL-SMARLEYTE': // Example: for National Capital Region
+                            subFolderName = 'bsl_smarleyte_rcpt';
+                            break;
+                        case 'WVIS-CENTRAL':
+                            subFolderName = 'wvis_central_rcpt';
+                            break;
+                        case 'WVIS-BACOLOD': // Example: for National Capital Region
+                            subFolderName = 'wvis_bacolod_rcpt';
+                            break;
+                        case 'WVIS-PANAY': // Example: for National Capital Region
+                            subFolderName = 'wvis_panay_rcpt';
+                            break;		
+                    }//end switch
 
-					const remoteTargetFolder = subFolderName; // Set this to your desired target folder on the FTP server
+                    const remoteTargetFolder = subFolderName; // Set this to your desired target folder on the FTP server
 
-					try{
-						
-						// await client.access({
-						// 	host: "ftp.asianowapp.com",
-						// 	user: "u899193124.0811carlo",
-						// 	password: "u899193124.Asn",
-						// })
+                    try{
+                        
+                        // await client.access({
+                        // 	host: "ftp.asianowapp.com",
+                        // 	user: "u899193124.0811carlo",
+                        // 	password: "u899193124.Asn",
+                        // })
 
-						await client.access({
-							host: "ftp.asianowapp.com",
-							user: "u899193124.jtgrpcarlo",
-							password: "@Carlo0811",
-						})
+                        await client.access({
+                            host: "ftp.asianowapp.com",
+                            user: "u899193124.jtgrpcarlo",
+                            password: "@Carlo0811",
+                        })
 
-						client.trackProgress(info => {
-							console.log("file", info.name)
-							console.log("transferred overall", info.bytesOverall)
-						})
+                        client.trackProgress(info => {
+                            console.log("file", info.name)
+                            console.log("transferred overall", info.bytesOverall)
+                        })
 
-						// === THIS IS THE FIX ===
-						// 1. Ensure the remote directory exists and 'cd' (change directory) into it
-						//the ensureDir() method will create the directory if it doesn't exist, and then change into it
-						await client.ensureDir(remoteTargetFolder);
+                        // === THIS IS THE FIX ===
+                        // 1. Ensure the remote directory exists and 'cd' (change directory) into it
+                        //the ensureDir() method will create the directory if it doesn't exist, and then change into it
+                        await client.ensureDir(remoteTargetFolder);
 
-						await client.uploadFrom(xfile, xfile)
+                        await client.uploadFrom(xfile, xfile)
 
-						fs.unlink( xfile,()=>{
-							console.log('===Delete temp file on Hostinger==== ', xfile )
-	
-							fs.unlink( fstream.path ,()=>{
-								console.log('===Delete temp file on Hostinger==== ', fstream.path )
-								return res.status(200).send({ status: true });	
-							})	
-	
-						})
+                        fs.unlink( xfile,()=>{
+                            console.log('===Delete temp file on Hostinger==== ', xfile )
+    
+                            fs.unlink( fstream.path ,()=>{
+                                console.log('===Delete temp file on Hostinger==== ', fstream.path )
+                                return res.status(200).send({ status: true });	
+                            })	
+    
+                        })
 
-					}
-					catch(err){
-						console.log(err)
-					}
+                    }
+                    catch(err){
+                        console.log(err)
+                    }
 
-					client.close()
-				
-				
-				}//eif err
+                    client.close()
+                
+                
+                }//eif err
 
-			}) //end sharp
+            }) //end sharp
 
-		})//====end fstream
-	})//===end busboy on file 
-	
-	busboy.on('finish',()=>{
-		console.log('busboy finish')
-	}) //busboy on finish
+        })//====end fstream
+    })//===end busboy on file 
+    
+    busboy.on('finish',()=>{
+        console.log('busboy finish')
+    }) //busboy on finish
 
-	//write file
-	req.pipe(busboy)
-	
+    //write file
+    req.pipe(busboy)
+    
 }) //==============end post image =============//
 
 //==============busboy, scp2  for file uploading============
 
 router.post('/uploadpdf',  async(req, res)=>{
 
-	console.log('===FIRING uploadpdf()===')
+    console.log('===FIRING uploadpdf()===')
 
-	const busboy = Busboy({ headers: req.headers });
-		
-	busboy.on('file', function(fieldname, file, filename) {
-		console.log( 'firing busboy on file() ==', mycookie,filename)
+    const busboy = Busboy({ headers: req.headers });
+        
+    busboy.on('file', function(fieldname, file, filename) {
+        console.log( 'firing busboy on file() ==', mycookie,filename)
 
-		// fieldname is 'fileUpload'
-		var fstream = fs.createWriteStream(mycookie +'.pdf');
-		
-		file.pipe(fstream)
-			
-		console.log( 'Writing Stream... ', fstream.path )
+        // fieldname is 'fileUpload'
+        var fstream = fs.createWriteStream(mycookie +'.pdf');
+        
+        file.pipe(fstream)
+            
+        console.log( 'Writing Stream... ', fstream.path )
 
-		file.resume()
+        file.resume()
 
-		fstream.on('close', function () {
-			console.log('Closing Stream, Trying to Up load...')
-			ftpclient.scp(fstream.path, {
-				host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
-				//port: 3331, // defaults to 21
-				username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
-				password: "2Timothy@1:9_10",
-				path: 'public_html/osndp/'
-			}, function(err) {
-				console.log("File Uploaded!!!");
-				
-				//==delete file
-				fs.unlink( fstream.path,()=>{
-					console.log('Delete temp file ', fstream.path)
-					res.status(200).send({ success: true });
-				})
+        fstream.on('close', function () {
+            console.log('Closing Stream, Trying to Up load...')
+            ftpclient.scp(fstream.path, {
+                host: "gator3142.hostgator.com", //--this is orig ->process.env.FTPHOST,
+                //port: 3331, // defaults to 21
+                username: "vantazti", // this is orig-> process.env.FTPUSER, // defaults to "anonymous"
+                password: "2Timothy@1:9_10",
+                path: 'public_html/osndp/'
+            }, function(err) {
+                console.log("File Uploaded!!!");
+                
+                //==delete file
+                fs.unlink( fstream.path,()=>{
+                    console.log('Delete temp file ', fstream.path)
+                    res.status(200).send({ success: true });
+                })
 
-			})
-			
-		}); 
-	});
-	
-	busboy.on('finish',()=>{
-		console.log('busboy.on.finish() DONE!==')
-	}) //busboy on finish
+            })
+            
+        }); 
+    });
+    
+    busboy.on('finish',()=>{
+        console.log('busboy.on.finish() DONE!==')
+    }) //busboy on finish
 
-	//write file
-	req.pipe(busboy)
-		
+    //write file
+    req.pipe(busboy)
+        
 })//==end upload
 
 const csvParser = require('csv-parser');
 
 //=== FINAL FOR CLAIMS
 router.post('/claims', async( req, res) => {
-	console.log('===FIRING /claims===')
+    console.log('===FIRING /claims===')
 
-	const busboy = Busboy({ headers: req.headers });
-		
-	busboy.on('file', function(fieldname, file, filename) {
+    const busboy = Busboy({ headers: req.headers });
+        
+    busboy.on('file', function(fieldname, file, filename) {
 
-		console.log( 'firing busboy on Excel file() ==', filename, fieldname, path.extname( filename.filename) )
-		
-		let extname
+        console.log( 'firing busboy on Excel file() ==', filename, fieldname, path.extname( filename.filename) )
+        
+        let extname
 
-		if( path.extname(filename.filename) ===".csv"  ){
-			extname = ".csv"
-		}else{
-			extname = path.extname(filename.filename)
-		}
+        if( path.extname(filename.filename) ===".csv"  ){
+            extname = ".csv"
+        }else{
+            extname = path.extname(filename.filename)
+        }
 
-		const final_file =`ASN-${getRandomPin('0123456789',4)}.csv`
-		
-		// fieldname is 'fileUpload'
-		var fstream = fs.createWriteStream( final_file );
-		
-		file.pipe(fstream);
-			
-		console.log( 'Writing Excel file Stream... ', fstream.path )
+        const final_file =`ASN-${getRandomPin('0123456789',4)}.csv`
+        
+        // fieldname is 'fileUpload'
+        var fstream = fs.createWriteStream( final_file );
+        
+        file.pipe(fstream);
+            
+        console.log( 'Writing Excel file Stream... ', fstream.path )
 
-		file.resume()
+        file.resume()
 
-		fstream.on('close', async function () {
-			console.log('Closing Stream, Trying to Up load to POSTGRES...')
-			
-			const dbconfig  ={
+        fstream.on('close', async function () {
+            console.log('Closing Stream, Trying to Up load to POSTGRES...')
+            
+            const dbconfig  ={
                 host: 'srv1759.hstgr.io',
                 user: 'u899193124_asianow',
                 password: 'g12@c3M312c4',
                 database: 'u899193124_asianow'
             }
-			const conn = await mysqls.createConnection(dbconfig);
+            const conn = await mysqls.createConnection(dbconfig);
 
-			//console.log(conn)
-			fs.createReadStream(fstream.path)
-				.pipe(csvParser())
-				.on('data', async(row)=>{
-					//console.log('this is row',row)
-					const { batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, amt } = row ;
-					const query = `INSERT INTO asn_claims (batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, amount) 
-								VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-					//console.log( query ,batch_id,emp_id,full_name)
-					
-					await conn.execute( query , [batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, amt])
-					//await conn.end()							
-				})
-				.on('end', async()=>{
-					fs.unlinkSync(fstream.path); // Remove the file after processing
-					
-					await conn.end()
+            //console.log(conn)
+            fs.createReadStream(fstream.path)
+                .pipe(csvParser())
+                .on('data', async(row)=>{
+                    //console.log('this is row',row)
+                    const { batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, amt } = row ;
+                    const query = `INSERT INTO asn_claims (batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, amount) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+                    //console.log( query ,batch_id,emp_id,full_name)
+                    
+                    await conn.execute( query , [batch_id,emp_id,full_name, track_number, claims_reason, category, hubs_location, amt])
+                    //await conn.end()							
+                })
+                .on('end', async()=>{
+                    fs.unlinkSync(fstream.path); // Remove the file after processing
+                    
+                    await conn.end()
 
-			 		console.log('CLOSING STREAM.. CSV UPLOADED SUCCESSFULLY!')
-			 		return res.status(200).json({message:'Claims Upload Successfully!',status:true})
-				})
-				.on('error',(err)=>{
-					console.log('Error processing csv')
-					res.status(500).send('Error processing csv')
-				})
+                    console.log('CLOSING STREAM.. CSV UPLOADED SUCCESSFULLY!')
+                    return res.status(200).json({message:'Claims Upload Successfully!',status:true})
+                })
+                .on('error',(err)=>{
+                    console.log('Error processing csv')
+                    res.status(500).send('Error processing csv')
+                })
 
-		})//====end fstream
-	})//===end busboy on file 
-	
-	busboy.on('finish',()=>{
-		console.log('busboy finish')
-	}) //busboy on finish
+        })//====end fstream
+    })//===end busboy on file 
+    
+    busboy.on('finish',()=>{
+        console.log('busboy finish')
+    }) //busboy on finish
 
-	//write file
-	req.pipe(busboy)
-	
+    //write file
+    req.pipe(busboy)
+    
 })
 
 //===========BULK INSERT CSV================
 router.get('/copy-data', async (req, res) => {
-	try {
-		// You need to have a CSV file available to copy from
-		const filePath = '/path/to/your/file.csv';
-		
-		// You can read the file and use COPY FROM STDIN method
-		const client = await pool.connect();
-		const query = `COPY your_table FROM STDIN WITH (FORMAT csv)`;
+    try {
+        // You need to have a CSV file available to copy from
+        const filePath = '/path/to/your/file.csv';
+        
+        // You can read the file and use COPY FROM STDIN method
+        const client = await pool.connect();
+        const query = `COPY your_table FROM STDIN WITH (FORMAT csv)`;
 
-		const stream = client.query(copyFrom(query));
-		const fileStream = fs.createReadStream(filePath);
+        const stream = client.query(copyFrom(query));
+        const fileStream = fs.createReadStream(filePath);
 
-		fileStream.on('error', (error) => {
-		console.error('File stream error:', error);
-		res.status(500).send('Error reading the file');
-		});
+        fileStream.on('error', (error) => {
+        console.error('File stream error:', error);
+        res.status(500).send('Error reading the file');
+        });
 
-		stream.on('end', () => {
-		client.release();
-		res.status(200).send('Data copied successfully');
-		});
+        stream.on('end', () => {
+        client.release();
+        res.status(200).send('Data copied successfully');
+        });
 
-		stream.on('error', (error) => {
-		client.release();
-		console.error('Database stream error:', error);
-		res.status(500).send('Error copying data');
-		});
+        stream.on('error', (error) => {
+        client.release();
+        console.error('Database stream error:', error);
+        res.status(500).send('Error copying data');
+        });
 
-		fileStream.pipe(stream);
+        fileStream.pipe(stream);
 
-	} catch (error) {
-		console.error('Error in /copy-data:', error);
-		res.status(500).send('Error processing request');
-	}
+    } catch (error) {
+        console.error('Error in /copy-data:', error);
+        res.status(500).send('Error processing request');
+    }
 });
 
 //============END BULK INSERT CSV ===========
 
 //=================function getting drnumber ======//
 const drseq = () => {
-	var today = new Date() 
-	var dd = String(today.getDate()).padStart(2, '0')
-	var mm = String(today.getMonth() + 1).padStart(2, '0') //January is 0!
-	var yyyy = today.getFullYear()
+    var today = new Date() 
+    var dd = String(today.getDate()).padStart(2, '0')
+    var mm = String(today.getMonth() + 1).padStart(2, '0') //January is 0!
+    var yyyy = today.getFullYear()
 
-	today = yyyy+ mm +dd
+    today = yyyy+ mm +dd
 
-	const sqlu = "update dr_seq set sequence = sequence +1;"
-	connectDb()
-	.then((db)=>{
-		db.query(sqlu , null ,(error,results) => {	
-			//console.log('UPDATE DR SEQ', results)
-		})
-	})
+    const sqlu = "update dr_seq set sequence = sequence +1;"
+    connectDb()
+    .then((db)=>{
+        db.query(sqlu , null ,(error,results) => {	
+            //console.log('UPDATE DR SEQ', results)
+        })
+    })
 
-	return today
+    return today
 }
 
 //=====https://localhost:3000/q/6/2 
 router.get('/getlistpdf/:limit/:page', async(req,res) => {
-	
-	console.log(`firing getlistpdf/${req.params.limit}/${req.params.page}`)
+    
+    console.log(`firing getlistpdf/${req.params.limit}/${req.params.page}`)
 
-	const limit_num = 30 //take out Mar 27,2025 req.params.limit, make a hard value of 30
-	let nStart = 0	
-	let page = req.params.page
-	
-	connectDb() 
-	.then((db)=>{
-		
-		let sql = `SELECT distinct(a.emp_id) as emp_id,
-		a.full_name as rider,
-		round(sum( a.amount )) as total,
+    const limit_num = 30 //take out Mar 27,2025 req.params.limit, make a hard value of 30
+    let nStart = 0	
+    let page = req.params.page
+    
+    connectDb() 
+    .then((db)=>{
+        
+        let sql = `SELECT distinct(a.emp_id) as emp_id,
+        a.full_name as rider,
+        round(sum( a.amount )) as total,
         a.hubs_location as hub,
         (select distinct x.region from asn_spx_hubs x where x.hub = a.hubs_location limit 1) as region
-		from asn_claims a 
+        from asn_claims a 
         group by a.emp_id,a.pdf_batch
-		HAVING a.pdf_batch like 'ASN%'
-		order by a.pdf_batch asc; `
-		
-		//console.log(sql)
-		
-		let reccount = 0
-		
-		db.query( `${sql}`,null,(err,xresult)=>{
-			
-			if(!xresult){
-				res.send("<span class='text-primary'>** No Data Found!!!**</span>")
-			}else{
+        HAVING a.pdf_batch like 'ASN%'
+        order by a.pdf_batch asc; `
+        
+        //console.log(sql)
+        
+        let reccount = 0
+        
+        db.query( `${sql}`,null,(err,xresult)=>{
+            
+            if(!xresult){
+                res.send("<span class='text-primary'>** No Data Found!!!**</span>")
+            }else{
 
-				reccount = xresult.length
-				//==== for next
-				let aPage = []
-				let pages = Math.ceil( xresult.length / limit_num )
-				
-				nStart = 0
-				
-				for (let i = 0; i < pages; i++) {
-					aPage.push(nStart)
-					nStart += parseInt(limit_num)
-				}//==next
-				
-				//console.log('offset ',aPage)
-				//===get from json field 
-				let sql2 = 
-					`SELECT distinct(a.emp_id) as emp_id,
-					a.full_name as rider,
-					round(sum( a.amount )) as total,
-					a.hubs_location as hub,
-					a.pdf_batch,
-					(select distinct x.region from asn_spx_hubs x where x.hub = a.hubs_location limit 1) as region
-					from asn_claims a 
-					group by a.emp_id, a.pdf_batch
-					HAVING a.pdf_batch like 'ASN%'
-					order by a.pdf_batch asc
-					LIMIT ${limit_num} OFFSET ${aPage[page-1]};`
-				
-				//onsole.log(sql2)
-				
+                reccount = xresult.length
+                //==== for next
+                let aPage = []
+                let pages = Math.ceil( xresult.length / limit_num )
+                
+                nStart = 0
+                
+                for (let i = 0; i < pages; i++) {
+                    aPage.push(nStart)
+                    nStart += parseInt(limit_num)
+                }//==next
+                
+                //console.log('offset ',aPage)
+                //===get from json field 
+                let sql2 = 
+                    `SELECT distinct(a.emp_id) as emp_id,
+                    a.full_name as rider,
+                    round(sum( a.amount )) as total,
+                    a.hubs_location as hub,
+                    a.pdf_batch,
+                    (select distinct x.region from asn_spx_hubs x where x.hub = a.hubs_location limit 1) as region
+                    from asn_claims a 
+                    group by a.emp_id, a.pdf_batch
+                    HAVING a.pdf_batch like 'ASN%'
+                    order by a.pdf_batch asc
+                    LIMIT ${limit_num} OFFSET ${aPage[page-1]};`
+                
+                //onsole.log(sql2)
+                
 
-				db.query(`${sql2}`,null,(err,xdata)=>{
-				
-					let  xtable =
-					`<div class="col-lg-8">
-					<table class="table"> 
-					<thead>
-						<tr>
-						<th>Rider</th>
-						<th>Pdf Batch</th>
-						<th align=right>Amount</th>
-						</tr>
-					</thead>
-					<tbody>`
+                db.query(`${sql2}`,null,(err,xdata)=>{
+                
+                    let  xtable =
+                    `<div class="col-lg-8">
+                    <table class="table"> 
+                    <thead>
+                        <tr>
+                        <th>Rider</th>
+                        <th>Pdf Batch</th>
+                        <th align=right>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>`
 
-					
-					let randpct, issues
+                    
+                    let randpct, issues
 
-					for (let zkey in xdata){
+                    for (let zkey in xdata){
 
-						randpct = Math.floor((Math.random() * 100) + 1);
-						issues  = Math.floor((Math.random() * 15) + 1);
-						//let randpct2 = (100-randpct)y
-						//taken out <td>${data.rows[ikey].id}</td>
-						
-						xtable += `<tr>
-						<td>
-						${ xdata[zkey].rider}<br>
-						${ xdata[zkey].emp_id}<br>
-						( ${ xdata[zkey].region}, ${ xdata[zkey].hub} )<br> 
-						</td>
-						<td> ${ xdata[zkey].pdf_batch} </td>
-						<td align='right' valign='bottom'><b>${addCommas(parseFloat( xdata[zkey].total).toFixed(2))}</b></td>
-						</tr>`
-					}//=======end for
-					
-					
-					//console.log( xtable )
-					let xprev = ((page-1)>0?'':'disabled')
-					let xnext = ((page>=pages)?'disabled':'')
-					let mypagination = "", main = "", xclass = ""
-					//===mypagination is for pagination
-					
-					//===final pagination
-					mypagination+=`
-					<nav aria-label="Page navigation example">
-					  <ul class="pagination">`
-					
-					//==== previous link
-					mypagination += `<li class="page-item ${xprev}">
-					<a class="page-link" href="javascript:asn.getListPdf(${parseInt(req.params.page)-1 })">Previous</a></li>`
-					
-					for(let x=0; x < pages; x++){
-						
-						if( req.params.page==(x+1)){
-							xclass = "disabled"
-						}else{
-							xclass = ""
-						}
-						//==== number page
-						mypagination += `<li class="page-item ${xclass}">
-						<a class="page-link"  href="javascript:asn.getListPdf(${x+1})">${x+1}</a></li>`
-						
-					}//end for
-					
-					//=======next link
-					mypagination += `<li class="page-item ${xnext}">
-					<a class="page-link" href="javascript:asn.getListPdf(${parseInt(req.params.page)+1})">Next</a></li>`
-					
-					mypagination+=`
-					</ul>
-					</nav>`
-					
-					//=== if u add column in tables
-					// === add also colspan=??
-					xtable += `
-						<tr>
-						<td colspan=4 align='center'>
-						 ${mypagination}<div id='reccount' style='visibility:hidden' >${reccount}</div>
-						</td>
-						</tr>
-						</TBODY>
-					</table>
-					</div>`
-					
-					main +=`${xtable}`
-							
-					aPage.length = 0 //reset array
-					
-					closeDb(db)
+                        randpct = Math.floor((Math.random() * 100) + 1);
+                        issues  = Math.floor((Math.random() * 15) + 1);
+                        //let randpct2 = (100-randpct)y
+                        //taken out <td>${data.rows[ikey].id}</td>
+                        
+                        xtable += `<tr>
+                        <td>
+                        ${ xdata[zkey].rider}<br>
+                        ${ xdata[zkey].emp_id}<br>
+                        ( ${ xdata[zkey].region}, ${ xdata[zkey].hub} )<br> 
+                        </td>
+                        <td> ${ xdata[zkey].pdf_batch} </td>
+                        <td align='right' valign='bottom'><b>${addCommas(parseFloat( xdata[zkey].total).toFixed(2))}</b></td>
+                        </tr>`
+                    }//=======end for
+                    
+                    
+                    //console.log( xtable )
+                    let xprev = ((page-1)>0?'':'disabled')
+                    let xnext = ((page>=pages)?'disabled':'')
+                    let mypagination = "", main = "", xclass = ""
+                    //===mypagination is for pagination
+                    
+                    //===final pagination
+                    mypagination+=`
+                    <nav aria-label="Page navigation example">
+                      <ul class="pagination">`
+                    
+                    //==== previous link
+                    mypagination += `<li class="page-item ${xprev}">
+                    <a class="page-link" href="javascript:asn.getListPdf(${parseInt(req.params.page)-1 })">Previous</a></li>`
+                    
+                    for(let x=0; x < pages; x++){
+                        
+                        if( req.params.page==(x+1)){
+                            xclass = "disabled"
+                        }else{
+                            xclass = ""
+                        }
+                        //==== number page
+                        mypagination += `<li class="page-item ${xclass}">
+                        <a class="page-link"  href="javascript:asn.getListPdf(${x+1})">${x+1}</a></li>`
+                        
+                    }//end for
+                    
+                    //=======next link
+                    mypagination += `<li class="page-item ${xnext}">
+                    <a class="page-link" href="javascript:asn.getListPdf(${parseInt(req.params.page)+1})">Next</a></li>`
+                    
+                    mypagination+=`
+                    </ul>
+                    </nav>`
+                    
+                    //=== if u add column in tables
+                    // === add also colspan=??
+                    xtable += `
+                        <tr>
+                        <td colspan=4 align='center'>
+                         ${mypagination}<div id='reccount' style='visibility:hidden' >${reccount}</div>
+                        </td>
+                        </tr>
+                        </TBODY>
+                    </table>
+                    </div>`
+                    
+                    main +=`${xtable}`
+                            
+                    aPage.length = 0 //reset array
+                    
+                    closeDb(db)
 
-					//console.log( main )
-					res.send(main) //output result
-				})//endquery
-								
-			}//eif 
-		
-		})//==end db.query 
-		
-	}).catch((error)=>{
-		res.status(500).json({error:'No Fetch Docs'})
-	})		
+                    //console.log( main )
+                    res.send(main) //output result
+                })//endquery
+                                
+            }//eif 
+        
+        })//==end db.query 
+        
+    }).catch((error)=>{
+        res.status(500).json({error:'No Fetch Docs'})
+    })		
 
 })//end pagination
 
 
 const pdfBatch =  ( emp_id ) =>{
-	return new Promise((resolve, reject)=> {
-		const sql = `Select sequence from asn_pdf_sequence;`
-		let xcode, seq
-	
-		connectDb()
-		.then((db)=>{
-			db.query(`${sql}`,(error,results) => {
-				if(results.length>0){
-					
-					seq = results[0].sequence+1
-					//console.log(results,seq)
-					//console.log( seq.toString().padStart(5,"0") )
-					const usql = `update asn_pdf_sequence set sequence = ${seq}`
-					
-					db.query(`${usql}`,(error,udata) => {
-					})
-	
-					xcode =`ASN-${seq.toString().padStart(5,"0")}`
+    return new Promise((resolve, reject)=> {
+        const sql = `Select sequence from asn_pdf_sequence;`
+        let xcode, seq
+    
+        connectDb()
+        .then((db)=>{
+            db.query(`${sql}`,(error,results) => {
+                if(results.length>0){
+                    
+                    seq = results[0].sequence+1
+                    //console.log(results,seq)
+                    //console.log( seq.toString().padStart(5,"0") )
+                    const usql = `update asn_pdf_sequence set sequence = ${seq}`
+                    
+                    db.query(`${usql}`,(error,udata) => {
+                    })
+    
+                    xcode =`ASN-${seq.toString().padStart(5,"0")}`
 
-					
-				}
-	
-				closeDb(db)
-				//console.log(xcode)
-				resolve( xcode )
-				
-			})
-		}).catch((error)=>{
-			reject(error)
-			res.status(500).json({error:'Error'})
-		})
-	})
+                    
+                }
+    
+                closeDb(db)
+                //console.log(xcode)
+                resolve( xcode )
+                
+            })
+        }).catch((error)=>{
+            reject(error)
+            res.status(500).json({error:'Error'})
+        })
+    })
 
-	
+    
 }
 
 router.get('/pdfx', async(req,res)=>{
-	
-	 let xxx =  await pdfBatch('205214')
-	console.log('serial',xxx)
-	res.status(200).json({status:'ok'})
+    
+     let xxx =  await pdfBatch('205214')
+    console.log('serial',xxx)
+    res.status(200).json({status:'ok'})
 })
 
 
 //======= CHECK PDF FIRST BEFORE CREATING ==============
 router.get('/checkpdf/:e_num/:grp_id', async(req, res)=>{
 
-	//console.log(req.params.grp_id)
+    //console.log(req.params.grp_id)
 
-	if( req.params.grp_id!=="2"){ //if the one checking is not ARE COORDINATOR allow to re-print/download pdf
-		const sql = `Select emp_id,pdf_batch from asn_claims
-			where emp_id='${req.params.e_num}' 
-			order by emp_id`
+    if( req.params.grp_id!=="2"){ //if the one checking is not ARE COORDINATOR allow to re-print/download pdf
+        const sql = `Select emp_id,pdf_batch from asn_claims
+            where emp_id='${req.params.e_num}' 
+            order by emp_id`
 
-		connectDb()
-		.then((db)=>{
-			db.query(`${sql}`,async(error,results) => {	
-				if(results.length > 0){
-					console.log('OK TO REPRINT')
-					
-					closeDb(db) //close
-					res.status(200).json({status:true, batch:`${results[0].pdf_batch}`})
-				}
-			})
+        connectDb()
+        .then((db)=>{
+            db.query(`${sql}`,async(error,results) => {	
+                if(results.length > 0){
+                    console.log('OK TO REPRINT')
+                    
+                    closeDb(db) //close
+                    res.status(200).json({status:true, batch:`${results[0].pdf_batch}`})
+                }
+            })
 
-		}).catch((error)=>{
-			res.status(500).json({error:'Error'})
-		}) 
+        }).catch((error)=>{
+            res.status(500).json({error:'Error'})
+        }) 
 
-	}else{
+    }else{
 
-		const sql = `Select emp_id,pdf_batch from asn_claims
-			where emp_id='${req.params.e_num}' and
-			pdf_batch <> ''
-			order by emp_id`
+        const sql = `Select emp_id,pdf_batch from asn_claims
+            where emp_id='${req.params.e_num}' and
+            pdf_batch <> ''
+            order by emp_id`
 
-		connectDb()
-		.then((db)=>{
-			db.query(`${sql}`,async(error,results) => {	
-				if(results.length > 0){
-					console.log('FOUND!')
-					
-					closeDb(db) //close
+        connectDb()
+        .then((db)=>{
+            db.query(`${sql}`,async(error,results) => {	
+                if(results.length > 0){
+                    console.log('FOUND!')
+                    
+                    closeDb(db) //close
 
-					res.status(200).json({status:false, batch: results[0].pdf_batch})
-				}else{
-					const seq = await pdfBatch( req.params.e_num)
+                    res.status(200).json({status:false, batch: results[0].pdf_batch})
+                }else{
+                    const seq = await pdfBatch( req.params.e_num)
 
-					const sql2 = `UPDATE asn_claims SET pdf_batch ='${seq}'
-								where emp_id='${req.params.e_num}'`
-					
-					console.log(sql2)	
+                    const sql2 = `UPDATE asn_claims SET pdf_batch ='${seq}'
+                                where emp_id='${req.params.e_num}'`
+                    
+                    console.log(sql2)	
 
-					db.query(sql2, null, (error,xdata) => {
-						///console.log(xdata) xdata.affectedRows or changedRows
-					})
+                    db.query(sql2, null, (error,xdata) => {
+                        ///console.log(xdata) xdata.affectedRows or changedRows
+                    })
 
-					console.log('UPDATED DATABASE WITH PDFBATCH() GOOD TO DOWNLOAD!')
-					
-					closeDb(db)
-					res.status(200).json({status:true, batch:`${seq}`})
-					
-				}
-			})
+                    console.log('UPDATED DATABASE WITH PDFBATCH() GOOD TO DOWNLOAD!')
+                    
+                    closeDb(db)
+                    res.status(200).json({status:true, batch:`${seq}`})
+                    
+                }
+            })
 
-		}).catch((error)=>{
-			res.status(500).json({error:'Error'})
-		}) 
+        }).catch((error)=>{
+            res.status(500).json({error:'Error'})
+        }) 
 
-	}//eif
-	
-	
+    }//eif
+    
+    
 
 })
 
 //======= CREATE PDF
 router.get('/createpdf/:e_num/:batch', async(req, res)=>{
 
-	console.log('===createpdf()====', req.params.e_num)
-	const sql = `SELECT distinct(emp_id) as emp_id,
-	full_name as rider,
-	category,
-	hubs_location as hub, 
-	track_number as track,
-	claims_reason as reason,
-	sum( amount ) as total from asn_claims
-	group by full_name,emp_id,category,hubs_location, track_number,claims_reason
-	having emp_id='${req.params.e_num}'
-	order by full_name`
+    console.log('===createpdf()====', req.params.e_num)
+    const sql = `SELECT distinct(emp_id) as emp_id,
+    full_name as rider,
+    category,
+    hubs_location as hub, 
+    track_number as track,
+    claims_reason as reason,
+    sum( amount ) as total from asn_claims
+    group by full_name,emp_id,category,hubs_location, track_number,claims_reason
+    having emp_id='${req.params.e_num}'
+    order by full_name`
 
-	//console.log(sql )
+    //console.log(sql )
 
-	connectDb()
-	.then((db)=>{
-		db.query(`${sql}`,(error,results) => {	
-		
-			if ( results.length == 0) {   //data = array 
-				console.log('no rec')
-				closeDb(db);//CLOSE connection
-		
-				res.status(500).send('** No Record Yet! ***')
-		
-			}else{ 
-			
-				let xdata = []
+    connectDb()
+    .then((db)=>{
+        db.query(`${sql}`,(error,results) => {	
+        
+            if ( results.length == 0) {   //data = array 
+                console.log('no rec')
+                closeDb(db);//CLOSE connection
+        
+                res.status(500).send('** No Record Yet! ***')
+        
+            }else{ 
+            
+                let xdata = []
 
-				xdata = results //get result in array
-				const curr_date = strdates()
+                xdata = results //get result in array
+                const curr_date = strdates()
 
-				let total_amt = 0
-				for(let zkey in results){
-					
-					total_amt+=parseFloat(results[zkey].total)
-					results[zkey].total= parseFloat(results[zkey].total).toFixed(2) //change to decimal first
-					 
-				}//endfor
+                let total_amt = 0
+                for(let zkey in results){
+                    
+                    total_amt+=parseFloat(results[zkey].total)
+                    results[zkey].total= parseFloat(results[zkey].total).toFixed(2) //change to decimal first
+                     
+                }//endfor
 
-				let nFormatTotal = addCommas(parseFloat(total_amt).toFixed(2))
-				let nTotal = parseFloat(total_amt).toFixed(2)
+                let nFormatTotal = addCommas(parseFloat(total_amt).toFixed(2))
+                let nTotal = parseFloat(total_amt).toFixed(2)
 
-				//=== CREATE MEDRX ===========
-				asnpdf.reportpdf( xdata, curr_date,  nFormatTotal, nTotal, req.params.batch)
-				.then( reportfile =>{
-					console.log('REPORT PDF SUCCESS!', reportfile)
-					
-					//============ force download
-					res.download( reportfile, reportfile,(err)=>{
-						console.log('==downloading pdf===')
-						if(err){
-							console.error('Error in Downloading ',reportfile,err)
+                //=== CREATE MEDRX ===========
+                asnpdf.reportpdf( xdata, curr_date,  nFormatTotal, nTotal, req.params.batch)
+                .then( reportfile =>{
+                    console.log('REPORT PDF SUCCESS!', reportfile)
+                    
+                    //============ force download
+                    res.download( reportfile, reportfile,(err)=>{
+                        console.log('==downloading pdf===')
+                        if(err){
+                            console.error('Error in Downloading ',reportfile,err)
 
-							closeDb(db)
+                            closeDb(db)
 
-							res.status(500).send(`Error in Downloading ${reportfile}`)
-						}else{
+                            res.status(500).send(`Error in Downloading ${reportfile}`)
+                        }else{
 
-							closeDb(db)
-							
-						}
-					}) //===end res.download
-				})
-			}//eif
-		})
+                            closeDb(db)
+                            
+                        }
+                    }) //===end res.download
+                })
+            }//eif
+        })
 
-	}).catch((error)=>{
-		res.status(500).json({error:'Error'})
-	}) 
+    }).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    }) 
 })
 
 //====== CLEANUP PDF
 router.get('/deletepdf/:e_num', async(req, res) => {
 
-	let reportfile = `ADT_${req.params.e_num}.pdf`
+    let reportfile = `ADT_${req.params.e_num}.pdf`
 
- 	Utils.deletePdf(reportfile)
-	.then(x => {
-		if(x){
-			
-			//=== RETURN RESULT ===//
-			console.log('*** Deleted temp file ', reportfile)
-			
-			//update patient record
-			//closeDb(db)
-			res.status(200).json({status:true})
+    Utils.deletePdf(reportfile)
+    .then(x => {
+        if(x){
+            
+            //=== RETURN RESULT ===//
+            console.log('*** Deleted temp file ', reportfile)
+            
+            //update patient record
+            //closeDb(db)
+            res.status(200).json({status:true})
 
-		}//eif
-	})
+        }//eif
+    })
 })//end Utils.deletepdfse{
 
 
 
 //============SAVE J&T LINK WHEN SCANNED===//
 router.post('/addlink', async(req,res)=>{
-	sql = `INSERT INTO asn_jtlink (link) 
-		VALUES (?) `
-	
-	console.log(sql)
+    sql = `INSERT INTO asn_jtlink (link) 
+        VALUES (?) `
+    
+    console.log(sql)
 
-	connectDb()
-	.then((db)=>{
-		db.query( sql,	[req.body.link ],	(error,result)=>{
-				console.log('inserting j&T link..',result)
+    connectDb()
+    .then((db)=>{
+        db.query( sql,	[req.body.link ],	(error,result)=>{
+                console.log('inserting j&T link..',result)
 
-				//results[0]
-				res.json({
-					message: "Link added Successfully!",
-					status:true
-				})
-	
-				closeDb(db);//CLOSE connection
-			
-		})
-	})	
+                //results[0]
+                res.json({
+                    message: "Link added Successfully!",
+                    status:true
+                })
+    
+                closeDb(db);//CLOSE connection
+            
+        })
+    })	
 })
 
 
 router.get('/getzap/:eqptid', async(req,res)=>{
-	sql = `DELETE from equipment
-	where equipment_id = '${req.params.eqptid}'`
+    sql = `DELETE from equipment
+    where equipment_id = '${req.params.eqptid}'`
 
-	connectDb()
-	.then((db)=>{
-	
-		db.query(sql, null ,(error,data) => {	
-			if ( data.length  == 0) {   //data = array 
-				console.log('no rec')
-				
-				closeDb(db);//CLOSE connection
-				//console.log("===MYSQL CONNECTON CLOSED SUCCESSFULLY===")
+    connectDb()
+    .then((db)=>{
+    
+        db.query(sql, null ,(error,data) => {	
+            if ( data.length  == 0) {   //data = array 
+                console.log('no rec')
+                
+                closeDb(db);//CLOSE connection
+                //console.log("===MYSQL CONNECTON CLOSED SUCCESSFULLY===")
 
 
-			}else{
+            }else{
 
-				res.status(200).json({ status : true, voice:'Equipment Deleted Successfully', message:'Equipment Deleted Successfully' })			
-			}//eif
-			closeDb( db )
-		}) //end db.query 
-	})//tne .then(db)
-	
+                res.status(200).json({ status : true, voice:'Equipment Deleted Successfully', message:'Equipment Deleted Successfully' })			
+            }//eif
+            closeDb( db )
+        }) //end db.query 
+    })//tne .then(db)
+    
 })
 
 
@@ -4369,291 +4363,291 @@ const getRandomPin = (chars, len)=>[...Array(len)].map(
 
 //==========SEND OTP
 router.get( '/sendotp/:email/:name', async (req,res)=>{
-	
-	const otp = getRandomPin('0123456789',6)
-	
-	bcrypt
-	.hash( otp, saltRounds)
-	.then(hash => {
+    
+    const otp = getRandomPin('0123456789',6)
+    
+    bcrypt
+    .hash( otp, saltRounds)
+    .then(hash => {
 
-		axios.get(`https://vantaztic.com/vanz/mailotp.php?otp=${otp}&name=${req.params.name}&email=${req.params.email}`)
-		.then((response) => {
-			if (response.status === 200) {
-				const html = response.data;
-				//mail the otp
-				console.log(`https://vantaztic.com/vanz/mailotp.php?otp=${otp}&name=${req.params.name}&email=${req.params.email}`)
-				console.log('axios otp/ ', otp, ' ===Hash== ', hash)
-				
-				//save the otp to db
-				let sqlu = `UPDATE vantaztic_users SET private_key='${hash}'
-				WHERE email ='${req.params.email}' `
-			
-				connectDb()
-				.then((db)=>{
-			
-					db.query(sqlu,(error,results) => {	
-						console.log('otp update==', sqlu, results.changedRows)
-					})
-					
-					closeDb(db);//CLOSE connection
-			
+        axios.get(`https://vantaztic.com/vanz/mailotp.php?otp=${otp}&name=${req.params.name}&email=${req.params.email}`)
+        .then((response) => {
+            if (response.status === 200) {
+                const html = response.data;
+                //mail the otp
+                console.log(`https://vantaztic.com/vanz/mailotp.php?otp=${otp}&name=${req.params.name}&email=${req.params.email}`)
+                console.log('axios otp/ ', otp, ' ===Hash== ', hash)
+                
+                //save the otp to db
+                let sqlu = `UPDATE vantaztic_users SET private_key='${hash}'
+                WHERE email ='${req.params.email}' `
+            
+                connectDb()
+                .then((db)=>{
+            
+                    db.query(sqlu,(error,results) => {	
+                        console.log('otp update==', sqlu, results.changedRows)
+                    })
+                    
+                    closeDb(db);//CLOSE connection
+            
 
-				}).catch((error)=>{
-					res.status(500).json({error:'Error'})
-				})
-				
-				res.json({
-					status:true
-				})	
+                }).catch((error)=>{
+                    res.status(500).json({error:'Error'})
+                })
+                
+                res.json({
+                    status:true
+                })	
 
-				
-			}
-		})
-		.catch((err) => {
-			throw new Error(err);
-		});
-	  	
-	})
-	.catch(err => console.error(err.message))
-	
+                
+            }
+        })
+        .catch((err) => {
+            throw new Error(err);
+        });
+        
+    })
+    .catch(err => console.error(err.message))
+    
 })
  
 //===== GET OTP AND COMPARE
 router.get( '/getotp/:otp/:email', async (req,res)=>{
-	sql = `select private_key from vantaztic_users where email = '${req.params.email}'`
-	connectDb()
-	.then((db)=>{
+    sql = `select private_key from vantaztic_users where email = '${req.params.email}'`
+    connectDb()
+    .then((db)=>{
 
-		db.query(sql,null, (err,results) => {	
-			
-			//console.log('inquire data', data, sql )
-			
-			if(results.length>0){
-				//console.log('inquire data', results )
-				
-				bcrypt
-				.compare( req.params.otp, results[0].private_key)
-				.then(xres => {
-					console.log('OTP Matched?: ',xres) // return true
-					
-					res.json({
-						status:xres
-					})
-	
-				})
-				.catch(err => console.error(err.message))			
-			}else{
-				res.json({
-					status:false
-				})
+        db.query(sql,null, (err,results) => {	
+            
+            //console.log('inquire data', data, sql )
+            
+            if(results.length>0){
+                //console.log('inquire data', results )
+                
+                bcrypt
+                .compare( req.params.otp, results[0].private_key)
+                .then(xres => {
+                    console.log('OTP Matched?: ',xres) // return true
+                    
+                    res.json({
+                        status:xres
+                    })
+    
+                })
+                .catch(err => console.error(err.message))			
+            }else{
+                res.json({
+                    status:false
+                })
 
-			}
-		})
-		
-		closeDb(db);//CLOSE connection
+            }
+        })
+        
+        closeDb(db);//CLOSE connection
 
 
-	}).catch((error)=>{
-		res.status(500).json({error:'Error'})
-	})
+    }).catch((error)=>{
+        res.status(500).json({error:'Error'})
+    })
 
 })
 
  
 const smsPost = (msgbody) => {
-	//number : '09175761186,09985524618,09611164983',
-	console.log('***SENDING SMS*** ', msgbody)
-	let smsdata = {
-		apikey : '20dc879ad17ec2b41ec0dba928b28a69', //Your API KEY
-		number : '09611164983',			
-		message : msgbody,
-		sendername : 'SEMAPHORE'
+    //number : '09175761186,09985524618,09611164983',
+    console.log('***SENDING SMS*** ', msgbody)
+    let smsdata = {
+        apikey : '20dc879ad17ec2b41ec0dba928b28a69', //Your API KEY
+        number : '09611164983',			
+        message : msgbody,
+        sendername : 'SEMAPHORE'
     }
-	
-	fetcher('https://semaphore.co/api/v4/messages', {
-		method: 'POST',
-		body: JSON.stringify(smsdata),
-		headers: { 'Content-Type': 'application/json' }
-	})   
-	.then(res => res.json() )
+    
+    fetcher('https://semaphore.co/api/v4/messages', {
+        method: 'POST',
+        body: JSON.stringify(smsdata),
+        headers: { 'Content-Type': 'application/json' }
+    })   
+    .then(res => res.json() )
     .then(json => console.log ('sms ->', json ))
-	
+    
 }
 
 //========add comma for currency
 const addCommas = (nStr) => {
-	nStr += '';
-	x = nStr.split('.');
-	x1 = x[0];
-	x2 = x.length > 1 ? '.' + x[1] : '';
-	var rgx = /(\d+)(\d{3})/;
-	while (rgx.test(x1)) {
-		x1 = x1.replace(rgx, '$1' + ',' + '$2');
-	}
-	return x1 + x2;
+    nStr += '';
+    x = nStr.split('.');
+    x1 = x[0];
+    x2 = x.length > 1 ? '.' + x[1] : '';
+    var rgx = /(\d+)(\d{3})/;
+    while (rgx.test(x1)) {
+        x1 = x1.replace(rgx, '$1' + ',' + '$2');
+    }
+    return x1 + x2;
 }
 
 
 const getDate = () =>{
-	let today = new Date()
-	var dd = String(today.getDate()).padStart(2,'0')
-	var mm = String(today.getMonth()+1).padStart(2,'0')
-	var yyyy = today.getFullYear()
+    let today = new Date()
+    var dd = String(today.getDate()).padStart(2,'0')
+    var mm = String(today.getMonth()+1).padStart(2,'0')
+    var yyyy = today.getFullYear()
 
-	today = mm +'/'+dd+'/'+yyyy
-	return today
+    today = mm +'/'+dd+'/'+yyyy
+    return today
 } 
 
 const nugetDate = () =>{
-	let today = new Date()
-	var dd = String(today.getDate()).padStart(2,'0')
-	var mm = String(today.getMonth()+1).padStart(2,'0')
-	var yyyy = today.getFullYear()
+    let today = new Date()
+    var dd = String(today.getDate()).padStart(2,'0')
+    var mm = String(today.getMonth()+1).padStart(2,'0')
+    var yyyy = today.getFullYear()
 
-	today =yyyy+'-'+mm +'-'+dd
+    today =yyyy+'-'+mm +'-'+dd
 
-	return today
+    return today
 }
 
 const strdates = () =>{
-	let today = new Date()
-	var dd = String(today.getDate()).padStart(2,'0')
-	var mm = String(today.getMonth()+1).padStart(2,'0')
-	var yyyy = today.getFullYear()
-	var mos = new Date(`${today.getMonth()+1}/${dd}/${yyyy}`).toLocaleString('en-PH',{month:'long'})
+    let today = new Date()
+    var dd = String(today.getDate()).padStart(2,'0')
+    var mm = String(today.getMonth()+1).padStart(2,'0')
+    var yyyy = today.getFullYear()
+    var mos = new Date(`${today.getMonth()+1}/${dd}/${yyyy}`).toLocaleString('en-PH',{month:'long'})
 
-	today = mos + ' '+ dd +', '+yyyy
-	return today
+    today = mos + ' '+ dd +', '+yyyy
+    return today
 }
 
 
 //======sample pagination
 //=====https://localhost:3000/q/6/2 
 router.get('/q/:limit/:page',  async(req,res) => {
-	
-	const limit_num = req.params.limit
-	let nStart = 0
-	let page = req.params.page
-	
-	connectDb()
-	.then((db)=>{
-		
-		sql1 = `select * from equipment_client`
-							
-		db.query(sql1,null,(err,data)=>{
-			
-			if(data.length==0){
-			}else{
-				//==== for next
-				let aPage = []
-				let pages = Math.ceil( data.length / limit_num )
-				
-				nStart = 0
-				
-				for (let i = 0; i < pages; i++) {
-					aPage.push(nStart)
-					nStart += parseInt(limit_num)
-				}//==next
-				
-				console.log('offset ',aPage)
-				sql2 = `select * from equipment_client 
-						LIMIT ${limit_num} OFFSET ${aPage[page-1]}`
-				console.log(sql2)
-				
-				db.query(`select * from equipment_client 
-						LIMIT ${limit_num} OFFSET ${aPage[page-1]}`,null,(err,data)=>{
-					
-					let mytable = `
-							<table class="table p-3 table-striped table-hover">
-							<thead>
-								<tr>
-								  <th scope="col">ID</th>
-								  <th scope="col">PO</th>
-								  <th scope="col">TRANSACTION</th>
-								</tr>
-							</thead>
-							<tbody>`
-							
-					for (let ikey in data){
-						mytable += `<tr>
-							<td>${data[ikey].id}</td>
-							<td>${data[ikey].po_number }</td>
-							<td>${data[ikey].transaction }</td>
-						</tr>`
-					}//=======end for
-					
-					let xprev = ((page-1)>0?'':'disabled')
-					let xnext = ((page>=pages)?'disabled':'')
-					let mypagination = "", main = "", xclass = ""
-					//===mypagination is for pagination
-					
-					//===final pagination
-					mypagination+=`
-					<nav aria-label="Page navigation example">
-					  <ul class="pagination">`
-					
-					//$xprev
-					mypagination += `<li class="page-item ${xprev}"><a class="page-link" href="${parseInt(req.params.page)-1 }">Previous</a></li>`
-					
-					for(let x=0; x < pages; x++){
-						if(req.params.page==(x+1)){
-							xclass = " active"
-						}else{
-							xclass = ""
-						}
-						mypagination += `<li class="page-item"><a class="page-link ${xclass}" href="${x+1}">${x+1}</a></li>`
-					}//end for
-					
-					mypagination += `<li class="page-item ${xnext}"><a class="page-link" href="${parseInt(req.params.page)+1}">Next</a></li>`
-					
-					mypagination+=`
-					</ul>
-					</nav>`
-					
-					mytable += `
-						<tr>
-						<td colspan=3 align='center'>
-						 ${mypagination}
-						</td>
-						</tr>
-						</TBODY>
-					</table>`
-					
-					main +=`
-					<!doctype html>
-					<html lang="en">
-					  <head>
-						<meta charset="utf-8">
-						<meta name="viewport" content="width=device-width, initial-scale=1">
-						<title>Bootstrap demo</title>
-						<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-					  </head>
-					  <body>
-						${mytable}
-						<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-					  </body>
-					</html>`
-							
-					aPage.length = 0 //reset array
-					res.send(main) //output result
-				})//endquery
-				
-			}//eif 
-		
-		})//==end db.query 
-		
-	}).catch((error)=>{
-		res.status(500).json({error:'No Fetch Docs'})
-	})		
+    
+    const limit_num = req.params.limit
+    let nStart = 0
+    let page = req.params.page
+    
+    connectDb()
+    .then((db)=>{
+        
+        sql1 = `select * from equipment_client`
+                            
+        db.query(sql1,null,(err,data)=>{
+            
+            if(data.length==0){
+            }else{
+                //==== for next
+                let aPage = []
+                let pages = Math.ceil( data.length / limit_num )
+                
+                nStart = 0
+                
+                for (let i = 0; i < pages; i++) {
+                    aPage.push(nStart)
+                    nStart += parseInt(limit_num)
+                }//==next
+                
+                console.log('offset ',aPage)
+                sql2 = `select * from equipment_client 
+                        LIMIT ${limit_num} OFFSET ${aPage[page-1]}`
+                console.log(sql2)
+                
+                db.query(`select * from equipment_client 
+                        LIMIT ${limit_num} OFFSET ${aPage[page-1]}`,null,(err,data)=>{
+                    
+                    let mytable = `
+                            <table class="table p-3 table-striped table-hover">
+                            <thead>
+                                <tr>
+                                  <th scope="col">ID</th>
+                                  <th scope="col">PO</th>
+                                  <th scope="col">TRANSACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody>`
+                            
+                    for (let ikey in data){
+                        mytable += `<tr>
+                            <td>${data[ikey].id}</td>
+                            <td>${data[ikey].po_number }</td>
+                            <td>${data[ikey].transaction }</td>
+                        </tr>`
+                    }//=======end for
+                    
+                    let xprev = ((page-1)>0?'':'disabled')
+                    let xnext = ((page>=pages)?'disabled':'')
+                    let mypagination = "", main = "", xclass = ""
+                    //===mypagination is for pagination
+                    
+                    //===final pagination
+                    mypagination+=`
+                    <nav aria-label="Page navigation example">
+                      <ul class="pagination">`
+                    
+                    //$xprev
+                    mypagination += `<li class="page-item ${xprev}"><a class="page-link" href="${parseInt(req.params.page)-1 }">Previous</a></li>`
+                    
+                    for(let x=0; x < pages; x++){
+                        if(req.params.page==(x+1)){
+                            xclass = " active"
+                        }else{
+                            xclass = ""
+                        }
+                        mypagination += `<li class="page-item"><a class="page-link ${xclass}" href="${x+1}">${x+1}</a></li>`
+                    }//end for
+                    
+                    mypagination += `<li class="page-item ${xnext}"><a class="page-link" href="${parseInt(req.params.page)+1}">Next</a></li>`
+                    
+                    mypagination+=`
+                    </ul>
+                    </nav>`
+                    
+                    mytable += `
+                        <tr>
+                        <td colspan=3 align='center'>
+                         ${mypagination}
+                        </td>
+                        </tr>
+                        </TBODY>
+                    </table>`
+                    
+                    main +=`
+                    <!doctype html>
+                    <html lang="en">
+                      <head>
+                        <meta charset="utf-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1">
+                        <title>Bootstrap demo</title>
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+                      </head>
+                      <body>
+                        ${mytable}
+                        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+                      </body>
+                    </html>`
+                            
+                    aPage.length = 0 //reset array
+                    res.send(main) //output result
+                })//endquery
+                
+            }//eif 
+        
+        })//==end db.query 
+        
+    }).catch((error)=>{
+        res.status(500).json({error:'No Fetch Docs'})
+    })		
 
-	
+    
 })
 
 router.get('/handshake', async(req,res) => {
 
-	res.json({status:true, wow:true})
+    res.json({status:true, wow:true})
 })
 
-	return router;
+    return router;
 }
 //module.exports = router
