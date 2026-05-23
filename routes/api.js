@@ -524,8 +524,12 @@ function formatDateToMMDDYY(dateString) {
 
 // Helper function to format datetime to MM-DD-YY HH:MM (24-hour)
 function formatDateTimeToMMDDYYHHMM(dateTimeString) {
-    if (!dateTimeString) return null;
+    if (!dateTimeString || dateTimeString === '0000-00-00 00:00:00') return null;
     const date = new Date(dateTimeString);
+    
+    // Check if the date object is invalid to prevent NaN:NaN
+    if (isNaN(date.getTime())) return null;
+
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     const year = date.getFullYear().toString().slice(-2);
@@ -534,6 +538,7 @@ function formatDateTimeToMMDDYYHHMM(dateTimeString) {
     //return `${month}-${day}-${year} ${hours}:${minutes}`;
 	return `${hours}:${minutes}`;
 }
+
 
 // Helper function to generate an array of YYYY-MM-DD date strings within a range
 function getDatesInRange(startDateStr, endDateStr) {
