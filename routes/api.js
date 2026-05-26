@@ -3111,9 +3111,12 @@ router.post('/printpdf/:empid/:empname/:region/:position/:addy/:datehired', asyn
 
 //===============NEW ENDPOINT HRIS get location =================//
 router.get('/getlocation/:region', async(req,res)=>{
+
+    console.log('**** Received parameters for /getlocation:', req.params.region);
+
     let conn =await mysqls.createConnection(dbconfig);
 
-    const regionParam = req.params.region;
+    const regionParam = req.params.region.toUpperCase(); // Ensure case-insensitive matching
     let regionName = '';    
 
     switch (regionParam) { // Use regionParam from URL  
@@ -3138,7 +3141,7 @@ router.get('/getlocation/:region', async(req,res)=>{
         const sql = `SELECT location FROM ${locTable} WHERE region = ? group by location ORDER BY location`;  
         const results = await conn.execute(sql, [regionName]  );
         
-        console.log('Results from /getlocation:', regionName,  results[0]);
+        console.log('Results from /getlocation():', regionName,  results[0]);
 
         res.status(200).json({ data: results[0] });
 
@@ -3203,7 +3206,7 @@ router.get('/getarea/:region', async(req,res)=>{
     
     let regionName = '';    
 
-    switch (regionParam) { // Use regionParam from URL  
+    switch (regionParam.toUpperCase()) { // Use regionParam from URL  
         case 'SMNL': regionName = 'NCR-SMNL'; break;
         case 'CMNL': regionName = 'NCR-CMNL'; break;
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
@@ -3234,10 +3237,11 @@ router.get('/getarea/:region', async(req,res)=>{
 });
 
 //=================NEW ENDPOINT gethub() =================//
-router.get('/gethubcoord/:region/:email', async(req,res)=>{
+router.get('/gethubcoord/:region/:email/:grpid', async(req,res)=>{
 
      const regionParam= req.params.region;
      const emailParam = req.params.email;
+     const grpidParam = req.params.grpid;
 
      let conn =await mysqls.createConnection(dbconfig);
 
@@ -3252,17 +3256,22 @@ router.get('/gethubcoord/:region/:email', async(req,res)=>{
         case 'NELU': regionName = 'besi_nelu_hub'; break;
         case 'NWLU': regionName = 'besi_nwlu_hub'; break;
         case 'MIN': regionName = 'besi_min_hub'; break;
-        case 'BICOL': regionName = 'BSL-BICOL'; break;
-        case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
-        case 'CENTRAL': regionName = 'WVIS-CENTRAL'; break;
-        case 'BACOLOD': regionName = 'WVIS-BACOLOD'; break;
-        case 'PANAY': regionName  = 'WVIS-PANAY'; break;
+        case 'BICOL': regionName = 'besi_bicol_hub'; break;
+        case 'SMARLEYTE': regionName = 'besi_smarleyte_hub'; break;
+        case 'CENTRAL': regionName = 'besi_central_hub'; break;
+        case 'BACOLOD': regionName = 'besi_bacolod_hub'; break;
+        case 'PANAY': regionName  = 'besi_panay_hub'; break;
     }
 
-    const remoteTargetTable = regionName; // Now uses the derived table name
+    const remoteTargetTable = regionName.toLowerCase(); // Now uses the derived table name
 
     try {
-        const sql = `SELECT hub FROM ${remoteTargetTable} WHERE coordinator_email = ? ORDER BY hub`;  
+
+        const emailColumn = grpidParam === '08' ? 'coordinator_email' : 'head_email';
+
+        const sql = `SELECT hub FROM ${remoteTargetTable} WHERE ${emailColumn} = ? ORDER BY hub`;
+
+        //const sql = `SELECT hub FROM ${remoteTargetTable} WHERE coordinator_email = ? ORDER BY hub`;  
         const results  = await conn.execute(sql,[emailParam]  );
 
         console.log('gethub of coord',sql,results[0])
