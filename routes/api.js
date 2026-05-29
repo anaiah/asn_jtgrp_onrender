@@ -300,7 +300,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 ON dl.emp_id = e.emp_id
                 LEFT JOIN ${ besiuserTable } u
                 ON u.besi_id = e.emp_id         -- join users to employees
-                LEFT JOIN asn_hub h
+                LEFT JOIN besi_${xregion.toLowerCase()}_hub h
                 ON u.hub = h.hub                 -- join hub table
                 
             `;
@@ -327,7 +327,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         sql += " WHERE " + conditions.join(" AND ");
         }
 
-        sql += " ORDER BY e.full_name ASC";
+        sql += " ORDER BY e.full_name, e ASC";
 
         //console.log("Generated SQL for masterfile:", sql, filters.position);
         //console.log("Generated SQL for masterfile: route.printmasterfile()  ", sql, filters.position);
