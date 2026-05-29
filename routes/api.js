@@ -327,7 +327,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         sql += " WHERE " + conditions.join(" AND ");
         }
 
-        sql += " ORDER BY e.full_name, e ASC";
+        sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
 
         //console.log("Generated SQL for masterfile:", sql, filters.position);
         //console.log("Generated SQL for masterfile: route.printmasterfile()  ", sql, filters.position);
