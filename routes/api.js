@@ -429,7 +429,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 r.birth_date,
                 r.hire_date,
                 r.employment_status,
-                r.email,
+                r.email, 
                 r.phone,
                 r.position,
                 r.region || filters.region ,
