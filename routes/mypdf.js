@@ -139,6 +139,9 @@ module.exports =  {
 
         }//endsw
 
+        console.log('Selected HTML template:', xfile);
+        
+
         /**** LOAD HTML TEMPLATE AND LOGOS */
         let htmlx = fs.readFileSync(path.join(__dirname, xfile), "utf8");
 
