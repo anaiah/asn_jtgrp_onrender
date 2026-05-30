@@ -279,6 +279,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         
             SELECT
                 e.*,
+                UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
                 u.hub,
                 h.hub,              -- or whatever columns asn_hub has
                 h.region,h.area,h.location,
@@ -424,7 +425,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         rows.forEach(r => {
             worksheet.addRow([
                 r.emp_id,
-                r.full_name,
+                r.xfull_name,
                 r.full_address,
                 r.birth_date,
                 r.hire_date,
@@ -562,7 +563,7 @@ function getDatesInRange(startDateStr, endDateStr) {
 // Assuming 'db' is your mysql2 connection pool and 'upload' is your multer setup
 router.post('/searchempTimeKeep', upload.none(), async (req, res) => {
     // console.log( req.body) // Uncomment for debugging request body
-	console.log('==Firing searchempTimeKeep()  called by hris.printTimeKeep() ==');
+	console.log('==Firing searchempTimeKeep()  called by hrisutil.printTimeKeep() ==');
 
     const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
@@ -897,7 +898,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
         console.log('buildPersonnelSearchQuery() Building personnel search query with timekeeping data.');
 
 
-    } else {   //THIS LINE IS NOT FOR TIMEKEEPING solely for searching only 
+    } else {   //THIS LINE "BELOW" IS NOT FOR TIMEKEEPING solely for searching only 
 
         const userTableName = `besi_employees_${regionClean}`;
         const userTableHub = `besi_users_${regionClean}`;
@@ -1627,9 +1628,13 @@ function getMonthName(monthNumber) { // monthNumber is 0-indexed from Date objec
                     "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
     return months[monthNumber];
 }
-//====== DOWNLOAD  PAYSLIP/timekeep EXCEL DATA MISS MARALIT======//
+
+//====== DOWNLOAD  PAYSLIP/timekeep EXCEL DATA MISS MARALIT called from hrisutil.downloadTimeKeepXls()======//
 router.post('/download-grid-data-xls', async (req, res) => {
     try {
+
+        console.log('=== FIRED download-grid-data-xls() called from hrisutil.downloadTimeKeepXls()');
+
         const gridData = req.body; // This is the array of employee objects from the client
 
         if (!gridData || gridData.length === 0) {
