@@ -78,7 +78,7 @@ module.exports = (io) => {
 	//host: '153.92.15.50',//'srv1759.hstgr.io',
 	host: 'srv1759.hstgr.io',
 	user: 'u899193124_asianowjt',
-	password: 'M312c4@g125c3',
+	password: 'G125c3@M312c4',
 	database: 'u899193124_asianowjt'
     }
 
@@ -3846,7 +3846,7 @@ router.post('/claims', async( req, res) => {
 			const dbconfig  ={
                 host: 'srv1759.hstgr.io',
                 user: 'u899193124_asianow',
-                password: 'g12@c3M312c4',
+                password: 'G125c3@M312c4',
                 database: 'u899193124_asianow'
             }
 			const conn = await mysqls.createConnection(dbconfig);

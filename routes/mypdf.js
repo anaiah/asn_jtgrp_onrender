@@ -54,6 +54,8 @@ module.exports =  {
         }//endsw
 
         const signatureImageUrl = `https://asianowapp.com/html/${regionName}/SIGN_${empid}.png`; // Construct the URL dynamically
+
+
         // const logomainUrl = `https://asianowapp.com/html/logomain.png`; // Construct the URL dynloamically
         // const logosmallUrl = `https://asianowapp.com/html/logosmall.jpg`; // Construct the URL dynamica/lly
 
@@ -140,7 +142,7 @@ module.exports =  {
         }//endsw
 
         console.log('Selected HTML template:', xfile);
-        
+
 
         /**** LOAD HTML TEMPLATE AND LOGOS */
         let htmlx = fs.readFileSync(path.join(__dirname, xfile), "utf8");
@@ -156,6 +158,8 @@ module.exports =  {
             format: "Legal",
             orientation: "portrait",
             border: "5mm",
+            //base: 'https://asianowapp.com', 
+            //phantomArgs:['--ignore-ssl-erros=yes','--sl-protocol=any'],
             
             footer:{
                 height: '6mm',
