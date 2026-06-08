@@ -246,6 +246,231 @@ router.post("/employee/:status", async (req, res) => {
 });
 
 // ========================HRIS PRINT MASTERFILE=======================//
+//OLD WORKING ROUTE, KEPT FOR REFERENCE, DO NOT DELETE YET
+// router.post("/printmasterfile", upload.none(), async (req, res) => {
+
+//     console.log('==Firing route.printmasterfile() with body:', req.body);
+
+//     const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
+//     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
+//     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
+//     const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
+//     const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
+//     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
+
+//     try {
+//         const filters = {
+//             name: xname,
+//             id: xid,
+//             region: xregion,
+//             hub: xhub,
+//             location: xlocation,
+//             position: xposition
+//         };
+
+//         if (!xregion) {
+//         return res.status(400).send("Region is required");
+//         }
+
+//         const regionClean   = xregion.toLowerCase(); // smnl, cmnl, etc.
+//         const userTableName = `besi_employees_${regionClean}`;
+//         const besiuserTable = `besi_users_${regionClean}`;
+
+//         let sql = `
+        
+//             SELECT
+//                 e.*,
+//                 UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
+//                 u.hub,
+//                 h.hub,              -- or whatever columns asn_hub has
+//                 h.region,h.area,h.location,
+//                 CASE
+//                     WHEN e.active = 1 THEN 'Yes'
+//                     ELSE 'No'
+//                 END AS active_text,
+//                 dl.reason AS deactivation_reason
+//                 FROM ${ userTableName } e
+//                 LEFT JOIN (
+//                 SELECT l.emp_id, l.reason
+//                 FROM besi_deactivation_logs l
+//                 WHERE l.id IN (
+//                     SELECT MAX(id)
+//                     FROM besi_deactivation_logs
+//                     GROUP BY emp_id
+//                 )
+//                 ) dl
+//                 ON dl.emp_id = e.emp_id
+//                 LEFT JOIN ${ besiuserTable } u
+//                 ON u.besi_id = e.emp_id         -- join users to employees
+//                 LEFT JOIN besi_${xregion.toLowerCase()}_hub h
+//                 ON u.hub = h.hub                 -- join hub table
+                
+//             `;
+
+//         const conditions = [];
+//         const params = [];
+
+//         if (filters.name.trim()) {
+//         conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
+//         params.push(`%${filters.name.trim()}%`);
+//         }
+
+//         if (filters.id.trim()) {
+//         conditions.push("e.emp_id = ?");
+//         params.push(filters.id.trim());
+//         }
+
+//         if (filters.position.trim()) {
+//         conditions.push("e.position = ?");
+//         params.push(filters.position.trim());
+//         }
+
+//         if (conditions.length > 0) {
+//         sql += " WHERE " + conditions.join(" AND ");
+//         }
+
+//         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
+
+//         //console.log("Generated SQL for masterfile:", sql, filters.position);
+//         //console.log("Generated SQL for masterfile: route.printmasterfile()  ", sql, filters.position);
+
+//         let conn = await mysqls.createConnection(dbconfig);
+
+//         const [rows] = await conn.execute(sql, params);
+
+//         //console.log( rows )
+//         await conn.end();
+
+//         // Build Excel
+//         const workbook = new ExcelJS.Workbook();
+//         const worksheet = workbook.addWorksheet("Masterfile");
+
+//         // 1–4: static header
+//         worksheet.getCell('A1').value = 'BETTER EDGE SYSTEMS INCORPORATED';
+//         worksheet.getCell('A1').font = { bold: true };
+
+//         worksheet.getCell('A2').value = 'TEXTRON BLDG., 168 Luna Mencias St.,';
+//         worksheet.getCell('A3').value = 'Addition Hills, San Juan City';
+//         worksheet.getCell('A4').value = 'Metro Manila, Philippines';
+
+//         // 5: blank row
+//         worksheet.addRow([]); // this becomes row 5
+
+//         // 6: column headers
+//         const headerRow = worksheet.addRow([
+//             "BESI ID",
+//             "Full Name",
+//             "Address",
+//             "Birth Date",
+//             "Hire Date",
+//             "Emp Status",
+//             "Email",
+//             "Phone",
+//             "Position",
+//             "Region",
+//             "Area",
+//             "Location",
+//             "Hub",
+//             "Active",
+//             "Deactivation Reason"
+//         ]);
+        
+//         headerRow.font = { bold: true };
+
+//         //=======set alignments for header row
+//  		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID 1
+//         headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME 2
+        
+//         headerRow.getCell('C').alignment = { horizontal: 'left'};   // address 3
+        
+//         headerRow.getCell('D').alignment = { horizontal: 'center' };  // birth date 4
+        
+//         headerRow.getCell('E').alignment = { horizontal: 'center' };  // hire date 5
+
+//         headerRow.getCell('F').alignment = { horizontal: 'center' };    // emp status 6
+
+//          headerRow.getCell('G').alignment = { horizontal: 'left' };   // EMAIL 7 (treat as text but center for aesthetics)
+//         headerRow.getCell('H').alignment = { horizontal: 'left' };   // phone 8 (treat as text but center for aesthetics)
+        
+//         headerRow.getCell('I').alignment = { horizontal: 'center' };    // position 9
+        
+//         headerRow.getCell('J').alignment = { horizontal: 'left' };   // region 10
+//          headerRow.getCell('K').alignment = { horizontal: 'left' };   // area 11 (treat as text but center for aesthetics)
+//         headerRow.getCell('L').alignment = { horizontal: 'left' };   // location 12 (treat as text but center for aesthetics)
+//          headerRow.getCell('M').alignment = { horizontal: 'left' };   // hub 13 (treat as text but center for aesthetics)
+//         // headerRow.getCell('F').alignment = { horizontal: 'center' };   // phone (treat as text but center for aesthetics)
+        
+
+//         // Numeric columns (WORK DAYS, WORK HOUR, LATE HOUR, OT HOUR) - typically right or center
+       
+//         headerRow.getCell('N').alignment = { horizontal: 'center'};   // active
+//         headerRow.getCell('O').alignment = { horizontal: 'left'};   // deactivation reason
+
+//         //wrap entire address column
+//         const addrCol = worksheet.getColumn(3);
+//         addrCol.alignment = { wrapText: true };
+
+//         const  poscol = worksheet.getColumn(9);
+//         poscol.alignment = { horizontal: 'left' };
+
+//         const  actcol = worksheet.getColumn(6);
+//         actcol.alignment = { horizontal: 'center' };
+
+//         const hireCol = worksheet.getColumn(5);
+//         hireCol.alignment = { horizontal: 'center' };
+
+//         const addyCol = worksheet.getColumn(4);
+//         addyCol.alignment = { horizontal: 'center' };
+
+//         // 7+: data rows
+//         rows.forEach(r => {
+//             worksheet.addRow([
+//                 r.emp_id,
+//                 r.xfull_name,
+//                 r.full_address,
+//                 r.birth_date,
+//                 r.hire_date,
+//                 r.employment_status,
+//                 r.email, 
+//                 r.phone,
+//                 r.position,
+//                 r.region || filters.region ,
+//                 r.area,
+//                 r.location,
+//                 r.hub,
+//                 r.active_text,
+//                 r.deactivation_reason || ""
+//             ]);
+//         });
+
+//         // Set column widths
+//         const widths = [25, 30, 30, 15, 15, 15, 20, 15, 10, 20, 20, 20, 10, 40];
+        
+//         widths.forEach((w, i) => {
+//             worksheet.getColumn(i + 1).width = w;
+//         });
+
+//         res.setHeader(
+//             "Content-Type",
+//             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+//         );
+
+//         res.setHeader(
+//             "Content-Disposition",
+//             "attachment; filename=masterfile.xlsx"
+//         );
+
+//         await workbook.xlsx.write(res);
+//         res.end();
+
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).send("Error generating masterfile");
+//     }
+// });
+
+//NEW JUNE 8 2K26
+// ========================HRIS PRINT MASTERFILE=======================//
 router.post("/printmasterfile", upload.none(), async (req, res) => {
 
     console.log('==Firing route.printmasterfile() with body:', req.body);
@@ -268,7 +493,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         };
 
         if (!xregion) {
-        return res.status(400).send("Region is required");
+            return res.status(400).send("Region is required");
         }
 
         const regionClean   = xregion.toLowerCase(); // smnl, cmnl, etc.
@@ -276,20 +501,21 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         const besiuserTable = `besi_users_${regionClean}`;
 
         let sql = `
-        
             SELECT
                 e.*,
                 UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
                 u.hub,
-                h.hub,              -- or whatever columns asn_hub has
+                h.hub,              
                 h.region,h.area,h.location,
+                p.position AS display_position, -- Fetched dynamically from join lookup
                 CASE
-                    WHEN e.active = 1 THEN 'Yes'
-                    ELSE 'No'
+                    WHEN e.active = 1 THEN 'ACTIVE'
+                    ELSE 'INACTIVE'
                 END AS active_text,
                 dl.reason AS deactivation_reason
-                FROM ${ userTableName } e
-                LEFT JOIN (
+            FROM ${ userTableName } e
+            LEFT JOIN asn_position p ON e.position = p.code -- Dynamic mapping connection
+            LEFT JOIN (
                 SELECT l.emp_id, l.reason
                 FROM besi_deactivation_logs l
                 WHERE l.id IN (
@@ -297,35 +523,57 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                     FROM besi_deactivation_logs
                     GROUP BY emp_id
                 )
-                ) dl
-                ON dl.emp_id = e.emp_id
-                LEFT JOIN ${ besiuserTable } u
-                ON u.besi_id = e.emp_id         -- join users to employees
-                LEFT JOIN besi_${xregion.toLowerCase()}_hub h
-                ON u.hub = h.hub                 -- join hub table
-                
-            `;
+            ) dl ON dl.emp_id = e.emp_id
+            LEFT JOIN ${ besiuserTable } u ON u.besi_id = e.emp_id         
+            LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
+        `;
+
+        // let sql = `
+        //     SELECT
+        //         e.*,
+        //         UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
+        //         u.hub,
+        //         h.hub,              -- or whatever columns asn_hub has
+        //         h.region,h.area,h.location,
+        //         CASE
+        //             WHEN e.active = 1 THEN 'Yes'
+        //             ELSE 'No'
+        //         END AS active_text,
+        //         dl.reason AS deactivation_reason
+        //     FROM ${ userTableName } e
+        //     LEFT JOIN (
+        //         SELECT l.emp_id, l.reason
+        //         FROM besi_deactivation_logs l
+        //         WHERE l.id IN (
+        //             SELECT MAX(id)
+        //             FROM besi_deactivation_logs
+        //             GROUP BY emp_id
+        //         )
+        //     ) dl ON dl.emp_id = e.emp_id
+        //     LEFT JOIN ${ besiuserTable } u ON u.besi_id = e.emp_id         -- join users to employees
+        //     LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 -- join hub table
+        // `;
 
         const conditions = [];
         const params = [];
 
         if (filters.name.trim()) {
-        conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
-        params.push(`%${filters.name.trim()}%`);
+            conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
+            params.push(`%${filters.name.trim()}%`);
         }
 
         if (filters.id.trim()) {
-        conditions.push("e.emp_id = ?");
-        params.push(filters.id.trim());
+            conditions.push("e.emp_id = ?");
+            params.push(filters.id.trim());
         }
 
         if (filters.position.trim()) {
-        conditions.push("e.position = ?");
-        params.push(filters.position.trim());
+            conditions.push("e.position = ?");
+            params.push(filters.position.trim());
         }
 
         if (conditions.length > 0) {
-        sql += " WHERE " + conditions.join(" AND ");
+            sql += " WHERE " + conditions.join(" AND ");
         }
 
         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
@@ -333,12 +581,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         //console.log("Generated SQL for masterfile:", sql, filters.position);
         //console.log("Generated SQL for masterfile: route.printmasterfile()  ", sql, filters.position);
 
-        let conn = await mysqls.createConnection(dbconfig);
-
-        const [rows] = await conn.execute(sql, params);
-
-        //console.log( rows )
-        await conn.end();
+        // OPTIMIZATION: Swapped out manual raw connections for your leak-proof promise pool framework
+        const [rows] = await db.query(sql, params);
 
         // Build Excel
         const workbook = new ExcelJS.Workbook();
@@ -355,64 +599,79 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         // 5: blank row
         worksheet.addRow([]); // this becomes row 5
 
-        // 6: column headers
+        // NEW: Constructing main top layer header row for nested grid combinations
+        const topHeaderRow = worksheet.addRow([]); // Row 6
+        topHeaderRow.getCell('R').value = "RATE";
+        worksheet.mergeCells('R6:S6'); // Merges R and S cells horizontally under the RATE category block
+        topHeaderRow.getCell('R').alignment = { horizontal: 'center' };
+        topHeaderRow.font = { bold: true };
+
+        // 6: column headers (Shifted to row 7 to cleanly accommodate nested headers)
         const headerRow = worksheet.addRow([
-            "BESI ID",
-            "Full Name",
-            "Address",
-            "Birth Date",
-            "Hire Date",
-            "Emp Status",
-            "Email",
-            "Phone",
-            "Position",
-            "Region",
-            "Area",
-            "Location",
-            "Hub",
-            "Active",
-            "Deactivation Reason"
+            "NO.",                                              // A (1)
+            "CATEGORY",                                         // B (2)
+            "EMPLOYEE NO. / JMS ACCOUNT NO. (sorters & sprinter)", // C (3)
+            "FIRST NAME",                                       // D (4)
+            "MIDDLE NAME",                                      // E (5)
+            "LAST NAME",                                        // F (6)
+            "Suffix",                                           // G (7)
+            "COMPLETE NAME",                                    // H (8)
+            "BIRTHDAY",                                         // I (9)
+            "DATE HIRED (MM/DD/YY)",                            // J (10)
+            "POSITION",                                         // K (11)
+            "EMPLOYMENT STATUS",                                // L (12)
+            "SEPARATION DATE",                                  // M (13)
+            "AREA",                                             // N (14)
+            "BRANCH NAME",                                      // O (15)
+            "BRANCH CODE",                                      // P (16)
+            "TYPE OF COMPENSATION (DAILY OR PER PARCEL)",        // Q (17)
+            "DAILY RATE",                                       // R (18)
+            "PER PARCEL",                                       // S (19)
+            "ALLOWANCE",                                        // T (20)
+            "CONTACT NO.",                                      // U (21)
+            "EDUCATION",                                        // V (22)
+            "ID TYPE",                                          // W (23)
+            "ID NO.",                                           // X (24)
+            "STATUS(ACTIVE / INACTIVE)If inactive should have separation date" // Y (25)
         ]);
         
         headerRow.font = { bold: true };
 
         //=======set alignments for header row
- 		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID 1
-        headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME 2
-        
-        headerRow.getCell('C').alignment = { horizontal: 'left'};   // address 3
-        
-        headerRow.getCell('D').alignment = { horizontal: 'center' };  // birth date 4
-        
-        headerRow.getCell('E').alignment = { horizontal: 'center' };  // hire date 5
-
-        headerRow.getCell('F').alignment = { horizontal: 'center' };    // emp status 6
-
-         headerRow.getCell('G').alignment = { horizontal: 'left' };   // EMAIL 7 (treat as text but center for aesthetics)
-        headerRow.getCell('H').alignment = { horizontal: 'left' };   // phone 8 (treat as text but center for aesthetics)
-        
-        headerRow.getCell('I').alignment = { horizontal: 'center' };    // position 9
-        
-        headerRow.getCell('J').alignment = { horizontal: 'left' };   // region 10
-         headerRow.getCell('K').alignment = { horizontal: 'left' };   // area 11 (treat as text but center for aesthetics)
-        headerRow.getCell('L').alignment = { horizontal: 'left' };   // location 12 (treat as text but center for aesthetics)
-         headerRow.getCell('M').alignment = { horizontal: 'left' };   // hub 13 (treat as text but center for aesthetics)
-        // headerRow.getCell('F').alignment = { horizontal: 'center' };   // phone (treat as text but center for aesthetics)
-        
-
-        // Numeric columns (WORK DAYS, WORK HOUR, LATE HOUR, OT HOUR) - typically right or center
-       
-        headerRow.getCell('N').alignment = { horizontal: 'center'};   // active
-        headerRow.getCell('O').alignment = { horizontal: 'left'};   // deactivation reason
+        headerRow.getCell('A').alignment = { horizontal: 'left' };    // NO.
+        headerRow.getCell('B').alignment = { horizontal: 'left' };    // CATEGORY
+        headerRow.getCell('C').alignment = { horizontal: 'left'};     // EMPLOYEE NO.
+        headerRow.getCell('D').alignment = { horizontal: 'center' };  // FIRST NAME
+        headerRow.getCell('E').alignment = { horizontal: 'center' };  // MIDDLE NAME
+        headerRow.getCell('F').alignment = { horizontal: 'center' };  // LAST NAME
+        headerRow.getCell('G').alignment = { horizontal: 'left' };    // Suffix
+        headerRow.getCell('H').alignment = { horizontal: 'left' };    // COMPLETE NAME
+        headerRow.getCell('I').alignment = { horizontal: 'center' };  // BIRTHDAY
+        headerRow.getCell('J').alignment = { horizontal: 'left' };    // DATE HIRED
+        headerRow.getCell('K').alignment = { horizontal: 'left' };    // POSITION
+        headerRow.getCell('L').alignment = { horizontal: 'left' };    // EMPLOYMENT STATUS
+        headerRow.getCell('M').alignment = { horizontal: 'left' };    // SEPARATION DATE
+        headerRow.getCell('N').alignment = { horizontal: 'center'};   // AREA
+        headerRow.getCell('O').alignment = { horizontal: 'left'};     // BRANCH NAME
+        headerRow.getCell('P').alignment = { horizontal: 'left'};     // BRANCH CODE
+        headerRow.getCell('Q').alignment = { horizontal: 'left'};     // TYPE OF COMPENSATION
+        headerRow.getCell('R').alignment = { horizontal: 'right'};    // DAILY RATE
+        headerRow.getCell('S').alignment = { horizontal: 'right'};    // PER PARCEL
+        headerRow.getCell('T').alignment = { horizontal: 'right'};    // ALLOWANCE
+        headerRow.getCell('U').alignment = { horizontal: 'left'};     // CONTACT NO.
+        headerRow.getCell('V').alignment = { horizontal: 'left'};     // EDUCATION
+        headerRow.getCell('W').alignment = { horizontal: 'left'};     // ID TYPE
+        headerRow.getCell('X').alignment = { horizontal: 'left'};     // ID NO.
+        headerRow.getCell('Y').alignment = { horizontal: 'center'};   // STATUS DESCRIPTION
 
         //wrap entire address column
         const addrCol = worksheet.getColumn(3);
         addrCol.alignment = { wrapText: true };
 
-        const  poscol = worksheet.getColumn(9);
+        const poscol = worksheet.getColumn(9);
         poscol.alignment = { horizontal: 'left' };
 
-        const  actcol = worksheet.getColumn(6);
+        const actcol = worksheet.getColumn(6);
         actcol.alignment = { horizontal: 'center' };
 
         const hireCol = worksheet.getColumn(5);
@@ -422,28 +681,65 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         addyCol.alignment = { horizontal: 'center' };
 
         // 7+: data rows
-        rows.forEach(r => {
+        rows.forEach((r, idx) => {
             worksheet.addRow([
-                r.emp_id,
-                r.xfull_name,
-                r.full_address,
-                r.birth_date,
-                r.hire_date,
-                r.employment_status,
-                r.email, 
-                r.phone,
-                r.position,
-                r.region || filters.region ,
-                r.area,
-                r.location,
-                r.hub,
-                r.active_text,
-                r.deactivation_reason || ""
+                idx + 1,                                        // A: NO.
+                r.display_position || "SORTER",                 // B: CATEGORY (Mapped to joined lookup description)
+                r.emp_id,                                       // C: EMPLOYEE NO.
+                r.first_name,                                   // D: FIRST NAME
+                r.middle_name,                                  // E: MIDDLE NAME
+                r.last_name,                                    // F: LAST NAME
+                r.suffix || "",                                 // G: Suffix
+                r.xfull_name,                                   // H: COMPLETE NAME
+                r.birth_date,                                   // I: BIRTHDAY
+                r.hire_date,                                    // J: DATE HIRED
+                r.display_position || r.position,               // K: POSITION (Displays lookup description string)
+                r.employment_status || "R-OCW",                 // L: EMPLOYMENT STATUS
+                r.separation_date || "",                        // M: SEPARATION DATE
+                r.area || r.region || filters.region,           // N: AREA
+                r.location || r.hub,                            // O: BRANCH NAME
+                r.branch_code || "",                            // P: BRANCH CODE
+                r.compensation_type || "DAILY",                 // Q: TYPE OF COMPENSATION
+                r.daily_rate || 600,                            // R: DAILY RATE
+                r.per_parcel_rate || "",                        // S: PER PARCEL
+                r.allowance || "",                              // T: ALLOWANCE
+                r.phone || r.contact_no || "",                  // U: CONTACT NO.
+                r.education || "HIGH SCHOOL GRADUATE",          // V: EDUCATION
+                r.id_type || "",                                // W: ID TYPE
+                r.id_no || "",                                  // X: ID NO.
+                r.active_text                                   // Y: STATUS (Outputs "ACTIVE" or "INACTIVE" cleanly)
             ]);
         });
 
-        // Set column widths
-        const widths = [25, 30, 30, 15, 15, 15, 20, 15, 10, 20, 20, 20, 10, 40];
+
+        // Set column widths - split onto individual lines so it does not overflow
+        const widths = [
+            10, // A: NO.
+            15, // B: CATEGORY
+            35, // C: EMPLOYEE NO.
+            20, // D: FIRST NAME
+            20, // E: MIDDLE NAME
+            25, // F: LAST NAME
+            10, // G: Suffix
+            35, // H: COMPLETE NAME
+            15, // I: BIRTHDAY
+            20, // J: DATE HIRED
+            20, // K: POSITION
+            20, // L: EMPLOYMENT STATUS
+            20, // M: SEPARATION DATE
+            15, // N: AREA
+            25, // O: BRANCH NAME
+            15, // P: BRANCH CODE
+            40, // Q: TYPE OF COMPENSATION
+            15, // R: DAILY RATE
+            15, // S: PER PARCEL
+            15, // T: ALLOWANCE
+            20, // U: CONTACT NO.
+            30, // V: EDUCATION
+            15, // W: ID TYPE
+            20, // X: ID NO.
+            60  // Y: STATUS
+        ];
         
         widths.forEach((w, i) => {
             worksheet.getColumn(i + 1).width = w;
@@ -467,6 +763,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         res.status(500).send("Error generating masterfile");
     }
 });
+
 
 //=====hris Search Employee====//
 router.post('/searchemp', upload.none(), async (req, res) => {
