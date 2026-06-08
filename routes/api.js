@@ -657,9 +657,9 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         headerRow.getCell('O').alignment = { horizontal: 'left'};     // BRANCH NAME
         headerRow.getCell('P').alignment = { horizontal: 'left'};     // BRANCH CODE
         headerRow.getCell('Q').alignment = { horizontal: 'left'};     // TYPE OF COMPENSATION
-        headerRow.getCell('R').alignment = { horizontal: 'right'};    // DAILY RATE
-        headerRow.getCell('S').alignment = { horizontal: 'right'};    // PER PARCEL
-        headerRow.getCell('T').alignment = { horizontal: 'right'};    // ALLOWANCE
+        headerRow.getCell('R').alignment = { horizontal: 'center'};    // DAILY RATE
+        headerRow.getCell('S').alignment = { horizontal: 'center'};    // PER PARCEL
+        headerRow.getCell('T').alignment = { horizontal: 'center'};    // ALLOWANCE
         headerRow.getCell('U').alignment = { horizontal: 'left'};     // CONTACT NO.
         headerRow.getCell('V').alignment = { horizontal: 'left'};     // EDUCATION
         headerRow.getCell('W').alignment = { horizontal: 'left'};     // ID TYPE
@@ -670,6 +670,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         const addrCol = worksheet.getColumn(3);
         addrCol.alignment = { wrapText: true };
 
+        worksheet.getColumn(10).alignment = { horizontal: 'left' };//width = 5; // NO. column is narrower since it's just a serial number
         const poscol = worksheet.getColumn(9);
         poscol.alignment = { horizontal: 'left' };
 
