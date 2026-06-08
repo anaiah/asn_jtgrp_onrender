@@ -505,8 +505,10 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 e.*,
                 UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
                 u.hub,
-                h.hub,              
-                h.region,h.area,h.location,
+                h.hub as xhub,              
+                h.region as xregion,
+                h.area,
+                h.location as xlocation,
                 p.position AS display_position, -- Fetched dynamically from join lookup
                 CASE
                     WHEN e.active = 1 THEN 'ACTIVE'
@@ -614,7 +616,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             "FIRST NAME",                                       // D (4)
             "MIDDLE NAME",                                      // E (5)
             "LAST NAME",                                        // F (6)
-            "Suffix",                                           // G (7)
+            "SUFFIX",                                           // G (7)
             "COMPLETE NAME",                                    // H (8)
             "BIRTHDAY",                                         // I (9)
             "DATE HIRED (MM/DD/YY)",                            // J (10)
@@ -686,18 +688,18 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 idx + 1,                                        // A: NO.
                 r.display_position || "SORTER",                 // B: CATEGORY (Mapped to joined lookup description)
                 r.emp_id,                                       // C: EMPLOYEE NO.
-                r.first_name,                                   // D: FIRST NAME
-                r.middle_name,                                  // E: MIDDLE NAME
-                r.last_name,                                    // F: LAST NAME
-                r.suffix || "",                                 // G: Suffix
+                r.first_name.toUpperCase(),                     // D: FIRST NAME
+                r.middle_name && r.middle_name.toUpperCase(),   // E: MIDDLE NAME
+                r.last_name.toUpperCase(),                      // F: LAST NAME
+                r.suffix && r.suffix.toUpperCase() || "",       // G: Suffix
                 r.xfull_name,                                   // H: COMPLETE NAME
                 r.birth_date,                                   // I: BIRTHDAY
                 r.hire_date,                                    // J: DATE HIRED
                 r.display_position || r.position,               // K: POSITION (Displays lookup description string)
-                r.employment_status || "R-OCW",                 // L: EMPLOYMENT STATUS
+                r.employment_status.toUpperCase() || "R-OCW",                 // L: EMPLOYMENT STATUS
                 r.separation_date || "",                        // M: SEPARATION DATE
-                r.area || r.region || filters.region,           // N: AREA
-                r.location || r.hub,                            // O: BRANCH NAME
+                r.xregion,                                      // N: AREA // pls change to xlocation 
+                r.xlocation,                                     // O: BRANCH NAME  // pls change to xhub if branchname is hub
                 r.branch_code || "",                            // P: BRANCH CODE
                 r.compensation_type || "DAILY",                 // Q: TYPE OF COMPENSATION
                 r.daily_rate || 600,                            // R: DAILY RATE
