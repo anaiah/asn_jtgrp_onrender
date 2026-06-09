@@ -699,8 +699,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 r.display_position || r.position,               // K: POSITION (Displays lookup description string)
                 r.employment_status.toUpperCase() || "R-OCW",                 // L: EMPLOYMENT STATUS
                 r.separation_date || "",                        // M: SEPARATION DATE
-                r.xregion,                                      // N: AREA // pls change to xlocation 
-                r.xlocation,                                     // O: BRANCH NAME  // pls change to xhub if branchname is hub
+                r.xlocation,                                      // N: AREA // pls change to xlocation 
+                r.xhub,                                     // O: BRANCH NAME  // pls change to xhub if branchname is hub
                 r.branch_code || "",                            // P: BRANCH CODE
                 r.compensation_type || "DAILY",                 // Q: TYPE OF COMPENSATION
                 r.daily_rate || "",                            // R: DAILY RATE
