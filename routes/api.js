@@ -703,7 +703,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 r.xlocation,                                     // O: BRANCH NAME  // pls change to xhub if branchname is hub
                 r.branch_code || "",                            // P: BRANCH CODE
                 r.compensation_type || "DAILY",                 // Q: TYPE OF COMPENSATION
-                r.daily_rate || 600,                            // R: DAILY RATE
+                r.daily_rate || "",                            // R: DAILY RATE
                 r.per_parcel_rate || "",                        // S: PER PARCEL
                 r.allowance || "",                              // T: ALLOWANCE
                 r.phone || r.contact_no || "",                  // U: CONTACT NO.
