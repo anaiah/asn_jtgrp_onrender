@@ -95,3 +95,54 @@ select id, position,full_name, email, count(*) as existed
 from besi_employees_smnl
 group by full_name
 having existed > 1;
+
+// ===for adding columns
+-- Bacolod
+ALTER TABLE besi_employees_bacolod 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- Bicol
+ALTER TABLE besi_employees_bicol 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- Central
+ALTER TABLE besi_employees_central 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- CMNL
+ALTER TABLE besi_employees_cmnl 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- CMNVA
+ALTER TABLE besi_employees_cmnva 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- Mindanao (MIN)
+ALTER TABLE besi_employees_min 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- North Luzon / New Ecija / Luzon (NELU)
+ALTER TABLE besi_employees_nelu 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- Panay
+ALTER TABLE besi_employees_panay 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- Samar-Leyte (SMARLEYTE)
+ALTER TABLE besi_employees_smarleyte 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+-- South Manila / South Luzon (SMNL)
+ALTER TABLE besi_employees_smnl 
+    ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
+    ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;

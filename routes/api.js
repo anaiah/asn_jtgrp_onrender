@@ -3145,13 +3145,13 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
             if (mode === 'add') {
                 sql = `INSERT INTO besi_employees_${xregion.toLowerCase()} (
                     emp_id, first_name,middle_name,last_name,suffix,full_name, 
-                    email, phone, birth_date, hire_date, position,employment_status, 
+                    email, phone, birth_date, hire_date, daily_rate, education_level, position,employment_status, 
                     location,hub,street_1,street_2,city,bgy,full_address
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`; 
             } else {
                 sql = `UPDATE besi_employees_${xregion.toLowerCase()} SET 
                     first_name=?, middle_name=?, last_name=?, suffix=?, full_name=?, 
-                    email=?, phone=?, birth_date=?, hire_date=?, position=?, employment_status=?, 
+                    email=?, phone=?, birth_date=?, hire_date=?, daily_rate=?, education_level=?, position=?, employment_status=?, 
                     location=?, hub=?, street_1=?, street_2=?, city=?, bgy=?, full_address=?, jms_id=?
                     WHERE emp_id = ?`;
             }
@@ -3178,6 +3178,10 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 formFields.phone || null,
                 formFields.birthDate || null,
                 formFields.hireDate || null,
+
+                //==insert daily_rate and education here in the future if needed==//
+                formFields.daily_rate || null,
+                formFields.education_level || null,
 
                 // 5. Employment Details
                 formFields.jobTitle || null,
