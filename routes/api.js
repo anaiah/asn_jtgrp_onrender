@@ -580,7 +580,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
 
-        //console.log("Generated SQL for masterfile:", sql, filters.position);
+        console.log("Generated SQL for masterfile:", sql, filters.position);
         //console.log("Generated SQL for masterfile: route.printmasterfile()  ", sql, filters.position);
 
         // OPTIMIZATION: Swapped out manual raw connections for your leak-proof promise pool framework
@@ -689,30 +689,31 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 idx + 1,                                        // A: NO.
                 r.display_position || "SORTER",                 // B: CATEGORY (Mapped to joined lookup description)
                 r.emp_id,                                       // C: EMPLOYEE NO.
-                r.first_name.toUpperCase(),                     // D: FIRST NAME
-                r.middle_name && r.middle_name.toUpperCase(),   // E: MIDDLE NAME
-                r.last_name.toUpperCase(),                      // F: LAST NAME
-                r.suffix && r.suffix.toUpperCase() || "",       // G: Suffix
-                r.xfull_name,                                   // H: COMPLETE NAME
-                r.birth_date,                                   // I: BIRTHDAY
-                r.hire_date,                                    // J: DATE HIRED
+                r.first_name?.toUpperCase() || "",               // D: FIRST NAME (Safe from null)
+                r.middle_name?.toUpperCase() || "",              // E: MIDDLE NAME (Safe from null)
+                r.last_name?.toUpperCase() || "",                // F: LAST NAME (Safe from null)
+                r.suffix?.toUpperCase() || "",                   // G: Suffix (Safe from null)
+                r.xfull_name || "",                             // H: COMPLETE NAME
+                r.birth_date || "",                             // I: BIRTHDAY
+                r.hire_date || "",                              // J: DATE HIRED
                 r.display_position || r.position,               // K: POSITION (Displays lookup description string)
-                r.employment_status.toUpperCase() || "R-OCW",                 // L: EMPLOYMENT STATUS
+                r.employment_status?.toUpperCase() || "R-OCW",   // L: EMPLOYMENT STATUS (Safe from null)
                 r.separation_date || "",                        // M: SEPARATION DATE
-                r.xlocation,                                      // N: AREA // pls change to xlocation 
-                r.xhub,                                     // O: BRANCH NAME  // pls change to xhub if branchname is hub
+                r.xlocation || "",                              // N: AREA (Changed to xlocation)
+                r.xhub || "",                                   // O: BRANCH NAME (Changed to xhub)
                 r.branch_code || "",                            // P: BRANCH CODE
                 r.compensation_type || "DAILY",                 // Q: TYPE OF COMPENSATION
-                r.daily_rate || "",                            // R: DAILY RATE
+                r.daily_rate || "",                             // R: DAILY RATE
                 r.per_parcel_rate || "",                        // S: PER PARCEL
                 r.allowance || "",                              // T: ALLOWANCE
                 r.phone || r.contact_no || "",                  // U: CONTACT NO.
                 r.education || "HIGH SCHOOL GRADUATE",          // V: EDUCATION
                 r.id_type || "",                                // W: ID TYPE
                 r.id_no || "",                                  // X: ID NO.
-                r.active_text                                   // Y: STATUS (Outputs "ACTIVE" or "INACTIVE" cleanly)
+                r.active_text || ""                             // Y: STATUS (Outputs "ACTIVE" or "INACTIVE" cleanly)
             ]);
         });
+
 
 
         // Set column widths - split onto individual lines so it does not overflow
