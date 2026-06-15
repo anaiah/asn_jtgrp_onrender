@@ -1548,6 +1548,7 @@ router.get('/region-summary', async (req, res) => {
                 SELECT 'WVIS CENTRAL' UNION ALL
                 SELECT 'NCR CMNL' UNION ALL
                 SELECT 'NCR CMNVA' UNION ALL
+                SELECT 'NWLU' UNION ALL
                 SELECT 'NELU'
             ) AS r
             LEFT JOIN (
@@ -1568,6 +1569,8 @@ router.get('/region-summary', async (req, res) => {
                 SELECT 'NCR CMNL' AS table_name, position FROM besi_employees_cmnl
                 UNION ALL
                 SELECT 'NCR CMNVA' AS table_name, position FROM besi_employees_cmnva
+                UNION ALL
+                SELECT 'NWLU' AS table_name, position FROM besi_employees_nwlu
                 UNION ALL
                 SELECT 'NELU' AS table_name, position FROM besi_employees_nelu
             ) AS e ON r.region_label = e.table_name
@@ -3428,6 +3431,7 @@ router.get('/getlocation/:region', async(req,res)=>{
     const regionParam = req.params.region.toUpperCase(); // Ensure case-insensitive matching
     let regionName = '';    
 
+    //===these  shud reflect on Excel File the region name in the excel file shud be the same as this one, if not, add new case here===//
     switch (regionParam) { // Use regionParam from URL  
         case 'SMNL': regionName = 'NCR-SMNL'; break;
         case 'CMNL': regionName = 'NCR-CMNL'; break;
