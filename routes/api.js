@@ -530,32 +530,6 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
         `;
 
-        // let sql = `
-        //     SELECT
-        //         e.*,
-        //         UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
-        //         u.hub,
-        //         h.hub,              -- or whatever columns asn_hub has
-        //         h.region,h.area,h.location,
-        //         CASE
-        //             WHEN e.active = 1 THEN 'Yes'
-        //             ELSE 'No'
-        //         END AS active_text,
-        //         dl.reason AS deactivation_reason
-        //     FROM ${ userTableName } e
-        //     LEFT JOIN (
-        //         SELECT l.emp_id, l.reason
-        //         FROM besi_deactivation_logs l
-        //         WHERE l.id IN (
-        //             SELECT MAX(id)
-        //             FROM besi_deactivation_logs
-        //             GROUP BY emp_id
-        //         )
-        //     ) dl ON dl.emp_id = e.emp_id
-        //     LEFT JOIN ${ besiuserTable } u ON u.besi_id = e.emp_id         -- join users to employees
-        //     LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 -- join hub table
-        // `;
-
         const conditions = [];
         const params = [];
 
@@ -580,9 +554,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
 
-        console.log("Generated SQL for masterfile:", sql, filters.position);
-        //console.log("Generated SQL for masterfile: route.printmasterfile()  ", sql, filters.position);
-
+        //**** console.log("Generated SQL for masterfile:", sql, filters.position);
+        
         // OPTIMIZATION: Swapped out manual raw connections for your leak-proof promise pool framework
         const [rows] = await db.query(sql, params);
 
@@ -634,7 +607,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             "EDUCATION",                                        // V (22)
             "ID TYPE",                                          // W (23)
             "ID NO.",                                           // X (24)
-            "STATUS(ACTIVE / INACTIVE)If inactive should have separation date" // Y (25)
+            "STATUS(ACTIVE / INACTIVE)If inactive should have separation date", // Y (25)
+            "EMAIL"                                              //Z(26)
         ]);
         
         headerRow.font = { bold: true };
@@ -665,6 +639,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         headerRow.getCell('W').alignment = { horizontal: 'left'};     // ID TYPE
         headerRow.getCell('X').alignment = { horizontal: 'left'};     // ID NO.
         headerRow.getCell('Y').alignment = { horizontal: 'center'};   // STATUS DESCRIPTION
+        headerRow.getCell('Z').alignment = { horizontal: 'left'};     // EMAIL
 
         //wrap entire address column
         const addrCol = worksheet.getColumn(3);
@@ -710,7 +685,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 r.education || "HIGH SCHOOL GRADUATE",          // V: EDUCATION
                 r.id_type || "",                                // W: ID TYPE
                 r.id_no || "",                                  // X: ID NO.
-                r.active_text || ""                             // Y: STATUS (Outputs "ACTIVE" or "INACTIVE" cleanly)
+                r.active_text || "",                            // Y: STATUS (Outputs "ACTIVE" or "INACTIVE" cleanly)
+                r.email || ""                                   // Z: EMAIL
             ]);
         });
 
@@ -742,7 +718,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             30, // V: EDUCATION
             15, // W: ID TYPE
             20, // X: ID NO.
-            60  // Y: STATUS
+            60,  // Y: STATUS
+            50 // Z:EMAIL
         ];
         
         widths.forEach((w, i) => {
