@@ -188,9 +188,11 @@ router.post("/employee/:status", async (req, res) => {
         return res.status(400).send("reason is required for deactivation");
     }
 
-    const conn = await mysqls.createConnection(dbconfig);
-    
+    let conn = null 
     try {
+
+        conn = await mysqls.createConnection(dbconfig);
+    
         await conn.beginTransaction();
 
         if (action === "deactivate") {
@@ -1865,7 +1867,7 @@ router.post('/approveTimeKeep', async (req, res) => {
 
     // SQL to update a 'status' column to 'Approved' for records in the date range
     // %m-%d-%y matches your '04-01-26' format
-    let conn = await mysqls.createConnection(dbconfig);
+    let conn = null;
 
     //=======for_approval=0 those who do not have for corrections
     const sql = `
@@ -1876,6 +1878,9 @@ router.post('/approveTimeKeep', async (req, res) => {
     `;
 
     try {
+
+        conn = await mysqls.createConnection(dbconfig);
+    
         // 1. Execute the query (No callback function here)
         const [result] = await conn.execute(sql, [id, fromDate, toDate]);
 
@@ -3099,7 +3104,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
 
         let dbConnection = null
 
-		let conn = await mysqls.createConnection(dbconfig);
+		let conn = null;
 
 		//**** next time try these instead coz of db.js for transactions
         // 
@@ -3118,7 +3123,8 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
  
 
         try {
-			
+			conn = await mysqls.createConnection(dbconfig);
+
             await conn.beginTransaction(); // Start a transaction
            
             // REFACTORED: Logic to switch between INSERT and UPDATE
@@ -3277,12 +3283,17 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 });
             }
         } finally {
-            // Always ensure the connection is closed/released
-            if (conn) {
-                await conn.end(); // If using mysqls.createConnection
-                // If using a pool (e.g., mysqls.createPool().getConnection()), you'd use conn.release();
+             // 3. Clean up and close the connection only if it was successfully initialized
+            if (conn && typeof conn.end === 'function') {
+                await conn.end();
                 console.log('Database connection closed.');
             }
+            // // Always ensure the connection is closed/released
+            // if (conn) {
+            //     await conn.end(); // If using mysqls.createConnection
+            //     // If using a pool (e.g., mysqls.createPool().getConnection()), you'd use conn.release();
+            //     console.log('Database connection closed.');
+            // }
         } //endtry
 
     });
@@ -3404,7 +3415,7 @@ router.get('/getlocation/:region', async(req,res)=>{
 
     console.log('**** Received parameters for /getlocation:', req.params.region);
 
-    let conn =await mysqls.createConnection(dbconfig);
+    let conn = null 
 
     const regionParam = req.params.region.toUpperCase(); // Ensure case-insensitive matching
     let regionName = '';    
@@ -3428,6 +3439,8 @@ router.get('/getlocation/:region', async(req,res)=>{
     const locTable = 'besi_'+regionParam.toLowerCase()+'_hub';
 
     try {
+
+        conn = await mysqls.createConnection(dbconfig);
         
         const sql = `SELECT location FROM ${locTable} WHERE region = ? group by location ORDER BY location`;  
         const results = await conn.execute(sql, [regionName]  );
@@ -3451,7 +3464,7 @@ router.get('/gethub/:region/:location', async(req,res)=>{
      const regionParam= req.params.region;
      const locParam = req.params.location;
      
-     let conn =await mysqls.createConnection(dbconfig);
+     let conn = null
 
      console.log('Received parameters for /gethub:', req.params.region, req.params.location);
     
@@ -3474,6 +3487,9 @@ router.get('/gethub/:region/:location', async(req,res)=>{
     const remoteTargetTable = regionName; // Now uses the derived table name
     const hubTable = 'besi_'+regionParam.toLowerCase()+'_hub';
     try {
+
+        conn = await mysqls.createConnection(dbconfig);
+
         const sql = `SELECT hub FROM ${hubTable} WHERE region = ? AND location = ? ORDER BY hub`;  
         const results  = await conn.execute(sql,[regionName, locParam]  );
 
@@ -3491,7 +3507,7 @@ router.get('/getarea/:region', async(req,res)=>{
 
      const regionParam= req.params.region;
      
-     let conn =await mysqls.createConnection(dbconfig);
+     let conn = null;
 
      console.log('Received parameters for /getarea:', req.params.region);
     
@@ -3515,6 +3531,9 @@ router.get('/getarea/:region', async(req,res)=>{
     const hubTable = 'besi_'+regionParam.toLowerCase()+'_hub';
 
     try {
+
+        conn = await mysqls.createConnection(dbconfig);
+
         const sql = `SELECT area FROM ${hubTable} WHERE region = ?  ORDER BY area`;  
         const results  = await conn.execute(sql,[regionName]  );
         
@@ -3534,7 +3553,7 @@ router.get('/gethubcoord/:region/:email/:grpid', async(req,res)=>{
      const emailParam = req.params.email;
      const grpidParam = req.params.grpid;
 
-     let conn =await mysqls.createConnection(dbconfig);
+     let conn = null
 
      console.log('Received parameters for /gethubcoord:', req.params.region, req.params.email);
     
@@ -3557,6 +3576,8 @@ router.get('/gethubcoord/:region/:email/:grpid', async(req,res)=>{
     const remoteTargetTable = regionName.toLowerCase(); // Now uses the derived table name
 
     try {
+
+        conn =  await mysqls.createConnection(dbconfig);
 
         const emailColumn = grpidParam === '08' ? 'coordinator_email' : 'head_email';
 
