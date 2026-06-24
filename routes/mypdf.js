@@ -42,7 +42,7 @@ module.exports =  {
             case 'cmnva': regionName = 'ncr_cmnva_emp'; break;
             
             case 'nelu': regionName = 'luz_nelu_emp'; break;
-            case 'nwlu': regionName = 'luz_nwla_emp'; break;
+            case 'nwlu': regionName = 'luz_nwlu_emp'; break;
             case 'min' : regionName = 'min_emp'; break;
             
             case 'bicol': regionName = 'bsl_bicol_emp'; break;

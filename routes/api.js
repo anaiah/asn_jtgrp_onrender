@@ -3956,6 +3956,8 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
 
 			var xfile = 'A_'+fstream.path
 
+            let subFolderName = null;
+
 			sharp( fstream.path ).resize({width:500}).jpeg({ quality: 30 }).toFile(xfile, async(err,info)=>{
 
 				//console.log(err,'?')
