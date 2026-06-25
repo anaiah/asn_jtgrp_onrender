@@ -3985,6 +3985,7 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
 						case 'NCR-CMNVA':
 							subFolderName = 'ncr_cmnva_rcpt';
 							break;
+
                         case 'LUZ-NELU':
 							subFolderName = 'luz_nelu_rcpt';
 							break;
@@ -4992,6 +4993,34 @@ router.get('/handshake', async(req,res) => {
 	res.json({status:true, wow:true})
 })
 
-	return router;
+// Make sure to import fetch at the top of your file if using older Node versions
+// const fetch = require('node-fetch'); 
+
+router.get('/barcode/:code', async (req, res) => {
+    console.log('**firing barcode***');
+    
+    try {
+        const { code } = req.params; 
+        const apiKey = 'l76lsd4wtj1d4ju3hw8emiuzpg1yij';
+        const url = `https://api.barcodelookup.com/v3/products?barcode=${code}&formatted=y&key=${apiKey}`;
+
+        const apiResponse = await fetch(url, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        // FIX: Call .json() on the apiResponse variable
+        const data = await apiResponse.json();
+
+        console.log('codex->', data.products[0].brand, data.products[0].title, data.products[0].manufacturer);
+        res.status(200).json({brand: data.products[0].brand, title: data.products[0].title });
+ 
+    } catch (error) {
+        console.error('Barcode fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch barcode data' });
+    }
+});
+
+
+return router;
 }
 //module.exports = router
