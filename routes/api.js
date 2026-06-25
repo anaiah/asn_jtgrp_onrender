@@ -3424,9 +3424,11 @@ router.get('/getlocation/:region', async(req,res)=>{
     switch (regionParam) { // Use regionParam from URL  
         case 'SMNL': regionName = 'NCR-SMNL'; break;
         case 'CMNL': regionName = 'NCR-CMNL'; break;
+        case 'CMNVA': regionName = 'NCR-CMNVA'; break;
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
-        case 'CMNVA': regionName = 'NCR-CMNVA'; break;
+        case 'SLU': regionName = 'SLU'; break;
+        
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
         case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
@@ -3476,6 +3478,8 @@ router.get('/gethub/:region/:location', async(req,res)=>{
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
+        case 'SLU': regionName = 'SLU'; break;
+        
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
         case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
@@ -3519,6 +3523,8 @@ router.get('/getarea/:region', async(req,res)=>{
         case 'CMNVA': regionName = 'NCR-CMNVA'; break;
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
+        case 'SLU': regionName = 'SLU'; break;
+        
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
         case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
@@ -3982,9 +3988,13 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
                         case 'LUZ-NELU':
 							subFolderName = 'luz_nelu_rcpt';
 							break;
+                        
                         case 'LUZ-NWLU':
 							subFolderName = 'luz_nwlu_rcpt';
 							break;
+                        case 'SLU':
+                            subFolderName = 'slu_rcpt';
+                            break;
                         case 'MIN':
                             subFolderName = 'min_rcpt';
                             break;    

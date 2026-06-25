@@ -1,29 +1,29 @@
 /*timekeep*/
-create table besi_timekeep_panay like besi_timekeep_nelu;
+create table besi_timekeep_slu like besi_timekeep_nelu;
 /* users */
-create table besi_users_panay like besi_users_nelu;
+create table besi_users_slu like besi_users_nelu;
 /* employeess main */
-create table besi_employees_panay like besi_employees_nelu;
+create table besi_employees_slu like besi_employees_nelu;
 /*series*/
-create table besi_panay_series like besi_nelu_series;
+create table besi_slu_series like besi_nelu_series;
 
-INSERT INTO `besi_panay_series` (`series_data`) 
+INSERT INTO `besi_slu_series` (`series_data`) 
 VALUES ('[{"code":"01","series":0},{"code":"02","series":0},{"code":"08","series":0},{"code":"03","series":0},{"code":"10","series":0},{"code":"04","series":0},{"code":"07","series":0},{"code":"06","series":0}]');
 
 /*for hub*/
-CREATE TABLE besi_panay_hub LIKE besi_old_hub;
-INSERT INTO besi_panay_hub
+CREATE TABLE besi_slu_hub LIKE besi_old_hub;
+INSERT INTO besi_slu_hub
 SELECT *
 FROM besi_old_hub
-WHERE region = 'wvis-panay';
+WHERE region = 'slu';
 
 DELIMITER //
 
-CREATE TRIGGER bacolod_insert
-AFTER INSERT ON besi_employees_bacolod
+CREATE TRIGGER slu_insert
+AFTER INSERT ON besi_employees_slu
 FOR EACH ROW
 BEGIN
-    INSERT IGNORE INTO besi_users_bacolod (besi_id, email, full_name, location, position_code) 
+    INSERT IGNORE INTO besi_users_slu (besi_id, email, full_name, location, position_code) 
     VALUES (NEW.emp_id, NEW.email, NEW.full_name, NEW.location, NEW.position);
 END;
 //
@@ -56,7 +56,7 @@ SELECT
 FROM (
     -- This creates a fixed list of all your regions
     SELECT 'WVIS BACOLOD' AS region_label UNION ALL
-    SELECT 'WVIS PANAY' UNION ALL
+    SELECT 'WVIS slu' UNION ALL
     SELECT 'NCR SMNL' UNION ALL
     SELECT 'BSL BICOL' UNION ALL
     SELECT 'BSL SMRLEYTE' UNION ALL
