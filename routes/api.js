@@ -3195,12 +3195,10 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 queryParams = [...dataFields, jmsValue, finalEmpId];
             }
 
-
             //const dbResult = await dbConnection.query(sql, [
 			const dbResult = await conn.execute(sql, queryParams);
 
             console.log(`Database ${mode} successful, rowCount:`, dbResult[0].affectedRows);
-
 
             // --- 2. Insert into bogus_table_1 (same fields) ---
             // APRIL 20, 2K26, TAKING OUT THIS INSERT IN FAVOR OF TRIGGER 
@@ -3224,8 +3222,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                 ]);
                 console.log('Database update successful for besi_users_xx, affectedRows:', result_bogus_update.affectedRows);
             }
-
-         
+        
             // --- 3. Insert into asn_users (same fields) ---
             
             // --- 4. Process and Upload All Files to FTP ---
