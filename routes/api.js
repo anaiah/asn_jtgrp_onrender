@@ -3055,6 +3055,7 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                             case 'NELU': subFolderName = 'luz_nelu_emp'; break;
                             case 'NWLU': subFolderName = 'luz_nwlu_emp'; break;
                             case 'MIN' : subFolderName = 'min_emp'; break;
+                            case 'SLU' : subFolderName = 'slu_emp'; break;
                             case 'BICOL': subFolderName = 'bsl_bicol_emp'; break;
                             case 'SMARLEYTE': subFolderName = 'bsl_smarleyte_emp'; break;
                             case 'CENTRAL': subFolderName = 'wvis_central_emp'; break;
@@ -3574,6 +3575,7 @@ router.get('/gethubcoord/:region/:email/:grpid', async(req,res)=>{
         case 'CMNVA': regionName = 'besi_cmnva_hub'; break;
         case 'NELU': regionName = 'besi_nelu_hub'; break;
         case 'NWLU': regionName = 'besi_nwlu_hub'; break;
+        case 'SLU': regionName = 'besi_slu_hub' ; break;
         case 'MIN': regionName = 'besi_min_hub'; break;
         case 'BICOL': regionName = 'besi_bicol_hub'; break;
         case 'SMARLEYTE': regionName = 'besi_smarleyte_hub'; break;
@@ -3797,6 +3799,8 @@ router.post('/uploadsignature/:empId/:regions', async (req, res) => { // Removed
                         case 'CMNVA': subFolderName = 'ncr_cmnva_emp'; break;
                         case 'NELU': subFolderName = 'luz_nelu_emp'; break;
                         case 'NWLU': subFolderName = 'luz_nwlu_emp'; break;
+                        case 'SLU': subFolderName = 'slu_emp'; break;
+                        
                         case 'MIN': subFolderName = 'min_emp'; break;
                         case 'BICOL': subFolderName = 'bsl_bicol_emp'; break;
                         case 'SMARLEYTE': subFolderName = 'bsl_smarleyte_emp'; break;
