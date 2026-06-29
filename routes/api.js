@@ -1528,6 +1528,7 @@ router.get('/region-summary', async (req, res) => {
                 SELECT 'WVIS CENTRAL' UNION ALL
                 SELECT 'NCR CMNL' UNION ALL
                 SELECT 'NCR CMNVA' UNION ALL
+                SELECT 'SLU' UNION ALL
                 SELECT 'NWLU' UNION ALL
                 SELECT 'NELU'
             ) AS r
@@ -1549,6 +1550,8 @@ router.get('/region-summary', async (req, res) => {
                 SELECT 'NCR CMNL' AS table_name, position FROM besi_employees_cmnl
                 UNION ALL
                 SELECT 'NCR CMNVA' AS table_name, position FROM besi_employees_cmnva
+                UNION ALL
+                SELECT 'SLU' AS table_name, position FROM besi_employees_slu
                 UNION ALL
                 SELECT 'NWLU' AS table_name, position FROM besi_employees_nwlu
                 UNION ALL
@@ -5011,7 +5014,7 @@ router.get('/barcode/:code', async (req, res) => {
         // FIX: Call .json() on the apiResponse variable
         const data = await apiResponse.json();
 
-        console.log('codex->', data.products[0].brand, data.products[0].title, data.products[0].manufacturer);
+        console.log('codex->', data.products[0], data.products[0].brand, data.products[0].title, data.products[0].manufacturer);
         res.status(200).json({brand: data.products[0].brand, title: data.products[0].title });
  
     } catch (error) {
