@@ -1762,7 +1762,6 @@ function calculateLateHours(loginDateTimeStr, shiftStartStr) {
 }
 
 
-
 //=============TIMEKEEPING POST
 router.post('/timekeep', upload.none(), async (req, res) => {
     const region = req.body.region;
@@ -1904,7 +1903,6 @@ router.post('/approveTimeKeep', async (req, res) => {
             error: "Failed to Approve Records" 
         });
     }
-
 
 });
 
@@ -2142,7 +2140,6 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
 
 			}//eif
 
-
             console.log('User found:', user.email, user.region); // Log for debugging
 
             let aData = [];
@@ -2363,7 +2360,6 @@ const nuDate = () =>{
     return [dateStr, fullDateTime];
 }
 
-
 //============save LOGIN FIRST====
 router.post('/savetologin/:empid', async (req, res) => {
 	//console.log('saving to login....', req.body)
@@ -2497,7 +2493,6 @@ const getChartData = async(req,res, retdata) =>{
 		})
 	}
 
-
 }//end func
 
 //===socket emit
@@ -2505,7 +2500,6 @@ const sendSocket = (xdata) => {
 	io.emit('potek', xdata)
 	console.log('io.emit sakses',xdata)
 }
-
 
 //===== piechart for rider====// 
 router.get('/getpiedata/:empid', async(req,res)=>{
@@ -2594,7 +2588,6 @@ router.get('/menu/:grpid', async(req,res)=>{
 	}
 
 })
-
 
 //==== for grid monthly transaction riders =======//
 router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
