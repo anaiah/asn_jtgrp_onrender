@@ -44,6 +44,11 @@ module.exports =  {
             case 'nelu': regionName = 'luz_nelu_emp'; break;
             case 'nwlu': regionName = 'luz_nwlu_emp'; break;
             case 'slu' : regionName = 'slu_emp'; break;
+
+            case 'hpro' : subFolderName = 'hpro_emp'; break;
+            case 'yncr' : subFolderName = 'yncr_emp'; break;
+            case 'yslu' : subFolderName = 'yslu_emp'; break;
+            case 'ynelu' : subFolderName = 'ynelu_emp'; break;
             
             case 'min' : regionName = 'min_emp'; break;
             

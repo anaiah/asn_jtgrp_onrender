@@ -1529,6 +1529,10 @@ router.get('/region-summary', async (req, res) => {
                 SELECT 'NCR CMNL' UNION ALL
                 SELECT 'NCR CMNVA' UNION ALL
                 SELECT 'SLU' UNION ALL
+                SELECT 'HPRO' UNION ALL
+                SELECT 'YNCR' UNION ALL
+                SELECT 'YSLU' UNION ALL
+                SELECT 'YNELU' UNION ALL
                 SELECT 'NWLU' UNION ALL
                 SELECT 'NELU'
             ) AS r
@@ -1552,6 +1556,14 @@ router.get('/region-summary', async (req, res) => {
                 SELECT 'NCR CMNVA' AS table_name, position FROM besi_employees_cmnva
                 UNION ALL
                 SELECT 'SLU' AS table_name, position FROM besi_employees_slu
+                UNION ALL
+                SELECT 'HPRO' AS table_name, position FROM besi_employees_hpro
+                UNION ALL
+                SELECT 'YNCR' AS table_name, position FROM besi_employees_yncr
+                UNION ALL
+                SELECT 'YSLU' AS table_name, position FROM besi_employees_yslu
+                UNION ALL
+                SELECT 'YNELU' AS table_name, position FROM besi_employees_ynelu
                 UNION ALL
                 SELECT 'NWLU' AS table_name, position FROM besi_employees_nwlu
                 UNION ALL
@@ -3049,6 +3061,12 @@ router.post('/newemppost/:xregion/:dateHired/:jobTitle/:mode/:empid', async (req
                             case 'NWLU': subFolderName = 'luz_nwlu_emp'; break;
                             case 'MIN' : subFolderName = 'min_emp'; break;
                             case 'SLU' : subFolderName = 'slu_emp'; break;
+
+                            case 'HPRO' : subFolderName = 'hpro_emp'; break;
+                            case 'YNCR' : subFolderName = 'yncr_emp'; break;
+                            case 'YSLU' : subFolderName = 'yslu_emp'; break;
+                            case 'YNELU' : subFolderName = 'ynelu_emp'; break;
+
                             case 'BICOL': subFolderName = 'bsl_bicol_emp'; break;
                             case 'SMARLEYTE': subFolderName = 'bsl_smarleyte_emp'; break;
                             case 'CENTRAL': subFolderName = 'wvis_central_emp'; break;
@@ -3422,7 +3440,12 @@ router.get('/getlocation/:region', async(req,res)=>{
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
         case 'SLU': regionName = 'SLU'; break;
-        
+
+        case 'HPRO' : regionName = 'HPRO'; break;
+        case 'YNCR' : regionName = 'YNCR'; break;
+        case 'YSLU' : regionName = 'YSLU'; break;
+        case 'YNELU' : regionName = 'YNELU'; break;
+
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
         case 'SMARLEYTE': regionName = 'BSL-SMARLEYTE'; break;
@@ -3473,6 +3496,11 @@ router.get('/gethub/:region/:location', async(req,res)=>{
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
         case 'SLU': regionName = 'SLU'; break;
+
+         case 'HPRO' : regionName = 'HPRO'; break;
+        case 'YNCR' : regionName = 'YNCR'; break;
+        case 'YSLU' : regionName = 'YSLU'; break;
+        case 'YNELU' : regionName = 'YNELU'; break;
         
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
@@ -3518,6 +3546,13 @@ router.get('/getarea/:region', async(req,res)=>{
         case 'NELU': regionName = 'LUZ-NEL'; break;
         case 'NWLU': regionName = 'LUZ-NWL'; break;
         case 'SLU': regionName = 'SLU'; break;
+
+        
+         case 'HPRO' : regionName = 'HPRO'; break;
+        case 'YNCR' : regionName = 'YNCR'; break;
+        case 'YSLU' : regionName = 'YSLU'; break;
+        case 'YNELU' : regionName = 'YNELU'; break;
+        
         
         case 'MIN' : regionName = 'MIN'; break;
         case 'BICOL': regionName = 'BSL-BICOL'; break;
@@ -3566,6 +3601,13 @@ router.get('/gethubcoord/:region/:email/:grpid', async(req,res)=>{
         case 'NELU': regionName = 'besi_nelu_hub'; break;
         case 'NWLU': regionName = 'besi_nwlu_hub'; break;
         case 'SLU': regionName = 'besi_slu_hub' ; break;
+
+        
+        case 'HPRO' : regionName = 'besi_hpro_hub'; break;
+        case 'YNCR' : regionName = 'besi_yncr_hub'; break;
+        case 'YSLU' : regionName = 'besi_yslu_hub'; break;
+        case 'YNELU' : regionName = 'besi_ynelu_hub'; break;
+        
         case 'MIN': regionName = 'besi_min_hub'; break;
         case 'BICOL': regionName = 'besi_bicol_hub'; break;
         case 'SMARLEYTE': regionName = 'besi_smarleyte_hub'; break;
@@ -3791,6 +3833,11 @@ router.post('/uploadsignature/:empId/:regions', async (req, res) => { // Removed
                         case 'NWLU': subFolderName = 'luz_nwlu_emp'; break;
                         case 'SLU': subFolderName = 'slu_emp'; break;
                         
+                        case 'HPRO' : regionName = 'hpro_emp'; break;
+                        case 'YNCR' : regionName = 'yncr_emp'; break;
+                        case 'YSLU' : regionName = 'yslu_emp'; break;
+                        case 'YNELU' : regionName = 'ynelu_emp'; break;
+                        
                         case 'MIN': subFolderName = 'min_emp'; break;
                         case 'BICOL': subFolderName = 'bsl_bicol_emp'; break;
                         case 'SMARLEYTE': subFolderName = 'bsl_smarleyte_emp'; break;
@@ -3993,6 +4040,12 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
                         case 'SLU':
                             subFolderName = 'slu_rcpt';
                             break;
+
+                        case 'HPRO' : subFolderName = 'hpro_rcpt'; break;
+                        case 'YNCR' : subFolderName = 'yncr_rcpt'; break;
+                        case 'YSLU' : subFolderName = 'yslu_rcpt'; break;
+                        case 'YNELU' : subFolderName = 'ynelu_rcpt'; break;
+                            
                         case 'MIN':
                             subFolderName = 'min_rcpt';
                             break;    
