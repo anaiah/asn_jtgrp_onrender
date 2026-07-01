@@ -484,9 +484,9 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
     const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
 
-    // Region lookup array for code conversions
-    const aRegion = ["smnl", "cmnl", "cmnva","cmnl","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
-                "bicol","smarleyte","bacolod","panay","central","min"];
+    //====THIS IS A TEMPORARY FIX, MAKE A WAY TO HANDLE MULTIPLE REGIONS IN THE FUTURE, MAYBE A LOOP OR DYNAMIC QUERY BUILDER
+    aRegion = ["smnl", "cmnl", "cmnva","cmnl","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
+                "bicol","smarleyte","bacolod","panay","central","min"]
 
     try {
         const filters = {
@@ -502,16 +502,9 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             return res.status(400).send("Region is required");
         }
 
-        const regionClean   = xregion.toLowerCase(); 
+        const regionClean   = xregion.toLowerCase(); // smnl, cmnl, etc.
         const userTableName = `besi_employees_${regionClean}`;
         const besiuserTable = `besi_users_${regionClean}`;
-
-        // 1. Calculate the 2-digit code for the requested region immediately
-        const regionIndex = aRegion.indexOf(regionClean);
-        let regionCodeRepresentation = "00"; 
-        if (regionIndex !== -1) {
-            regionCodeRepresentation = String(regionIndex + 1).padStart(2, '0');
-        }
 
         let sql = `
             SELECT
@@ -522,14 +515,14 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 h.region as xregion,
                 h.area,
                 h.location as xlocation,
-                p.position AS display_position, 
+                p.position AS display_position, -- Fetched dynamically from join lookup
                 CASE
                     WHEN e.active = 1 THEN 'ACTIVE'
                     ELSE 'INACTIVE'
                 END AS active_text,
                 dl.reason AS deactivation_reason
             FROM ${ userTableName } e
-            LEFT JOIN asn_position p ON e.position = p.code 
+            LEFT JOIN asn_position p ON e.position = p.code -- Dynamic mapping connection
             LEFT JOIN (
                 SELECT l.emp_id, l.reason
                 FROM besi_deactivation_logs l
@@ -546,17 +539,17 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         const conditions = [];
         const params = [];
 
-        if (filters.name && filters.name.trim()) {
+        if (filters.name.trim()) {
             conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
             params.push(`%${filters.name.trim()}%`);
         }
 
-        if (filters.id && filters.id.trim()) {
+        if (filters.id.trim()) {
             conditions.push("e.emp_id = ?");
             params.push(filters.id.trim());
         }
 
-        if (filters.position && filters.position.trim()) {
+        if (filters.position.trim()) {
             conditions.push("e.position = ?");
             params.push(filters.position.trim());
         }
@@ -566,13 +559,17 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         }
 
         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
+
+        //**** console.log("Generated SQL for masterfile:", sql, filters.position);
         
+        // OPTIMIZATION: Swapped out manual raw connections for your leak-proof promise pool framework
         const [rows] = await db.query(sql, params);
-        // Initialize Excel Workbook layout
+
+        // Build Excel
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet("Masterfile");
 
-        // Static header information mapping
+        // 1–4: static header
         worksheet.getCell('A1').value = 'BETTER EDGE SYSTEMS INCORPORATED';
         worksheet.getCell('A1').font = { bold: true };
 
@@ -580,11 +577,13 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         worksheet.getCell('A3').value = 'Addition Hills, San Juan City';
         worksheet.getCell('A4').value = 'Metro Manila, Philippines';
 
-        worksheet.addRow([]); // Row 5 empty spacer
+        // 5: blank row
+        worksheet.addRow([]); // this becomes row 5
 
-        const topHeaderRow = worksheet.addRow([]); // Row 6 Configuration
+        // NEW: Constructing main top layer header row for nested grid combinations
+        const topHeaderRow = worksheet.addRow([]); // Row 6
         topHeaderRow.getCell('R').value = "RATE";
-        worksheet.mergeCells('R6:S6'); 
+        worksheet.mergeCells('R6:S6'); // Merges R and S cells horizontally under the RATE category block
         topHeaderRow.getCell('R').alignment = { horizontal: 'center' };
         topHeaderRow.font = { bold: true };
 
@@ -592,7 +591,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         const headerRow = worksheet.addRow([
             "NO.",                                              // A (1)
             "CATEGORY",                                         // B (2)
-            "EMPLOYEE NO. / JMS ACCOUNT NO. (sorters & sprinter)", // C (3) <-- New generated ID format
+            "EMPLOYEE NO. / JMS ACCOUNT NO. (sorters & sprinter)", // C (3)
             "FIRST NAME",                                       // D (4)
             "MIDDLE NAME",                                      // E (5)
             "LAST NAME",                                        // F (6)
@@ -615,8 +614,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             "ID TYPE",                                          // W (23)
             "ID NO.",                                           // X (24)
             "STATUS(ACTIVE / INACTIVE)If inactive should have separation date", // Y (25)
-            "EMAIL",                                            // Z (26)
-            "ORIGINAL EMP ID"                                   // AA (27) <-- Added to the end
+            "EMAIL"                                              //Z(26)
         ]);
         
         headerRow.font = { bold: true };
@@ -648,13 +646,12 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         headerRow.getCell('X').alignment = { horizontal: 'left'};     // ID NO.
         headerRow.getCell('Y').alignment = { horizontal: 'center'};   // STATUS DESCRIPTION
         headerRow.getCell('Z').alignment = { horizontal: 'left'};     // EMAIL
-        headerRow.getCell('AA').alignment = { horizontal: 'left'};    // ORIGINAL EMP ID
 
         //wrap entire address column
         const addrCol = worksheet.getColumn(3);
         addrCol.alignment = { wrapText: true };
 
-        worksheet.getColumn(10).alignment = { horizontal: 'left' };
+        worksheet.getColumn(10).alignment = { horizontal: 'left' };//width = 5; // NO. column is narrower since it's just a serial number
         const poscol = worksheet.getColumn(9);
         poscol.alignment = { horizontal: 'left' };
 
@@ -666,44 +663,25 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
         const addyCol = worksheet.getColumn(4);
         addyCol.alignment = { horizontal: 'center' };
-        // 7+: data rows loop
+
+        // 7+: data rows
         rows.forEach((r, idx) => {
-            let transformedBesiId = "";
-            const originalBesiId = r.emp_id;
-
-            // Run ID transformation code logic
-            if (originalBesiId) {
-                const blocks = originalBesiId.split('-');
-                if (blocks.length === 4) {
-                    const companyBlock = blocks[0];   // e.g., 'BE'
-                    const lastBlock    = blocks[3];   // e.g., '010006'
-                    
-                    const posCodeBlock = lastBlock.substring(0, 2); // Extract '01'
-                    const seriesBlock  = lastBlock.substring(2);    // Extract '0006'
-
-                    // Pattern: BEE01010006 (Omit date block entirely)
-                    transformedBesiId = `${companyBlock}${regionCodeRepresentation}${posCodeBlock}${seriesBlock}`;
-                } else {
-                    transformedBesiId = originalBesiId; // Fallback if data string pattern differs
-                }
-            }
-
             worksheet.addRow([
                 idx + 1,                                        // A: NO.
-                r.display_position || "SORTER",                 // B: CATEGORY
-                transformedBesiId,                              // C: EMPLOYEE NO. (Replaced with custom Besi ID)
-                r.first_name?.toUpperCase() || "",               // D: FIRST NAME
-                r.middle_name?.toUpperCase() || "",              // E: MIDDLE NAME
-                r.last_name?.toUpperCase() || "",                // F: LAST NAME
-                r.suffix?.toUpperCase() || "",                   // G: Suffix
+                r.display_position || "SORTER",                 // B: CATEGORY (Mapped to joined lookup description)
+                r.emp_id,                                       // C: EMPLOYEE NO.
+                r.first_name?.toUpperCase() || "",               // D: FIRST NAME (Safe from null)
+                r.middle_name?.toUpperCase() || "",              // E: MIDDLE NAME (Safe from null)
+                r.last_name?.toUpperCase() || "",                // F: LAST NAME (Safe from null)
+                r.suffix?.toUpperCase() || "",                   // G: Suffix (Safe from null)
                 r.xfull_name || "",                             // H: COMPLETE NAME
                 r.birth_date || "",                             // I: BIRTHDAY
                 r.hire_date || "",                              // J: DATE HIRED
-                r.display_position || r.position,               // K: POSITION
-                r.employment_status?.toUpperCase() || "R-OCW",   // L: EMPLOYMENT STATUS
+                r.display_position || r.position,               // K: POSITION (Displays lookup description string)
+                r.employment_status?.toUpperCase() || "R-OCW",   // L: EMPLOYMENT STATUS (Safe from null)
                 r.separation_date || "",                        // M: SEPARATION DATE
-                r.xlocation || "",                              // N: AREA
-                r.xhub || "",                                   // O: BRANCH NAME
+                r.xlocation || "",                              // N: AREA (Changed to xlocation)
+                r.xhub || "",                                   // O: BRANCH NAME (Changed to xhub)
                 r.branch_code || "",                            // P: BRANCH CODE
                 r.compensation_type || "DAILY",                 // Q: TYPE OF COMPENSATION
                 r.daily_rate || "",                             // R: DAILY RATE
@@ -713,13 +691,12 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 r.education || "HIGH SCHOOL GRADUATE",          // V: EDUCATION
                 r.id_type || "",                                // W: ID TYPE
                 r.id_no || "",                                  // X: ID NO.
-                r.active_text || "",                            // Y: STATUS
-                r.email || "",                                  // Z: EMAIL
-                originalBesiId || ""                            // AA: ORIGINAL EMP ID (Moved here to the end)
+                r.active_text || "",                            // Y: STATUS (Outputs "ACTIVE" or "INACTIVE" cleanly)
+                r.email || ""                                   // Z: EMAIL
             ]);
         });
 
-        // Set column widths
+        // Set column widths - split onto individual lines so it does not overflow
         const widths = [
             10, // A: NO.
             15, // B: CATEGORY
@@ -745,15 +722,14 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             30, // V: EDUCATION
             15, // W: ID TYPE
             20, // X: ID NO.
-            60, // Y: STATUS
-            50, // Z: EMAIL
-            35  // AA: ORIGINAL EMP ID
+            60,  // Y: STATUS
+            50 // Z:EMAIL
         ];
         
         widths.forEach((w, i) => {
             worksheet.getColumn(i + 1).width = w;
         });
-        
+
         res.setHeader(
             "Content-Type",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
