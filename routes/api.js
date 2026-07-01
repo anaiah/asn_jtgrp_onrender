@@ -485,7 +485,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
 
     // Region lookup array for code conversions
-    const aRegion = ["smnl", "cmnl", "cmnva","cmnl","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
+    const aRegion = ["smnl", "cmnl", "cmnva","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
                 "bicol","smarleyte","bacolod","panay","central","min"];
 
     try {
