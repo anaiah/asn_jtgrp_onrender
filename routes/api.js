@@ -531,14 +531,14 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             FROM ${ userTableName } e
             LEFT JOIN asn_position p ON e.position = p.code 
             
-            -- 1. Correlated subquery for logs (Safely kept from our previous step)
-            LEFT JOIN besi_deactivation_logs dl 
-                ON dl.emp_id = e.emp_id 
-                AND dl.id = (
-                    SELECT MAX(sub_l.id) 
-                    FROM besi_deactivation_logs sub_l 
-                    WHERE sub_l.emp_id = e.emp_id
-                )
+            // -- 1. Correlated subquery for logs (Safely kept from our previous step)
+            // LEFT JOIN besi_deactivation_logs dl 
+            //     ON dl.emp_id = e.emp_id 
+            //     AND dl.id = (
+            //         SELECT MAX(sub_l.id) 
+            //         FROM besi_deactivation_logs sub_l 
+            //         WHERE sub_l.emp_id = e.emp_id
+            //     )
                 
             -- 2. FIX: Limit the user account table connection to only pull exactly ONE matching row per employee
             LEFT JOIN (
@@ -553,7 +553,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             
             LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
         `;
-
+        // working this sql, included is inactive emps
         // let sql = `
         //     SELECT
         //         e.*,
@@ -603,7 +603,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         }
 
         if (conditions.length > 0) {
-            sql += " WHERE " + conditions.join(" AND ");
+            sql += " WHERE e.active = 1 AND " + conditions.join(" AND ");
         }
 
         // Add this line to force one row per employee, matching Grid.js
