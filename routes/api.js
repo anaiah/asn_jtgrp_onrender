@@ -686,7 +686,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         //rows.forEach((r, idx) => {
         uniqueRows.forEach((r, idx) => {
             let transformedBesiId = "";    
-            let transformedBesiId = "";
+            //let transformedBesiId = "";
             const originalBesiId = r.emp_id;
 
             // Run ID transformation code logic
