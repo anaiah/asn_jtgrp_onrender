@@ -2822,106 +2822,91 @@ let myfile
 const Busboy = require('busboy')
 const {Client} = require("basic-ftp")
 
-
 // ***** this is to generate ID ****
 async function generateEmpId( region, date_hired, poscode ) {    
+
+    //const regionCode = req.body.hrisload_region; // e.g., SMNL
+    
+    const xtable = `besi_users_${region.toLowerCase()}`;
+
     const seriesTable = `besi_${region.toLowerCase()}_series`;
 
-    const dbconfig  ={
-        host: '153.92.15.50',
-        user: 'u899193124_asianowjt',
-        password: 'G125c3@M312c4',
-        database: 'u899193124_asianowjt',
+    const conn = await mysqls.createConnection(dbconfig);
+
+    // Fetch current series JSON once
+    const sql =`SELECT series_data FROM ${seriesTable}`;
+    
+    const [seriesRows] = await conn.execute(sql);
+
+    console.log('*** getting sequence ***', sql, seriesRows )
+    
+	let seriesData;
+	if (seriesRows.length && seriesRows[0]?.series_data) {
+		try {
+			seriesData = JSON.parse(seriesRows[0].series_data);
+		} catch (e) {
+			console.error('Failed to parse series_data JSON', e);
+			seriesData = [
+			{ "code": "01", "series": 1 },
+			{ "code": "02", "series": 1 },
+            { "code": "04", "series": 1 },
+            { "code": "08", "series": 1 },
+            { "code": "06", "series": 1 },
+            
+			];
+		}
+	} else {
+		seriesData = [
+			{ "code": "01", "series": 1 },
+			{ "code": "02", "series": 1 },
+            { "code": "04", "series": 1 },
+            { "code": "08", "series": 1 },
+            { "code": "06", "series": 1 },
+            
+			];
+	}
+
+    // Find the current series for this position, or initialize
+    let seriesObj = seriesData.find(s => s.code === poscode);
+    if (!seriesObj) {
+      seriesObj = { code: poscode, series: 1 };
+      seriesData.push(seriesObj);
     }
 
-    // FIX 1: Explicitly use existing pool/db globally if available to avoid connection exhaustion, 
-    // or add connection timeout handling. Always ensure a try/finally block closes the connection.
-    let conn;
-    try {
-          // FIX: Pass the dbconfig variable directly here
-        conn = await mysqls.createConnection(dbconfig);
+    let lastSeriesNumber = seriesObj.series; // get the latest series number store in var
 
+    // Helper: get date string as yymmdd
+    const getDateString = (date) => {
+      if (!date) return '';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '';
+      const y = d.getFullYear().toString().slice(-2);
+      const m = ('0' + (d.getMonth() + 1)).slice(-2);
+      const day = ('0' + d.getDate()).slice(-2);
+      return `${m}${day}${y}`;
+    };
 
-        // FIX 3: Dynamic SQL safely queries ID to lock row preventing concurrent race conditions
-        const sql = `SELECT series_data FROM ${seriesTable} WHERE id = 1 FOR UPDATE`;
-        const [seriesRows] = await conn.execute(sql);
+    const formattedDateHired = formatDate(date_hired);
+    // Generate emp_id using lastSeriesNumber
+    const datePart = getDateString(formattedDateHired) || getDateString(new Date());
+    const seqStr = ('0000' + lastSeriesNumber).slice(-4); // pad 4 digits
 
-        console.log('*** getting sequence ***', sql, seriesRows );
-        
-        let seriesData;
-        if (seriesRows.length && seriesRows[0]?.series_data) {
-            try {
-                // Handle both raw string and pre-parsed driver objects safely
-                seriesData = typeof seriesRows[0].series_data === 'string' 
-                    ? JSON.parse(seriesRows[0].series_data) 
-                    : seriesRows[0].series_data;
-            } catch (e) {
-                console.error('Failed to parse series_data JSON', e);
-                seriesData = getDefaultSeries();
-            }
-        } else {
-            seriesData = getDefaultSeries();
-        }
+    const emp_id = `BE-${region.toUpperCase()}-${datePart}-${poscode}${seqStr}`;
 
-        // Find the current series for this position, or initialize
-        let seriesObj = seriesData.find(s => s.code === poscode);
-        if (!seriesObj) {
-            seriesObj = { code: poscode, series: 1 };
-            seriesData.push(seriesObj);
-        }
+    // Increment for next record
+	lastSeriesNumber += 1;
 
-        let lastSeriesNumber = seriesObj.series; 
+    // Now update the series table with latest number
+	seriesObj.series = lastSeriesNumber; // update the object
+    const usql = `UPDATE ${seriesTable} SET series_data = ? WHERE id=1`;
+	await conn.execute(usql, [JSON.stringify(seriesData)]);
 
-        // Helper: get date string as yymmdd
-        const getDateString = (date) => {
-            if (!date) return '';
-            const d = new Date(date);
-            if (isNaN(d.getTime())) return '';
-            const y = d.getFullYear().toString().slice(-2);
-            const m = ('0' + (d.getMonth() + 1)).slice(-2);
-            const day = ('0' + d.getDate()).slice(-2);
-            return `${m}${day}${y}`;
-        };
+    console.log( '**** update sql series ',usql )
 
-        // Suppressed potential runtime error if formatDate is missing globally
-        const formattedDateHired = typeof formatDate === 'function' ? formatDate(date_hired) : date_hired;
-        const datePart = getDateString(formattedDateHired) || getDateString(new Date());
-        const seqStr = ('0000' + lastSeriesNumber).slice(-4); 
+	await conn.end();
 
-        const emp_id = `BE-${region.toUpperCase()}-${datePart}-${poscode}${seqStr}`;
-
-        // Increment for next record
-        seriesObj.series = lastSeriesNumber + 1; 
-
-        const usql = `UPDATE ${seriesTable} SET series_data = ? WHERE id = 1`;
-        await conn.execute(usql, [JSON.stringify(seriesData)]);
-
-        console.log('**** update sql series ', usql);
-
-        return emp_id;
-
-    } catch (error) {
-        console.error("Critical error in generateEmpId:", error);
-        throw error; // Propagate up to Express route handler
-    } finally {
-        // FIX 4: Guaranteed closure of connection block even if queries fail halfway through
-        if (conn) {
-            await conn.end().catch(err => console.error("Error closing connection:", err));
-        }
-    }
+    return emp_id;
 }
-
-// Fallback helper function to keep code clean
-function getDefaultSeries() {
-    return [
-        { "code": "01", "series": 1 },
-        { "code": "02", "series": 1 },
-        { "code": "04", "series": 1 },
-        { "code": "08", "series": 1 },
-        { "code": "06", "series": 1 }
-    ];
-}
-
 
 // --- Utility: Local Temp Directory Setup ---
 const tempUploadDir = path.join(__dirname, 'temp_uploads');
