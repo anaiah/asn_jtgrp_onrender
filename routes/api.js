@@ -522,16 +522,16 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 h.region as xregion,
                 h.area,
                 h.location as xlocation,
-                p.position AS display_position, -- Fetched dynamically from join lookup
+                p.position AS display_position, 
                 CASE
                     WHEN e.active = 1 THEN 'ACTIVE'
                     ELSE 'INACTIVE'
                 END AS active_text,
                 dl.reason AS deactivation_reason
             FROM ${ userTableName } e
-            LEFT JOIN asn_position p ON e.position = p.code -- Dynamic mapping connection
+            LEFT JOIN asn_position p ON e.position = p.code 
             
-            -- FIX: Correlated join isolates the absolute latest single row per employee id
+            -- 1. Correlated subquery for logs (Safely kept from our previous step)
             LEFT JOIN besi_deactivation_logs dl 
                 ON dl.emp_id = e.emp_id 
                 AND dl.id = (
@@ -540,7 +540,17 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                     WHERE sub_l.emp_id = e.emp_id
                 )
                 
-            LEFT JOIN ${ besiuserTable } u ON u.besi_id = e.emp_id         
+            -- 2. FIX: Limit the user account table connection to only pull exactly ONE matching row per employee
+            LEFT JOIN (
+                SELECT sub_u.besi_id, sub_u.hub
+                FROM ${ besiuserTable } sub_u
+                WHERE sub_u.id IN (
+                    SELECT MAX(id)
+                    FROM ${ besiuserTable }
+                    GROUP BY besi_id
+                )
+            ) u ON u.besi_id = e.emp_id         
+            
             LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
         `;
 
