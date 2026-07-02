@@ -571,6 +571,19 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
         
         const [rows] = await db.query(sql, params);
+
+        //july 1
+        // Filter out any duplicate records before sending the data to Excel
+        const uniqueRows = [];
+        const seenEmpIds = new Set();
+
+        rows.forEach(row => {
+            if (!seenEmpIds.has(row.emp_id)) {
+                seenEmpIds.add(row.emp_id);
+                uniqueRows.push(row);
+            }
+        });
+
         // Initialize Excel Workbook layout
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet("Masterfile");
@@ -670,7 +683,9 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         const addyCol = worksheet.getColumn(4);
         addyCol.alignment = { horizontal: 'center' };
         // 7+: data rows loop
-        rows.forEach((r, idx) => {
+        //rows.forEach((r, idx) => {
+        uniqueRows.forEach((r, idx) => {
+            let transformedBesiId = "";    
             let transformedBesiId = "";
             const originalBesiId = r.emp_id;
 
