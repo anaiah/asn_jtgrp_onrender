@@ -603,7 +603,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         }
 
         if (conditions.length > 0) {
-            sql += " WHERE e.active = 1 AND " + conditions.join(" AND ");
+            sql += " WHERE " + conditions.join(" AND ");
         }
 
         // Add this line to force one row per employee, matching Grid.js
