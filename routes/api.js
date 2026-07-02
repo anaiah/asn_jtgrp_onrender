@@ -565,6 +565,9 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             sql += " WHERE " + conditions.join(" AND ");
         }
 
+        // Add this line to force one row per employee, matching Grid.js
+        sql += " GROUP BY e.emp_id"; 
+
         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
         
         const [rows] = await db.query(sql, params);
