@@ -522,26 +522,57 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 h.region as xregion,
                 h.area,
                 h.location as xlocation,
-                p.position AS display_position, 
+                p.position AS display_position, -- Fetched dynamically from join lookup
                 CASE
                     WHEN e.active = 1 THEN 'ACTIVE'
                     ELSE 'INACTIVE'
                 END AS active_text,
                 dl.reason AS deactivation_reason
             FROM ${ userTableName } e
-            LEFT JOIN asn_position p ON e.position = p.code 
-            LEFT JOIN (
-                SELECT l.emp_id, l.reason
-                FROM besi_deactivation_logs l
-                WHERE l.id IN (
-                    SELECT MAX(id)
-                    FROM besi_deactivation_logs
-                    GROUP BY emp_id
+            LEFT JOIN asn_position p ON e.position = p.code -- Dynamic mapping connection
+            
+            -- FIX: Correlated join isolates the absolute latest single row per employee id
+            LEFT JOIN besi_deactivation_logs dl 
+                ON dl.emp_id = e.emp_id 
+                AND dl.id = (
+                    SELECT MAX(sub_l.id) 
+                    FROM besi_deactivation_logs sub_l 
+                    WHERE sub_l.emp_id = e.emp_id
                 )
-            ) dl ON dl.emp_id = e.emp_id
+                
             LEFT JOIN ${ besiuserTable } u ON u.besi_id = e.emp_id         
             LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
         `;
+
+        // let sql = `
+        //     SELECT
+        //         e.*,
+        //         UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
+        //         u.hub,
+        //         h.hub as xhub,              
+        //         h.region as xregion,
+        //         h.area,
+        //         h.location as xlocation,
+        //         p.position AS display_position, 
+        //         CASE
+        //             WHEN e.active = 1 THEN 'ACTIVE'
+        //             ELSE 'INACTIVE'
+        //         END AS active_text,
+        //         dl.reason AS deactivation_reason
+        //     FROM ${ userTableName } e
+        //     LEFT JOIN asn_position p ON e.position = p.code 
+        //     LEFT JOIN (
+        //         SELECT l.emp_id, l.reason
+        //         FROM besi_deactivation_logs l
+        //         WHERE l.id IN (
+        //             SELECT MAX(id)
+        //             FROM besi_deactivation_logs
+        //             GROUP BY emp_id
+        //         )
+        //     ) dl ON dl.emp_id = e.emp_id
+        //     LEFT JOIN ${ besiuserTable } u ON u.besi_id = e.emp_id         
+        //     LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
+        // `;
 
         const conditions = [];
         const params = [];
@@ -573,16 +604,6 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         const [rows] = await db.query(sql, params);
 
         //july 1
-        // Filter out any duplicate records before sending the data to Excel
-        const uniqueRows = [];
-        const seenEmpIds = new Set();
-
-        rows.forEach(row => {
-            if (!seenEmpIds.has(row.emp_id)) {
-                seenEmpIds.add(row.emp_id);
-                uniqueRows.push(row);
-            }
-        });
 
         // Initialize Excel Workbook layout
         const workbook = new ExcelJS.Workbook();
@@ -683,10 +704,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         const addyCol = worksheet.getColumn(4);
         addyCol.alignment = { horizontal: 'center' };
         // 7+: data rows loop
-        //rows.forEach((r, idx) => {
-        uniqueRows.forEach((r, idx) => {
-            let transformedBesiId = "";    
-            //let transformedBesiId = "";
+        rows.forEach((r, idx) => {
+            let transformedBesiId = "";
             const originalBesiId = r.emp_id;
 
             // Run ID transformation code logic
