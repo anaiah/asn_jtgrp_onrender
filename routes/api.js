@@ -523,24 +523,11 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 h.area,
                 h.location as xlocation,
                 p.position AS display_position, 
-                CASE
-                    WHEN e.active = 1 THEN 'ACTIVE'
-                    ELSE 'INACTIVE'
-                END AS active_text,
-                dl.reason AS deactivation_reason
+                'ACTIVE' AS active_text
             FROM ${ userTableName } e
             LEFT JOIN asn_position p ON e.position = p.code 
             
-            // -- 1. Correlated subquery for logs (Safely kept from our previous step)
-            // LEFT JOIN besi_deactivation_logs dl 
-            //     ON dl.emp_id = e.emp_id 
-            //     AND dl.id = (
-            //         SELECT MAX(sub_l.id) 
-            //         FROM besi_deactivation_logs sub_l 
-            //         WHERE sub_l.emp_id = e.emp_id
-            //     )
-                
-            -- 2. FIX: Limit the user account table connection to only pull exactly ONE matching row per employee
+            -- 1. FIX: Limit the user account table connection to only pull exactly ONE matching row per employee
             LEFT JOIN (
                 SELECT sub_u.besi_id, sub_u.hub
                 FROM ${ besiuserTable } sub_u
@@ -552,37 +539,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             ) u ON u.besi_id = e.emp_id         
             
             LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
+            WHERE e.active = 1
         `;
-        // working this sql, included is inactive emps
-        // let sql = `
-        //     SELECT
-        //         e.*,
-        //         UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
-        //         u.hub,
-        //         h.hub as xhub,              
-        //         h.region as xregion,
-        //         h.area,
-        //         h.location as xlocation,
-        //         p.position AS display_position, 
-        //         CASE
-        //             WHEN e.active = 1 THEN 'ACTIVE'
-        //             ELSE 'INACTIVE'
-        //         END AS active_text,
-        //         dl.reason AS deactivation_reason
-        //     FROM ${ userTableName } e
-        //     LEFT JOIN asn_position p ON e.position = p.code 
-        //     LEFT JOIN (
-        //         SELECT l.emp_id, l.reason
-        //         FROM besi_deactivation_logs l
-        //         WHERE l.id IN (
-        //             SELECT MAX(id)
-        //             FROM besi_deactivation_logs
-        //             GROUP BY emp_id
-        //         )
-        //     ) dl ON dl.emp_id = e.emp_id
-        //     LEFT JOIN ${ besiuserTable } u ON u.besi_id = e.emp_id         
-        //     LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
-        // `;
 
         const conditions = [];
         const params = [];
@@ -602,8 +560,9 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             params.push(filters.position.trim());
         }
 
+        // FIX: Append with AND instead of WHERE since WHERE e.active = 1 already exists
         if (conditions.length > 0) {
-            sql += " WHERE " + conditions.join(" AND ");
+            sql += " AND " + conditions.join(" AND ");
         }
 
         // Add this line to force one row per employee, matching Grid.js
@@ -612,6 +571,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
         
         const [rows] = await db.query(sql, params);
+
 
         //july 1
 
