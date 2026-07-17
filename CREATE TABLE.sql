@@ -146,3 +146,97 @@ ALTER TABLE besi_employees_smarleyte
 ALTER TABLE besi_employees_smnl 
     ADD COLUMN daily_rate DECIMAL(10, 2) AFTER position,
     ADD COLUMN education_level VARCHAR(150) AFTER daily_rate;
+
+
+/*  ancaja ALL TABLES FOR A CERTAIN NAME 
+WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+*/
+SELECT 'bacolod' AS source_table, full_name, emp_id FROM besi_employees_bacolod WHERE full_name LIKE '%a
+UNION ALL
+SELECT 'bicol' AS source_table, full_name, emp_id FROM besi_employees_bicol WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'central' AS source_table, full_name, emp_id FROM besi_employees_central WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'cmnl' AS source_table, full_name, emp_id FROM besi_employees_cmnl WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'cmnva' AS source_table, full_name, emp_id FROM besi_employees_cmnva WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'smnl' AS source_table, full_name, emp_id FROM besi_employees_smnl WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'hpro' AS source_table, full_name, emp_id FROM besi_employees_hpro WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'min' AS source_table, full_name, emp_id FROM besi_employees_min WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'nelu' AS source_table, full_name, emp_id FROM besi_employees_nelu WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'nwlu' AS source_table, full_name, emp_id FROM besi_employees_nwlu WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'panay' AS source_table, full_name, emp_id FROM besi_employees_panay WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'slu' AS source_table, full_name, emp_id FROM besi_employees_slu WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'smarleyte' AS source_table, full_name, emp_id FROM besi_employees_smarleyte WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'yncr' AS source_table, full_name, emp_id FROM besi_employees_yncr WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'yslu' AS source_table, full_name, emp_id FROM besi_employees_yslu WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+
+UNION ALL
+SELECT 'ynelu' AS source_table, full_name, emp_id FROM besi_employees_ynelu WHERE full_name REGEXP 'ancajas|lonzares|bebania|burlaza|cassion|
+dagoc|gabani|gilo|iguis|laguidao|pangasian|pines|pollido|rindado|salipot|teofilo|torio'
+;
+
+//===================FOR DELETE
+SELECT hub, COUNT(*) 
+FROM besi_x_hub 
+GROUP BY hub 
+HAVING COUNT(*) > 1;
+
+//DELETE OLDEST COPY
+DELETE t1 FROM besi_x_hub t1
+INNER JOIN besi_x_hub t2 
+ON t1.hub = t2.hub AND t1.id > t2.id;
+
+//DELETE NEWEST COPY
+DELETE t1 FROM besi_x_hub t1
+INNER JOIN besi_x_hub t2 
+ON t1.hub = t2.hub AND t1.id < t2.id;
+
+//delete from ALL HUB  delete oldest copy
+SELECT CONCAT(
+    'DELETE t1 FROM ', table_name, ' t1 ',
+    'INNER JOIN ', table_name, ' t2 ',
+    'ON t1.hub = t2.hub AND t1.id < t2.id;'
+) AS delete_queries
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name LIKE 'besi_%_hub';
+

@@ -483,6 +483,11 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
     const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
     const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
+    const xgrpid = req.body.grp_id  ?? null;
+    const xemail = req.body.email  ?? null;
+
+
+    console.log( req.body)
 
     // Region lookup array for code conversions
     const aRegion = ["smnl", "cmnl", "cmnva","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
@@ -513,66 +518,100 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             regionCodeRepresentation = String(regionIndex + 1).padStart(2, '0');
         }
 
+        // let sql = `
+        //     SELECT
+        //         e.*,
+        //         UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
+        //         u.hub,
+        //         h.hub as xhub,              
+        //         h.region as xregion,
+        //         h.area,
+        //         h.location as xlocation,
+        //         p.position AS display_position, 
+        //         'ACTIVE' AS active_text
+        //     FROM ${ userTableName } e
+        //     LEFT JOIN asn_position p ON e.position = p.code 
+            
+        //     -- 1. FIX: Limit the user account table connection to only pull exactly ONE matching row per employee
+        //     LEFT JOIN (
+        //         SELECT sub_u.besi_id, sub_u.hub
+        //         FROM ${ besiuserTable } sub_u
+        //         WHERE sub_u.id IN (
+        //             SELECT MAX(id)
+        //             FROM ${ besiuserTable }
+        //             GROUP BY besi_id
+        //         )
+        //     ) u ON u.besi_id = e.emp_id         
+            
+        //     LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
+        //     WHERE e.active = 1
+        // `;
+
+    // SQL REFACTORED: Pulling location directly out of subquery 'u' 
         let sql = `
-            SELECT
-                e.*,
-                UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
-                u.hub,
-                h.hub as xhub,              
-                h.region as xregion,
-                h.area,
-                h.location as xlocation,
-                p.position AS display_position, 
-                'ACTIVE' AS active_text
-            FROM ${ userTableName } e
-            LEFT JOIN asn_position p ON e.position = p.code 
-            
-            -- 1. FIX: Limit the user account table connection to only pull exactly ONE matching row per employee
-            LEFT JOIN (
-                SELECT sub_u.besi_id, sub_u.hub
-                FROM ${ besiuserTable } sub_u
-                WHERE sub_u.id IN (
-                    SELECT MAX(id)
-                    FROM ${ besiuserTable }
-                    GROUP BY besi_id
-                )
-            ) u ON u.besi_id = e.emp_id         
-            
-            LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
-            WHERE e.active = 1
+        SELECT 
+            e.*, 
+            UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name, 
+            u.hub AS xhub,
+            u.location AS xlocation,
+            p.position AS display_position, 
+            'ACTIVE' AS active_text 
+        FROM ${userTableName} e 
+        LEFT JOIN asn_position p ON e.position = p.code 
+        LEFT JOIN (
+            SELECT sub_u.besi_id, sub_u.hub, sub_u.location 
+            FROM ${besiuserTable} sub_u 
+            WHERE sub_u.id IN (
+            SELECT MAX(id) FROM ${besiuserTable} GROUP BY besi_id
+            )
+        ) u ON u.besi_id = e.emp_id 
+        WHERE e.active = 1
         `;
 
         const conditions = [];
         const params = [];
 
         if (filters.name && filters.name.trim()) {
-            conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
-            params.push(`%${filters.name.trim()}%`);
+        conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
+        params.push(`%${filters.name.trim()}%`);
         }
 
         if (filters.id && filters.id.trim()) {
-            conditions.push("e.emp_id = ?");
-            params.push(filters.id.trim());
+        conditions.push("e.emp_id = ?");
+        params.push(filters.id.trim());
         }
 
         if (filters.position && filters.position.trim()) {
-            conditions.push("e.position = ?");
-            params.push(filters.position.trim());
+        conditions.push("e.position = ?");
+        params.push(filters.position.trim());
         }
 
-        // FIX: Append with AND instead of WHERE since WHERE e.active = 1 already exists
+        // FIXED / ADDED: Filters by hub straight from the user alias (u)
+        if (filters.hub && filters.hub.trim()) {
+        conditions.push("u.hub = ?");
+        params.push(filters.hub.trim());
+        }
+
+        // FIXED / ADDED: Filters by location straight from the user alias (u)
+        if (filters.location && filters.location.trim()) {
+        conditions.push("u.location = ?");
+        params.push(filters.location.trim());
+        }
+
         if (conditions.length > 0) {
-            sql += " AND " + conditions.join(" AND ");
+        sql += " AND " + conditions.join(" AND ");
         }
 
-        // Add this line to force one row per employee, matching Grid.js
-        sql += " GROUP BY e.emp_id"; 
+        sql += " GROUP BY e.emp_id";
+        // UPDATED: Dynamic layout ordering optimized to sort cleanly by location and hub aliases
+        sql += " ORDER BY e.full_name, u.location, u.hub ASC"; 
 
-        sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
-        
         const [rows] = await db.query(sql, params);
 
+        console.log('==Retrieved rows for masterfile:', sql, rows.length, 'rows');
 
+        //return false ;
+        
         //july 1
 
         // Initialize Excel Workbook layout
