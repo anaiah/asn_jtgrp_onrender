@@ -1240,6 +1240,17 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
             params.push(position.trim());
         }
 
+        if ( location && location.trim() !== '') {
+            conditions.push(`e.location = ?`);
+            params.push(location.trim());
+        }
+
+        if ( hub && hub.trim() !== '') {
+            conditions.push(`e.hub = ?`);
+            params.push(hub.trim());
+        }
+
+
         if (conditions.length > 0) {
             sql += ` WHERE ` + conditions.join(' AND ');
         }
@@ -1293,6 +1304,12 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
             params.push(location.trim());
             }
 
+            //added july 18, 2026
+            if ( hub && hub.trim() !== '') {
+            conditions.push(`e.hub = ?`);
+            params.push(hub.trim());
+            }
+
 
             if (conditions.length > 0) {
             sql += ` WHERE ` + conditions.join(' AND ');
@@ -1331,11 +1348,16 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
             params.push(id.trim());
             }
 
+            //added july 18, 2026
             if ( location && location.trim() !== '') {
             conditions.push(`e.location = ?`);
             params.push(location.trim());
             }
 
+            // if (hub && hub.trim() !== '') {
+            // conditions.push(`e.hub = ?`);
+            // params.push(hub.trim());
+            // }
            
             if (position && position.trim() !== '') {
                 conditions.push(`e.position = '${position}' `);
@@ -1346,6 +1368,7 @@ function buildPersonnelSearchQuery(filters, isTimeKeep = false) {
                 sql += ` WHERE ` + conditions.join(' AND '); 
             }
             
+            //===HUB IS HERE
             sql += ` and u.hub = '${hub}' ORDER BY e.full_name ASC;`;
 
             console.log('Building standard personnel search query without timekeeping data but with HUB');
