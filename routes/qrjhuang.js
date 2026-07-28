@@ -203,7 +203,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 });
 
 router.get('/mark-attendance/:name', async (req, res) => {
-
+    const { name } = req.params;
     console.log( req.params.name, 'scanned!')
 
     return res.send(renderAttendanceStatus({
