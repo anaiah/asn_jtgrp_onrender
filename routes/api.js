@@ -247,10 +247,248 @@ router.post("/employee/:status", async (req, res) => {
     }
 });
 
-//new JULY 28, 2K26
+//new JULY 28, 2K26 ============================PRINTING END OF CONTRACT ======================
 router.post("/printendcontract", upload.none(), async (req, res) => {
-    
-		//return res.status(400).json({success:'false',msg:'SUCCESS',xdata:null})
+    console.log('==Firing route.printendcontract() with body:', req.body);
+    //return res.status(400).json({success:'false',msg:'SUCCESS',xdata:null})
+    const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
+    const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
+    const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
+    const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
+    const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
+    const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
+    const xgrpid = req.body.grp_id  ?? null;
+    const xemail = req.body.email  ?? null;
+
+     // Region lookup array for code conversions
+    const aRegion = ["smnl", "cmnl", "cmnva","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
+                "bicol","smarleyte","bacolod","panay","central","min"];
+
+    try {
+        const filters = {
+            name: xname,
+            id: xid,
+            region: xregion,
+            hub: xhub,
+            location: xlocation,
+            position: xposition
+        };
+
+        if (!xregion) {
+            return res.status(400).send("Region is required");
+        }
+
+        const regionClean   = xregion.toLowerCase(); 
+        const userTableName = `besi_employees_${regionClean}`;
+        const besiuserTable = `besi_users_${regionClean}`;
+
+        // 1. Calculate the 2-digit code for the requested region immediately
+        const regionIndex = aRegion.indexOf(regionClean);
+        let regionCodeRepresentation = "00"; 
+        if (regionIndex !== -1) {
+            regionCodeRepresentation = String(regionIndex + 1).padStart(2, '0');
+        }
+
+  
+    // SQL REFACTORED: Pulling location directly out of subquery 'u' 
+        let sql = `
+            SELECT 
+                e.emp_id ,
+                UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS full_name, 
+                UPPER(e.hub) AS hub,
+                UPPER(e.location) AS location,
+                e.email,
+                p.position AS position, 
+                DATE_FORMAT(e.hire_date, '%b %d, %Y') as hire_date,
+                UPPER(e.employment_status) AS status
+            FROM ${userTableName} e 
+            INNER JOIN asn_position p ON e.position = p.code 
+            WHERE DATE_ADD(e.hire_date, INTERVAL 5 MONTH) <= LAST_DAY(CURDATE())
+            AND e.active = 1
+            `;
+
+        const conditions = [];
+        const params = [];
+
+        if (filters.name && filters.name.trim()) {
+        conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
+        params.push(`%${filters.name.trim()}%`);
+        }
+
+        if (filters.id && filters.id.trim()) {
+        conditions.push("e.emp_id = ?");
+        params.push(filters.id.trim());
+        }
+
+        if (filters.position && filters.position.trim()) {
+        conditions.push("e.position = ?");
+        params.push(filters.position.trim());
+        }
+
+        // FIXED / ADDED: Filters by hub straight from the user alias (u)
+        if (filters.hub && filters.hub.trim()) {
+        conditions.push("e.hub = ?");
+        params.push(filters.hub.trim());
+        }
+
+        // FIXED / ADDED: Filters by location straight from the user alias (u)
+        if (filters.location && filters.location.trim()) {
+        conditions.push("e.location = ?");
+        params.push(filters.location.trim());
+        }
+
+        if (conditions.length > 0) {
+            sql += " AND " + conditions.join(" AND ");
+        }
+
+        // UPDATED: Dynamic layout ordering optimized to sort cleanly by location and hub aliases
+        sql += " ORDER BY e.hire_date,e.full_name, e.location, e.hub ASC"; 
+
+        //console.log( sql )
+        const [rows] = await db.query(sql, params);
+
+        //console.log('==Retrieved rows for end of contractfile:', sql, rows.length, 'rows');
+
+        //return false ;
+        
+        //july 1
+
+        // Initialize Excel Workbook layout
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("End of Contract File");
+
+        // Static header information mapping
+        worksheet.getCell('A1').value = 'BETTER EDGE SYSTEMS INCORPORATED';
+        worksheet.getCell('A1').font = { bold: true };
+
+        worksheet.getCell('A2').value = 'TEXTRON BLDG., 168 Luna Mencias St.,';
+        worksheet.getCell('A3').value = 'Addition Hills, San Juan City';
+        worksheet.getCell('A4').value = 'Metro Manila, Philippines';
+
+        worksheet.addRow([]); // Row 5 empty spacer
+
+        const topHeaderRow = worksheet.addRow([]); // Row 6 Configuration
+        
+        
+        // 6: column headers (Shifted to row 7 to cleanly accommodate nested headers)
+        const headerRow = worksheet.addRow([
+            "NO.",                                              // A (1)
+            "BESI ID",                                     // C (3) <-- New generated ID format
+            "COMPLETE NAME",                                    // H (8)
+            "DATE HIRED",                            // J (10)
+            "POSITION",                                         // K (11)
+            "EMPLOYMENT STATUS",                                // L (12)
+            "EMAIL",                                            // Z (26)
+            "LOCATION",
+            "HUB",
+            "ORIG BESI ID"
+            
+        ]);
+        
+        headerRow.font = { bold: true };
+
+        //=======set alignments for header row
+        headerRow.getCell('A').alignment = { horizontal: 'left' };    // NO.
+        headerRow.getCell('B').alignment = { horizontal: 'left' };    // EMPLOYEE NO.
+        headerRow.getCell('C').alignment = { horizontal: 'left'};     // COMPLETE NAME
+        headerRow.getCell('D').alignment = { horizontal: 'center' };  // DATE HIRED
+        headerRow.getCell('E').alignment = { horizontal: 'center' };  // POSITION
+        headerRow.getCell('F').alignment = { horizontal: 'center' };  // EMP STATUS
+        headerRow.getCell('G').alignment = { horizontal: 'left' };    // EMAIL
+        headerRow.getCell('H').alignment = { horizontal: 'left' };    // LOCATION
+        headerRow.getCell('I').alignment = { horizontal: 'left' };  // HUB
+        headerRow.getCell('J').alignment = { horizontal: 'left' };  // HUB
+        
+
+        // //wrap entire address column
+        // const addrCol = worksheet.getColumn(3);
+        // addrCol.alignment = { wrapText: true };
+
+        worksheet.getColumn(10).alignment = { horizontal: 'left' };
+        const poscol = worksheet.getColumn(9);
+        poscol.alignment = { horizontal: 'left' };
+
+        const actcol = worksheet.getColumn(6);//status
+        actcol.alignment = { horizontal: 'center' };
+
+        const hireCol = worksheet.getColumn(5); //position
+        hireCol.alignment = { horizontal: 'left' };
+
+        const addyCol = worksheet.getColumn(4); //date hired
+        addyCol.alignment = { horizontal: 'center' };
+
+        // 7+: data rows loop
+        rows.forEach((r, idx) => {
+            let transformedBesiId = "";
+            const originalBesiId = r.emp_id;
+
+            // Run ID transformation code logic
+            if (originalBesiId) {
+                const blocks = originalBesiId.split('-');
+                if (blocks.length === 4) {
+                    const companyBlock = blocks[0];   // e.g., 'BE'
+                    const lastBlock    = blocks[3];   // e.g., '010006'
+                    
+                    const posCodeBlock = lastBlock.substring(0, 2); // Extract '01'
+                    const seriesBlock  = lastBlock.substring(2);    // Extract '0006'
+
+                    // Pattern: BEE01010006 (Omit date block entirely)
+                    transformedBesiId = `${companyBlock}${regionCodeRepresentation}${posCodeBlock}${seriesBlock}`;
+                } else {
+                    transformedBesiId = originalBesiId; // Fallback if data string pattern differs
+                }
+            }
+
+            worksheet.addRow([
+                idx + 1,                                        // A: NO.
+                transformedBesiId,                              // C: EMPLOYEE NO. (Replaced with custom Besi ID)
+                r.full_name || "",                             // H: COMPLETE NAME
+                r.hire_date || "",                              // J: DATE HIRED
+                r.position,               // K: POSITION
+                r.status?.toUpperCase() || "R-OCW",   // L: EMPLOYMENT STATUS
+                r.email || "",                                  // Z: EMAIL
+                r.location || "",                              // N: AREA
+                r.hub || "",                                   // O: BRANCH NAME
+                originalBesiId || ""                            // AA: ORIGINAL EMP ID (Moved here to the end)
+            ]);
+        });
+
+        // Set column widths
+        const widths = [
+            10, // A: NO.
+            15, // C: EMPLOYEE NO.
+            35, // H: COMPLETE NAME
+            15, // J: DATE HIRED
+            20, // K: POSITION
+            20, // L: EMPLOYMENT STATUS
+            35, // Z: EMAIL
+            20, //LOCATION
+            20, //HUB
+            25  // AA: ORIGINAL EMP ID
+        ];
+        
+        widths.forEach((w, i) => {
+            worksheet.getColumn(i + 1).width = w;
+        });
+        
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=endofile.xlsx"
+        );
+
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error generating masterfile");
+    }
+
 })
 
 //NEW JUNE 8 2K26
@@ -269,7 +507,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
     const xemail = req.body.email  ?? null;
 
 
-    console.log( req.body)
+    //console.log( req.body)
 
     // Region lookup array for code conversions
     const aRegion = ["smnl", "cmnl", "cmnva","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
@@ -1354,171 +1592,23 @@ router.get('/region-summary', async (req, res) => {
 
     try {
         // The Pivot Query we built
-        // const sql = `
-        //     SELECT 
-        //         r.region_label AS 'Region',
-        //         COUNT(CASE WHEN e.position = '01' THEN 1 END) AS 'Rider',
-        //         COUNT(CASE WHEN e.position = '02' THEN 1 END) AS 'Transporter',
-        //         COUNT(CASE WHEN e.position = '03' THEN 1 END) AS 'FDS',
-        //         COUNT(CASE WHEN e.position = '04' THEN 1 END) AS 'Sorter',
-        //         COUNT(CASE WHEN e.position = '05' THEN 1 END) AS 'HubAdmin',
-        //         COUNT(CASE WHEN e.position = '06' THEN 1 END) AS 'TK',
-        //         COUNT(CASE WHEN e.position = '07' THEN 1 END) AS 'L Coord',
-        //         COUNT(CASE WHEN e.position = '08' THEN 1 END) AS 'Coord',
-        //         COUNT(CASE WHEN e.position = '10' THEN 1 END) AS 'TL',
-        //         COUNT(e.position) AS 'Total'
-        //     FROM (
-        //         SELECT 'WVIS BACOLOD' AS region_label UNION ALL
-        //         SELECT 'WVIS PANAY' UNION ALL
-        //         SELECT 'NCR SMNL' UNION ALL
-        //         SELECT 'BSL BICOL' UNION ALL
-        //         SELECT 'BSL SMRLEYTE' UNION ALL
-        //         SELECT 'MINDANAO' UNION ALL
-        //         SELECT 'WVIS CENTRAL' UNION ALL
-        //         SELECT 'NCR CMNL' UNION ALL
-        //         SELECT 'NCR CMNVA' UNION ALL
-        //         SELECT 'SLU' UNION ALL
-        //         SELECT 'HPRO' UNION ALL
-        //         SELECT 'YNCR' UNION ALL
-        //         SELECT 'YSLU' UNION ALL
-        //         SELECT 'YNELU' UNION ALL
-        //         SELECT 'NWLU' UNION ALL
-        //         SELECT 'NELU'
-        //     ) AS r
-        //     LEFT JOIN (
-        //         SELECT 'WVIS BACOLOD' AS table_name, position FROM besi_employees_bacolod
-        //         UNION ALL
-        //         SELECT 'WVIS PANAY' AS table_name, position FROM besi_employees_panay
-        //         UNION ALL
-        //         SELECT 'NCR SMNL' AS table_name, position FROM besi_employees_smnl
-        //         UNION ALL
-        //         SELECT 'BSL BICOL' AS table_name, position FROM besi_employees_bicol
-        //         UNION ALL
-        //         SELECT 'BSL SMRLEYTE' AS table_name, position FROM besi_employees_smarleyte
-        //         UNION ALL
-        //         SELECT 'MINDANAO' AS table_name, position FROM besi_employees_min
-        //         UNION ALL
-        //         SELECT 'WVIS CENTRAL' AS table_name, position FROM besi_employees_central
-        //         UNION ALL
-        //         SELECT 'NCR CMNL' AS table_name, position FROM besi_employees_cmnl
-        //         UNION ALL
-        //         SELECT 'NCR CMNVA' AS table_name, position FROM besi_employees_cmnva
-        //         UNION ALL
-        //         SELECT 'SLU' AS table_name, position FROM besi_employees_slu
-        //         UNION ALL
-        //         SELECT 'HPRO' AS table_name, position FROM besi_employees_hpro
-        //         UNION ALL
-        //         SELECT 'YNCR' AS table_name, position FROM besi_employees_yncr
-        //         UNION ALL
-        //         SELECT 'YSLU' AS table_name, position FROM besi_employees_yslu
-        //         UNION ALL
-        //         SELECT 'YNELU' AS table_name, position FROM besi_employees_ynelu
-        //         UNION ALL
-        //         SELECT 'NWLU' AS table_name, position FROM besi_employees_nwlu
-        //         UNION ALL
-        //         SELECT 'NELU' AS table_name, position FROM besi_employees_nelu
-        //     ) AS e ON r.region_label = e.table_name
-        //     GROUP BY r.region_label
-        //     ORDER BY r.region_label ASC;   
-        // `;
-
-
-        //orig counting
-        //  --COUNT(CASE WHEN YEAR(DATE_ADD(e.hire_date, INTERVAL 5 MONTH)) = YEAR(CURDATE()) 
-        //     --            AND MONTH(DATE_ADD(e.hire_date, INTERVAL 5 MONTH)) = MONTH(CURDATE()) 
-        //     --    THEN 1 END) AS 'End of Contract',
-           //error this
-           //            COUNT(CASE WHEN DATE_ADD(e.hire_date, INTERVAL 5 MONTH) <= LAST_DAY(CURDATE()) THEN 1 END) AS 'End of Contract',
-
-        // const sql = `
-        // SELECT 
-        //     r.region_label AS 'Region',
-        //     -- New column: Counts employees whose 5-month contract expires this month
-        //     -- Updated column: Counts employees whose contract is 5 months or greater by the end of this month
-        //    COUNT(CASE WHEN PERIOD_DIFF(EXTRACT(YEAR_MONTH FROM CURDATE()), EXTRACT(YEAR_MONTH FROM e.hire_date)) >= 5 THEN 1 END) AS 'End Contract',
-
-        //     COUNT(CASE WHEN e.position = '01' THEN 1 END) AS 'Rider',
-        //     COUNT(CASE WHEN e.position = '02' THEN 1 END) AS 'Transporter',
-        //     COUNT(CASE WHEN e.position = '03' THEN 1 END) AS 'FDS',
-        //     COUNT(CASE WHEN e.position = '04' THEN 1 END) AS 'Sorter',
-        //     COUNT(CASE WHEN e.position = '05' THEN 1 END) AS 'HubAdmin',
-        //     COUNT(CASE WHEN e.position = '06' THEN 1 END) AS 'TK',
-        //     COUNT(CASE WHEN e.position = '07' THEN 1 END) AS 'L Coord',
-        //     COUNT(CASE WHEN e.position = '08' THEN 1 END) AS 'Coord',
-        //     COUNT(CASE WHEN e.position = '10' THEN 1 END) AS 'TL',
-        //     COUNT(e.position) AS 'Total'
-        // FROM (
-        //     SELECT 'WVIS BACOLOD' AS region_label UNION ALL
-        //     SELECT 'WVIS PANAY' UNION ALL
-        //     SELECT 'NCR SMNL' UNION ALL
-        //     SELECT 'BSL BICOL' UNION ALL
-        //     SELECT 'BSL SMRLEYTE' UNION ALL
-        //     SELECT 'MINDANAO' UNION ALL
-        //     SELECT 'WVIS CENTRAL' UNION ALL
-        //     SELECT 'NCR CMNL' UNION ALL
-        //     SELECT 'NCR CMNVA' UNION ALL
-        //     SELECT 'SLU' UNION ALL
-        //     SELECT 'HPRO' UNION ALL
-        //     SELECT 'YNCR' UNION ALL
-        //     SELECT 'YSLU' UNION ALL
-        //     SELECT 'YNELU' UNION ALL
-        //     SELECT 'NWLU' UNION ALL
-        //     SELECT 'NELU'
-        // ) AS r
-        // LEFT JOIN (
-        //     -- Added hire_date to the subquery selection so the main SELECT can access it
-        //     SELECT 'WVIS BACOLOD' AS table_name, position, hire_date FROM besi_employees_bacolod
-        //     UNION ALL
-        //     SELECT 'WVIS PANAY' AS table_name, position, hire_date FROM besi_employees_panay
-        //     UNION ALL
-        //     SELECT 'NCR SMNL' AS table_name, position, hire_date FROM besi_employees_smnl
-        //     UNION ALL
-        //     SELECT 'BSL BICOL' AS table_name, position, hire_date FROM besi_employees_bicol
-        //     UNION ALL
-        //     SELECT 'BSL SMRLEYTE' AS table_name, position, hire_date FROM besi_employees_smarleyte
-        //     UNION ALL
-        //     SELECT 'MINDANAO' AS table_name, position, hire_date FROM besi_employees_min
-        //     UNION ALL
-        //     SELECT 'WVIS CENTRAL' AS table_name, position, hire_date FROM besi_employees_central
-        //     UNION ALL
-        //     SELECT 'NCR CMNL' AS table_name, position, hire_date FROM besi_employees_cmnl
-        //     UNION ALL
-        //     SELECT 'NCR CMNVA' AS table_name, position, hire_date FROM besi_employees_cmnva
-        //     UNION ALL
-        //     SELECT 'SLU' AS table_name, position, hire_date FROM besi_employees_slu
-        //     UNION ALL
-        //     SELECT 'HPRO' AS table_name, position, hire_date FROM besi_employees_hpro
-        //     UNION ALL
-        //     SELECT 'YNCR' AS table_name, position, hire_date FROM besi_employees_yncr
-        //     UNION ALL
-        //     SELECT 'YSLU' AS table_name, position, hire_date FROM besi_employees_yslu
-        //     UNION ALL
-        //     SELECT 'YNELU' AS table_name, position, hire_date FROM besi_employees_ynelu
-        //     UNION ALL
-        //     SELECT 'NWLU' AS table_name, position, hire_date FROM besi_employees_nwlu
-        //     UNION ALL
-        //     SELECT 'NELU' AS table_name, position, hire_date FROM besi_employees_nelu
-        // ) AS e ON r.region_label = e.table_name
-        // GROUP BY r.region_label
-        // ORDER BY r.region_label ASC;
-
-        // `;
-
         const sql=`
         SELECT 
             r.region_label AS 'Region',
-            COUNT(CASE WHEN DATE_ADD(e.hire_date, INTERVAL 5 MONTH) <= LAST_DAY(CURDATE()) THEN 1 END) AS 'End of Contract',
-            COUNT(CASE WHEN e.position = '01' THEN 1 END) AS 'Rider',
-            COUNT(CASE WHEN e.position = '02' THEN 1 END) AS 'Transporter',
-            COUNT(CASE WHEN e.position = '03' THEN 1 END) AS 'FDS',
-            COUNT(CASE WHEN e.position = '04' THEN 1 END) AS 'Sorter',
-            COUNT(CASE WHEN e.position = '05' THEN 1 END) AS 'HubAdmin',
-            COUNT(CASE WHEN e.position = '06' THEN 1 END) AS 'TK',
-            COUNT(CASE WHEN e.position = '07' THEN 1 END) AS 'L Coord',
-            COUNT(CASE WHEN e.position = '08' THEN 1 END) AS 'Coord',
-            COUNT(CASE WHEN e.position = '10' THEN 1 END) AS 'TL',
-            COUNT(e.position) AS 'Total'
-            FROM (
+            -- Counts only ACTIVE employees whose 5-month anniversary has arrived or passed
+            COUNT(CASE WHEN e.active = 1 AND DATE_ADD(e.hire_date, INTERVAL 5 MONTH) <= LAST_DAY(CURDATE()) THEN 1 END) AS 'End of Contract',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '01' THEN 1 END) AS 'Rider',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '02' THEN 1 END) AS 'Transporter',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '03' THEN 1 END) AS 'FDS',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '04' THEN 1 END) AS 'Sorter',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '05' THEN 1 END) AS 'HubAdmin',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '06' THEN 1 END) AS 'TK',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '07' THEN 1 END) AS 'L Coord',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '08' THEN 1 END) AS 'Coord',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '10' THEN 1 END) AS 'TL',
+            -- Counts the total active manpower for the region
+            COUNT(CASE WHEN e.active = 1 THEN 1 END) AS 'Total'
+        FROM (
             SELECT 'WVIS BACOLOD' AS region_label UNION ALL
             SELECT 'WVIS PANAY' UNION ALL
             SELECT 'NCR SMNL' UNION ALL
@@ -1535,42 +1625,44 @@ router.get('/region-summary', async (req, res) => {
             SELECT 'YNELU' UNION ALL
             SELECT 'NWLU' UNION ALL
             SELECT 'NELU'
-            ) AS r
-            LEFT JOIN (
-            SELECT 'WVIS BACOLOD' AS table_name, position, hire_date FROM besi_employees_bacolod
+        ) AS r
+        LEFT JOIN (
+            -- Pulled the active column into the unified dataset from all regional tables
+            SELECT 'WVIS BACOLOD' AS table_name, position, hire_date, active FROM besi_employees_bacolod
             UNION ALL
-            SELECT 'WVIS PANAY' AS table_name, position, hire_date FROM besi_employees_panay
+            SELECT 'WVIS PANAY' AS table_name, position, hire_date, active FROM besi_employees_panay
             UNION ALL
-            SELECT 'NCR SMNL' AS table_name, position, hire_date FROM besi_employees_smnl
+            SELECT 'NCR SMNL' AS table_name, position, hire_date, active FROM besi_employees_smnl
             UNION ALL
-            SELECT 'BSL BICOL' AS table_name, position, hire_date FROM besi_employees_bicol
+            SELECT 'BSL BICOL' AS table_name, position, hire_date, active FROM besi_employees_bicol
             UNION ALL
-            SELECT 'BSL SMRLEYTE' AS table_name, position, hire_date FROM besi_employees_smarleyte
+            SELECT 'BSL SMRLEYTE' AS table_name, position, hire_date, active FROM besi_employees_smarleyte
             UNION ALL
-            SELECT 'MINDANAO' AS table_name, position, hire_date FROM besi_employees_min
+            SELECT 'MINDANAO' AS table_name, position, hire_date, active FROM besi_employees_min
             UNION ALL
-            SELECT 'WVIS CENTRAL' AS table_name, position, hire_date FROM besi_employees_central
+            SELECT 'WVIS CENTRAL' AS table_name, position, hire_date, active FROM besi_employees_central
             UNION ALL
-            SELECT 'NCR CMNL' AS table_name, position, hire_date FROM besi_employees_cmnl
+            SELECT 'NCR CMNL' AS table_name, position, hire_date, active FROM besi_employees_cmnl
             UNION ALL
-            SELECT 'NCR CMNVA' AS table_name, position, hire_date FROM besi_employees_cmnva
+            SELECT 'NCR CMNVA' AS table_name, position, hire_date, active FROM besi_employees_cmnva
             UNION ALL
-            SELECT 'SLU' AS table_name, position, hire_date FROM besi_employees_slu
+            SELECT 'SLU' AS table_name, position, hire_date, active FROM besi_employees_slu
             UNION ALL
-            SELECT 'HPRO' AS table_name, position, hire_date FROM besi_employees_hpro
+            SELECT 'HPRO' AS table_name, position, hire_date, active FROM besi_employees_hpro
             UNION ALL
-            SELECT 'YNCR' AS table_name, position, hire_date FROM besi_employees_yncr
+            SELECT 'YNCR' AS table_name, position, hire_date, active FROM besi_employees_yncr
             UNION ALL
-            SELECT 'YSLU' AS table_name, position, hire_date FROM besi_employees_yslu
+            SELECT 'YSLU' AS table_name, position, hire_date, active FROM besi_employees_yslu
             UNION ALL
-            SELECT 'YNELU' AS table_name, position, hire_date FROM besi_employees_ynelu
+            SELECT 'YNELU' AS table_name, position, hire_date, active FROM besi_employees_ynelu
             UNION ALL
-            SELECT 'NWLU' AS table_name, position, hire_date FROM besi_employees_nwlu
+            SELECT 'NWLU' AS table_name, position, hire_date, active FROM besi_employees_nwlu
             UNION ALL
-            SELECT 'NELU' AS table_name, position, hire_date FROM besi_employees_nelu
-            ) AS e ON r.region_label = e.table_name
+            SELECT 'NELU' AS table_name, position, hire_date, active FROM besi_employees_nelu
+        ) AS e ON r.region_label = e.table_name
         GROUP BY r.region_label
-        ORDER BY r.region_label ASC;`;
+        ORDER BY r.region_label ASC;
+`;
 
         const [rows] = await db.query(sql); // Using db.query because it's a simple SELECT
         res.json(rows);
@@ -2202,126 +2294,6 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
         return res.status(500).json(xdata);
     }
 });
-
-
-//===== original, changekd on may 9, 2026======
-// router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
-//     console.log('firing login with Authenticate====== ', req.params.uid, req.params.pwd, req.params.region, ' ========')
-
-//     let  { uid, pwd, region } = req.params;
-//     let result; // Declare 'result' in a higher scope so it's accessible after the if/else
-//     let user;   // Declare 'user' here as well, to ensure scope if no user is found
- 
-// 	// console.log('Value of region:', region);
-// 	// console.log('Type of region:', typeof region);
-// 	// console.log('Is region truthy?', !!region); // Converts to boolean
-// 	// console.log('Is region.trim() empty?', (region && region.trim() === '')); // Only if region is truthy
-
-// 	if (typeof region === 'string' && region.toLowerCase() === 'null') {
-// 		region = null; // Convert the string "null" to the actual null value
-// 	}
-// 	// Or handle empty string inputs similarly if they might come as "undefined" string
-// 	if (typeof region === 'string' && region.toLowerCase() === 'undefined') {
-// 		region = undefined;
-// 	}
-
-//     try {
-//          // Check if region is valid
-//         if (region && region.trim() !== "") {
-//             //console.log(region, uid); 
-//             const sql = `select * from besi_users_${region} where email=? and active=1`; // Assuming 'active' is a column to check if the user is active
-//             result = await db.query(sql, [uid]); // Assign to the already declared 'result'
-//             //console.log(sql, result[0]);
-
-// 		//if region:null	//======LOGIN TO OLD USERS TABLE
-//         } else {
-//             const sql = `select * from asn_users where email=? and pwd=? and active=1`; // Assuming 'active' is a column to check if the user is active
-//             result = await db.query(sql, [uid, pwd]); // Assign to the already declared 'result'
-//         }
-
-//         // db.query typically returns an array like [[rows], [fields]].
-//         // We need to check if result[0] (the array of rows) exists and has length > 0.
-//         if (result && result[0] && result[0].length > 0) {
-//             user = result[0][0]; // Get the first user object from the rows array
-
-// 			// --- STEP 2: Conditional Re-query for Region based on grp_id ---
-// 			if (user.grp_id === 1) { // If the user is a rider (or grp_id 1)
-// 				console.log('User is a rider (grp_id 1). Fetching region from asn_hub...');
-
-// 				// Ensure the user has a 'hub' value to query with
-// 				if (user.hub) {
-// 					// Query asn_hub using the 'hub' field from asn_users
-// 					const hubRegionSql = `SELECT region FROM asn_hub WHERE hub = ?`;
-// 					const hubRegionResult = await db.query(hubRegionSql, [user.hub]);
-
-// 					if (hubRegionResult && hubRegionResult[0] && hubRegionResult[0].length > 0) {
-// 						// Get the region value from asn_hub and attach it to the user object
-// 						user.region = hubRegionResult[0][0].region; 
-// 						console.log('Rider region fetched from asn_hub:', user.region);
-// 					} else {
-// 						console.log('No matching region found in asn_hub for user.hub:', user.hub);
-// 						// You might want to set a default or null here if no region is found
-// 						user.region = null; 
-// 					}
-// 				} else {
-// 					console.log('Rider (grp_id 1) has no "hub" assigned in asn_users table.');
-// 					user.region = null; // No hub to look up, so no region
-// 				}
-
-// 			}//eif
-
-
-//             console.log('User found:', user.email, user.region); // Log for debugging
-
-//             let aData = [];
-//             let obj = {
-//                 email: user.email,
-//                 fname: user.full_name.toUpperCase(),
-//                 message: `Welcome!, ${user.full_name.toUpperCase()}!!! `,
-//                 voice: `${user.full_name}!!`,
-//                 grp_id: user.grp_id || user.position_code,
-//                 pic: user.pic || null,
-//                 ip_addy: '',
-//                 hub: user.hub || null,
-// 				besi_id: user.besi_id || null,
-// 				ocw_id: user.ocw_id ||  null,
-// 				jms_id: user.jms_id || null,
-//                 id: user.id,
-//                 region: user.region || region,
-//                 position: user.position || user.position_code,
-//                 found: true
-//             };
-//             aData.push(obj);
-// 			console.log(aData)
-//             return res.status(200).json(aData);
-
-//         } else {
-//             // No user found, or query returned empty array
-//             console.log('No matching record found for provided credentials.');
-//             const xdata = [{
-//                 message: "No Matching Record!",
-//                 voice: "No Matching Record!",
-//                 found: false
-//             }];
-//             // Use 401 Unauthorized for authentication failure (no matching record)
-//             return res.status(401).json(xdata);
-//         }
-
-//     } catch (err) {
-//         // Log the actual error for better debugging
-//         console.error('Error in Login:', err);
-
-//         const xdata = [{
-//             message: "An unexpected error occurred during login!", // More generic for actual server errors
-//             voice: "Login Error!",
-//             found: false
-//         }];
-
-//         // Use 500 Internal Server Error for unexpected errors caught in the try/catch
-//         return res.status(500).json(xdata);
-//     }
-// });
-
 
 //=== end html routes
 
