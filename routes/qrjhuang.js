@@ -141,7 +141,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 
               // 2. Generate the QR code as a Base64 Image Buffer string
             // You can encode any text here, like their email, employee ID, or a profile link
-            url = `http://192.168.1.16:10000/qr/mark-attendance/${recipient.fullName}`;
+            url = `https://asn-jtgrp-api.onrender.com/qr/mark-attendance/${recipient.fullName}`;
 
             const qrBuffer = await QRCode.toBuffer( url, {
                 type: 'png',
@@ -205,7 +205,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 router.get('/mark-attendance/:name', async (req, res) => {
 
     console.log( req.params.name, 'scanned!')
-    
+
     return res.send(renderAttendanceStatus({
         title: "Attendance Logged!",
         message: `Welcome, ${name}. Your check-in has been successfully recorded for today.`,
