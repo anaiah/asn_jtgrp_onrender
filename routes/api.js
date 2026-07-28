@@ -1603,7 +1603,7 @@ router.get('/region-summary', async (req, res) => {
             COUNT(CASE WHEN e.active = 1 AND e.position = '04' THEN 1 END) AS 'Sorter',
             COUNT(CASE WHEN e.active = 1 AND e.position = '05' THEN 1 END) AS 'HubAdmin',
             COUNT(CASE WHEN e.active = 1 AND e.position = '06' THEN 1 END) AS 'TK',
-            COUNT(CASE WHEN e.active = 1 AND e.position = '07' THEN 1 END) AS 'L Coord',
+            COUNT(CASE WHEN e.active = 1 AND e.position = '07' THEN 1 END) AS 'H Coord',
             COUNT(CASE WHEN e.active = 1 AND e.position = '08' THEN 1 END) AS 'Coord',
             COUNT(CASE WHEN e.active = 1 AND e.position = '10' THEN 1 END) AS 'TL',
             -- Counts the total active manpower for the region
@@ -1661,8 +1661,7 @@ router.get('/region-summary', async (req, res) => {
             SELECT 'NELU' AS table_name, position, hire_date, active FROM besi_employees_nelu
         ) AS e ON r.region_label = e.table_name
         GROUP BY r.region_label
-        ORDER BY r.region_label ASC;
-`;
+        ORDER BY r.region_label ASC;`;
 
         const [rows] = await db.query(sql); // Using db.query because it's a simple SELECT
         res.json(rows);
