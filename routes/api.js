@@ -247,229 +247,11 @@ router.post("/employee/:status", async (req, res) => {
     }
 });
 
-// ========================HRIS PRINT MASTERFILE=======================//
-//OLD WORKING ROUTE, KEPT FOR REFERENCE, DO NOT DELETE YET
-// router.post("/printmasterfile", upload.none(), async (req, res) => {
-
-//     console.log('==Firing route.printmasterfile() with body:', req.body);
-
-//     const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
-//     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
-//     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
-//     const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
-//     const xlocation = req.body.filter_location ?? req.body.xfilter_location ?? null;
-//     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
-
-//     try {
-//         const filters = {
-//             name: xname,
-//             id: xid,
-//             region: xregion,
-//             hub: xhub,
-//             location: xlocation,
-//             position: xposition
-//         };
-
-//         if (!xregion) {
-//         return res.status(400).send("Region is required");
-//         }
-
-//         const regionClean   = xregion.toLowerCase(); // smnl, cmnl, etc.
-//         const userTableName = `besi_employees_${regionClean}`;
-//         const besiuserTable = `besi_users_${regionClean}`;
-
-//         let sql = `
-        
-//             SELECT
-//                 e.*,
-//                 UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
-//                 u.hub,
-//                 h.hub,              -- or whatever columns asn_hub has
-//                 h.region,h.area,h.location,
-//                 CASE
-//                     WHEN e.active = 1 THEN 'Yes'
-//                     ELSE 'No'
-//                 END AS active_text,
-//                 dl.reason AS deactivation_reason
-//                 FROM ${ userTableName } e
-//                 LEFT JOIN (
-//                 SELECT l.emp_id, l.reason
-//                 FROM besi_deactivation_logs l
-//                 WHERE l.id IN (
-//                     SELECT MAX(id)
-//                     FROM besi_deactivation_logs
-//                     GROUP BY emp_id
-//                 )
-//                 ) dl
-//                 ON dl.emp_id = e.emp_id
-//                 LEFT JOIN ${ besiuserTable } u
-//                 ON u.besi_id = e.emp_id         -- join users to employees
-//                 LEFT JOIN besi_${xregion.toLowerCase()}_hub h
-//                 ON u.hub = h.hub                 -- join hub table
-                
-//             `;
-
-//         const conditions = [];
-//         const params = [];
-
-//         if (filters.name.trim()) {
-//         conditions.push("LOWER(e.full_name) LIKE LOWER(?)");
-//         params.push(`%${filters.name.trim()}%`);
-//         }
-
-//         if (filters.id.trim()) {
-//         conditions.push("e.emp_id = ?");
-//         params.push(filters.id.trim());
-//         }
-
-//         if (filters.position.trim()) {
-//         conditions.push("e.position = ?");
-//         params.push(filters.position.trim());
-//         }
-
-//         if (conditions.length > 0) {
-//         sql += " WHERE " + conditions.join(" AND ");
-//         }
-
-//         sql += " ORDER BY e.full_name, h.region, h.location, h.hub ASC";
-
-//         //console.log("Generated SQL for masterfile:", sql, filters.position);
-//         //console.log("Generated SQL for masterfile: route.printmasterfile()  ", sql, filters.position);
-
-//         let conn = await mysqls.createConnection(dbconfig);
-
-//         const [rows] = await conn.execute(sql, params);
-
-//         //console.log( rows )
-//         await conn.end();
-
-//         // Build Excel
-//         const workbook = new ExcelJS.Workbook();
-//         const worksheet = workbook.addWorksheet("Masterfile");
-
-//         // 1–4: static header
-//         worksheet.getCell('A1').value = 'BETTER EDGE SYSTEMS INCORPORATED';
-//         worksheet.getCell('A1').font = { bold: true };
-
-//         worksheet.getCell('A2').value = 'TEXTRON BLDG., 168 Luna Mencias St.,';
-//         worksheet.getCell('A3').value = 'Addition Hills, San Juan City';
-//         worksheet.getCell('A4').value = 'Metro Manila, Philippines';
-
-//         // 5: blank row
-//         worksheet.addRow([]); // this becomes row 5
-
-//         // 6: column headers
-//         const headerRow = worksheet.addRow([
-//             "BESI ID",
-//             "Full Name",
-//             "Address",
-//             "Birth Date",
-//             "Hire Date",
-//             "Emp Status",
-//             "Email",
-//             "Phone",
-//             "Position",
-//             "Region",
-//             "Area",
-//             "Location",
-//             "Hub",
-//             "Active",
-//             "Deactivation Reason"
-//         ]);
-        
-//         headerRow.font = { bold: true };
-
-//         //=======set alignments for header row
-//  		headerRow.getCell('A').alignment = { horizontal: 'left' };    // BESI ID 1
-//         headerRow.getCell('B').alignment = { horizontal: 'left' };    // NAME 2
-        
-//         headerRow.getCell('C').alignment = { horizontal: 'left'};   // address 3
-        
-//         headerRow.getCell('D').alignment = { horizontal: 'center' };  // birth date 4
-        
-//         headerRow.getCell('E').alignment = { horizontal: 'center' };  // hire date 5
-
-//         headerRow.getCell('F').alignment = { horizontal: 'center' };    // emp status 6
-
-//          headerRow.getCell('G').alignment = { horizontal: 'left' };   // EMAIL 7 (treat as text but center for aesthetics)
-//         headerRow.getCell('H').alignment = { horizontal: 'left' };   // phone 8 (treat as text but center for aesthetics)
-        
-//         headerRow.getCell('I').alignment = { horizontal: 'center' };    // position 9
-        
-//         headerRow.getCell('J').alignment = { horizontal: 'left' };   // region 10
-//          headerRow.getCell('K').alignment = { horizontal: 'left' };   // area 11 (treat as text but center for aesthetics)
-//         headerRow.getCell('L').alignment = { horizontal: 'left' };   // location 12 (treat as text but center for aesthetics)
-//          headerRow.getCell('M').alignment = { horizontal: 'left' };   // hub 13 (treat as text but center for aesthetics)
-//         // headerRow.getCell('F').alignment = { horizontal: 'center' };   // phone (treat as text but center for aesthetics)
-        
-
-//         // Numeric columns (WORK DAYS, WORK HOUR, LATE HOUR, OT HOUR) - typically right or center
-       
-//         headerRow.getCell('N').alignment = { horizontal: 'center'};   // active
-//         headerRow.getCell('O').alignment = { horizontal: 'left'};   // deactivation reason
-
-//         //wrap entire address column
-//         const addrCol = worksheet.getColumn(3);
-//         addrCol.alignment = { wrapText: true };
-
-//         const  poscol = worksheet.getColumn(9);
-//         poscol.alignment = { horizontal: 'left' };
-
-//         const  actcol = worksheet.getColumn(6);
-//         actcol.alignment = { horizontal: 'center' };
-
-//         const hireCol = worksheet.getColumn(5);
-//         hireCol.alignment = { horizontal: 'center' };
-
-//         const addyCol = worksheet.getColumn(4);
-//         addyCol.alignment = { horizontal: 'center' };
-
-//         // 7+: data rows
-//         rows.forEach(r => {
-//             worksheet.addRow([
-//                 r.emp_id,
-//                 r.xfull_name,
-//                 r.full_address,
-//                 r.birth_date,
-//                 r.hire_date,
-//                 r.employment_status,
-//                 r.email, 
-//                 r.phone,
-//                 r.position,
-//                 r.region || filters.region ,
-//                 r.area,
-//                 r.location,
-//                 r.hub,
-//                 r.active_text,
-//                 r.deactivation_reason || ""
-//             ]);
-//         });
-
-//         // Set column widths
-//         const widths = [25, 30, 30, 15, 15, 15, 20, 15, 10, 20, 20, 20, 10, 40];
-        
-//         widths.forEach((w, i) => {
-//             worksheet.getColumn(i + 1).width = w;
-//         });
-
-//         res.setHeader(
-//             "Content-Type",
-//             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-//         );
-
-//         res.setHeader(
-//             "Content-Disposition",
-//             "attachment; filename=masterfile.xlsx"
-//         );
-
-//         await workbook.xlsx.write(res);
-//         res.end();
-
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).send("Error generating masterfile");
-//     }
-// });
+//new JULY 28, 2K26
+router.post("/printendcontract", upload.none(), async (req, res) => {
+    
+		//return res.status(400).json({success:'false',msg:'SUCCESS',xdata:null})
+})
 
 //NEW JUNE 8 2K26
 // ========================HRIS PRINT MASTERFILE=======================//
@@ -518,55 +300,27 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
             regionCodeRepresentation = String(regionIndex + 1).padStart(2, '0');
         }
 
-        // let sql = `
-        //     SELECT
-        //         e.*,
-        //         UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name,
-        //         u.hub,
-        //         h.hub as xhub,              
-        //         h.region as xregion,
-        //         h.area,
-        //         h.location as xlocation,
-        //         p.position AS display_position, 
-        //         'ACTIVE' AS active_text
-        //     FROM ${ userTableName } e
-        //     LEFT JOIN asn_position p ON e.position = p.code 
-            
-        //     -- 1. FIX: Limit the user account table connection to only pull exactly ONE matching row per employee
-        //     LEFT JOIN (
-        //         SELECT sub_u.besi_id, sub_u.hub
-        //         FROM ${ besiuserTable } sub_u
-        //         WHERE sub_u.id IN (
-        //             SELECT MAX(id)
-        //             FROM ${ besiuserTable }
-        //             GROUP BY besi_id
-        //         )
-        //     ) u ON u.besi_id = e.emp_id         
-            
-        //     LEFT JOIN besi_${xregion.toLowerCase()}_hub h ON u.hub = h.hub                 
-        //     WHERE e.active = 1
-        // `;
-
+  
     // SQL REFACTORED: Pulling location directly out of subquery 'u' 
         let sql = `
-        SELECT 
-            e.*, 
-            UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name, 
-            u.hub AS xhub,
-            u.location AS xlocation,
-            p.position AS display_position, 
-            'ACTIVE' AS active_text 
-        FROM ${userTableName} e 
-        LEFT JOIN asn_position p ON e.position = p.code 
-        LEFT JOIN (
-            SELECT sub_u.besi_id, sub_u.hub, sub_u.location 
-            FROM ${besiuserTable} sub_u 
-            WHERE sub_u.id IN (
-            SELECT MAX(id) FROM ${besiuserTable} GROUP BY besi_id
-            )
-        ) u ON u.besi_id = e.emp_id 
-        WHERE e.active = 1
-        `;
+            SELECT 
+                e.*, 
+                UPPER(CONCAT_WS(' ', CONCAT(e.last_name, ', '), e.first_name, e.middle_name)) AS xfull_name, 
+                u.hub AS xhub,
+                u.location AS xlocation,
+                p.position AS display_position, 
+                'ACTIVE' AS active_text 
+            FROM ${userTableName} e 
+            LEFT JOIN asn_position p ON e.position = p.code 
+            LEFT JOIN (
+                SELECT sub_u.besi_id, sub_u.hub, sub_u.location 
+                FROM ${besiuserTable} sub_u 
+                WHERE sub_u.id IN (
+                SELECT MAX(id) FROM ${besiuserTable} GROUP BY besi_id
+                )
+            ) u ON u.besi_id = e.emp_id 
+            WHERE e.active = 1
+            `;
 
         const conditions = [];
         const params = [];
@@ -1600,76 +1354,227 @@ router.get('/region-summary', async (req, res) => {
 
     try {
         // The Pivot Query we built
-        const sql = `
-            SELECT 
-                r.region_label AS 'Region',
-                COUNT(CASE WHEN e.position = '01' THEN 1 END) AS 'Rider',
-                COUNT(CASE WHEN e.position = '02' THEN 1 END) AS 'Transporter',
-                COUNT(CASE WHEN e.position = '03' THEN 1 END) AS 'FDS',
-                COUNT(CASE WHEN e.position = '04' THEN 1 END) AS 'Sorter',
-                COUNT(CASE WHEN e.position = '05' THEN 1 END) AS 'HubAdmin',
-                COUNT(CASE WHEN e.position = '06' THEN 1 END) AS 'TK',
-                COUNT(CASE WHEN e.position = '07' THEN 1 END) AS 'L Coord',
-                COUNT(CASE WHEN e.position = '08' THEN 1 END) AS 'Coord',
-                COUNT(CASE WHEN e.position = '10' THEN 1 END) AS 'TL',
-                COUNT(e.position) AS 'Total'
+        // const sql = `
+        //     SELECT 
+        //         r.region_label AS 'Region',
+        //         COUNT(CASE WHEN e.position = '01' THEN 1 END) AS 'Rider',
+        //         COUNT(CASE WHEN e.position = '02' THEN 1 END) AS 'Transporter',
+        //         COUNT(CASE WHEN e.position = '03' THEN 1 END) AS 'FDS',
+        //         COUNT(CASE WHEN e.position = '04' THEN 1 END) AS 'Sorter',
+        //         COUNT(CASE WHEN e.position = '05' THEN 1 END) AS 'HubAdmin',
+        //         COUNT(CASE WHEN e.position = '06' THEN 1 END) AS 'TK',
+        //         COUNT(CASE WHEN e.position = '07' THEN 1 END) AS 'L Coord',
+        //         COUNT(CASE WHEN e.position = '08' THEN 1 END) AS 'Coord',
+        //         COUNT(CASE WHEN e.position = '10' THEN 1 END) AS 'TL',
+        //         COUNT(e.position) AS 'Total'
+        //     FROM (
+        //         SELECT 'WVIS BACOLOD' AS region_label UNION ALL
+        //         SELECT 'WVIS PANAY' UNION ALL
+        //         SELECT 'NCR SMNL' UNION ALL
+        //         SELECT 'BSL BICOL' UNION ALL
+        //         SELECT 'BSL SMRLEYTE' UNION ALL
+        //         SELECT 'MINDANAO' UNION ALL
+        //         SELECT 'WVIS CENTRAL' UNION ALL
+        //         SELECT 'NCR CMNL' UNION ALL
+        //         SELECT 'NCR CMNVA' UNION ALL
+        //         SELECT 'SLU' UNION ALL
+        //         SELECT 'HPRO' UNION ALL
+        //         SELECT 'YNCR' UNION ALL
+        //         SELECT 'YSLU' UNION ALL
+        //         SELECT 'YNELU' UNION ALL
+        //         SELECT 'NWLU' UNION ALL
+        //         SELECT 'NELU'
+        //     ) AS r
+        //     LEFT JOIN (
+        //         SELECT 'WVIS BACOLOD' AS table_name, position FROM besi_employees_bacolod
+        //         UNION ALL
+        //         SELECT 'WVIS PANAY' AS table_name, position FROM besi_employees_panay
+        //         UNION ALL
+        //         SELECT 'NCR SMNL' AS table_name, position FROM besi_employees_smnl
+        //         UNION ALL
+        //         SELECT 'BSL BICOL' AS table_name, position FROM besi_employees_bicol
+        //         UNION ALL
+        //         SELECT 'BSL SMRLEYTE' AS table_name, position FROM besi_employees_smarleyte
+        //         UNION ALL
+        //         SELECT 'MINDANAO' AS table_name, position FROM besi_employees_min
+        //         UNION ALL
+        //         SELECT 'WVIS CENTRAL' AS table_name, position FROM besi_employees_central
+        //         UNION ALL
+        //         SELECT 'NCR CMNL' AS table_name, position FROM besi_employees_cmnl
+        //         UNION ALL
+        //         SELECT 'NCR CMNVA' AS table_name, position FROM besi_employees_cmnva
+        //         UNION ALL
+        //         SELECT 'SLU' AS table_name, position FROM besi_employees_slu
+        //         UNION ALL
+        //         SELECT 'HPRO' AS table_name, position FROM besi_employees_hpro
+        //         UNION ALL
+        //         SELECT 'YNCR' AS table_name, position FROM besi_employees_yncr
+        //         UNION ALL
+        //         SELECT 'YSLU' AS table_name, position FROM besi_employees_yslu
+        //         UNION ALL
+        //         SELECT 'YNELU' AS table_name, position FROM besi_employees_ynelu
+        //         UNION ALL
+        //         SELECT 'NWLU' AS table_name, position FROM besi_employees_nwlu
+        //         UNION ALL
+        //         SELECT 'NELU' AS table_name, position FROM besi_employees_nelu
+        //     ) AS e ON r.region_label = e.table_name
+        //     GROUP BY r.region_label
+        //     ORDER BY r.region_label ASC;   
+        // `;
+
+
+        //orig counting
+        //  --COUNT(CASE WHEN YEAR(DATE_ADD(e.hire_date, INTERVAL 5 MONTH)) = YEAR(CURDATE()) 
+        //     --            AND MONTH(DATE_ADD(e.hire_date, INTERVAL 5 MONTH)) = MONTH(CURDATE()) 
+        //     --    THEN 1 END) AS 'End of Contract',
+           //error this
+           //            COUNT(CASE WHEN DATE_ADD(e.hire_date, INTERVAL 5 MONTH) <= LAST_DAY(CURDATE()) THEN 1 END) AS 'End of Contract',
+
+        // const sql = `
+        // SELECT 
+        //     r.region_label AS 'Region',
+        //     -- New column: Counts employees whose 5-month contract expires this month
+        //     -- Updated column: Counts employees whose contract is 5 months or greater by the end of this month
+        //    COUNT(CASE WHEN PERIOD_DIFF(EXTRACT(YEAR_MONTH FROM CURDATE()), EXTRACT(YEAR_MONTH FROM e.hire_date)) >= 5 THEN 1 END) AS 'End Contract',
+
+        //     COUNT(CASE WHEN e.position = '01' THEN 1 END) AS 'Rider',
+        //     COUNT(CASE WHEN e.position = '02' THEN 1 END) AS 'Transporter',
+        //     COUNT(CASE WHEN e.position = '03' THEN 1 END) AS 'FDS',
+        //     COUNT(CASE WHEN e.position = '04' THEN 1 END) AS 'Sorter',
+        //     COUNT(CASE WHEN e.position = '05' THEN 1 END) AS 'HubAdmin',
+        //     COUNT(CASE WHEN e.position = '06' THEN 1 END) AS 'TK',
+        //     COUNT(CASE WHEN e.position = '07' THEN 1 END) AS 'L Coord',
+        //     COUNT(CASE WHEN e.position = '08' THEN 1 END) AS 'Coord',
+        //     COUNT(CASE WHEN e.position = '10' THEN 1 END) AS 'TL',
+        //     COUNT(e.position) AS 'Total'
+        // FROM (
+        //     SELECT 'WVIS BACOLOD' AS region_label UNION ALL
+        //     SELECT 'WVIS PANAY' UNION ALL
+        //     SELECT 'NCR SMNL' UNION ALL
+        //     SELECT 'BSL BICOL' UNION ALL
+        //     SELECT 'BSL SMRLEYTE' UNION ALL
+        //     SELECT 'MINDANAO' UNION ALL
+        //     SELECT 'WVIS CENTRAL' UNION ALL
+        //     SELECT 'NCR CMNL' UNION ALL
+        //     SELECT 'NCR CMNVA' UNION ALL
+        //     SELECT 'SLU' UNION ALL
+        //     SELECT 'HPRO' UNION ALL
+        //     SELECT 'YNCR' UNION ALL
+        //     SELECT 'YSLU' UNION ALL
+        //     SELECT 'YNELU' UNION ALL
+        //     SELECT 'NWLU' UNION ALL
+        //     SELECT 'NELU'
+        // ) AS r
+        // LEFT JOIN (
+        //     -- Added hire_date to the subquery selection so the main SELECT can access it
+        //     SELECT 'WVIS BACOLOD' AS table_name, position, hire_date FROM besi_employees_bacolod
+        //     UNION ALL
+        //     SELECT 'WVIS PANAY' AS table_name, position, hire_date FROM besi_employees_panay
+        //     UNION ALL
+        //     SELECT 'NCR SMNL' AS table_name, position, hire_date FROM besi_employees_smnl
+        //     UNION ALL
+        //     SELECT 'BSL BICOL' AS table_name, position, hire_date FROM besi_employees_bicol
+        //     UNION ALL
+        //     SELECT 'BSL SMRLEYTE' AS table_name, position, hire_date FROM besi_employees_smarleyte
+        //     UNION ALL
+        //     SELECT 'MINDANAO' AS table_name, position, hire_date FROM besi_employees_min
+        //     UNION ALL
+        //     SELECT 'WVIS CENTRAL' AS table_name, position, hire_date FROM besi_employees_central
+        //     UNION ALL
+        //     SELECT 'NCR CMNL' AS table_name, position, hire_date FROM besi_employees_cmnl
+        //     UNION ALL
+        //     SELECT 'NCR CMNVA' AS table_name, position, hire_date FROM besi_employees_cmnva
+        //     UNION ALL
+        //     SELECT 'SLU' AS table_name, position, hire_date FROM besi_employees_slu
+        //     UNION ALL
+        //     SELECT 'HPRO' AS table_name, position, hire_date FROM besi_employees_hpro
+        //     UNION ALL
+        //     SELECT 'YNCR' AS table_name, position, hire_date FROM besi_employees_yncr
+        //     UNION ALL
+        //     SELECT 'YSLU' AS table_name, position, hire_date FROM besi_employees_yslu
+        //     UNION ALL
+        //     SELECT 'YNELU' AS table_name, position, hire_date FROM besi_employees_ynelu
+        //     UNION ALL
+        //     SELECT 'NWLU' AS table_name, position, hire_date FROM besi_employees_nwlu
+        //     UNION ALL
+        //     SELECT 'NELU' AS table_name, position, hire_date FROM besi_employees_nelu
+        // ) AS e ON r.region_label = e.table_name
+        // GROUP BY r.region_label
+        // ORDER BY r.region_label ASC;
+
+        // `;
+
+        const sql=`
+        SELECT 
+            r.region_label AS 'Region',
+            COUNT(CASE WHEN DATE_ADD(e.hire_date, INTERVAL 5 MONTH) <= LAST_DAY(CURDATE()) THEN 1 END) AS 'End of Contract',
+            COUNT(CASE WHEN e.position = '01' THEN 1 END) AS 'Rider',
+            COUNT(CASE WHEN e.position = '02' THEN 1 END) AS 'Transporter',
+            COUNT(CASE WHEN e.position = '03' THEN 1 END) AS 'FDS',
+            COUNT(CASE WHEN e.position = '04' THEN 1 END) AS 'Sorter',
+            COUNT(CASE WHEN e.position = '05' THEN 1 END) AS 'HubAdmin',
+            COUNT(CASE WHEN e.position = '06' THEN 1 END) AS 'TK',
+            COUNT(CASE WHEN e.position = '07' THEN 1 END) AS 'L Coord',
+            COUNT(CASE WHEN e.position = '08' THEN 1 END) AS 'Coord',
+            COUNT(CASE WHEN e.position = '10' THEN 1 END) AS 'TL',
+            COUNT(e.position) AS 'Total'
             FROM (
-                SELECT 'WVIS BACOLOD' AS region_label UNION ALL
-                SELECT 'WVIS PANAY' UNION ALL
-                SELECT 'NCR SMNL' UNION ALL
-                SELECT 'BSL BICOL' UNION ALL
-                SELECT 'BSL SMRLEYTE' UNION ALL
-                SELECT 'MINDANAO' UNION ALL
-                SELECT 'WVIS CENTRAL' UNION ALL
-                SELECT 'NCR CMNL' UNION ALL
-                SELECT 'NCR CMNVA' UNION ALL
-                SELECT 'SLU' UNION ALL
-                SELECT 'HPRO' UNION ALL
-                SELECT 'YNCR' UNION ALL
-                SELECT 'YSLU' UNION ALL
-                SELECT 'YNELU' UNION ALL
-                SELECT 'NWLU' UNION ALL
-                SELECT 'NELU'
+            SELECT 'WVIS BACOLOD' AS region_label UNION ALL
+            SELECT 'WVIS PANAY' UNION ALL
+            SELECT 'NCR SMNL' UNION ALL
+            SELECT 'BSL BICOL' UNION ALL
+            SELECT 'BSL SMRLEYTE' UNION ALL
+            SELECT 'MINDANAO' UNION ALL
+            SELECT 'WVIS CENTRAL' UNION ALL
+            SELECT 'NCR CMNL' UNION ALL
+            SELECT 'NCR CMNVA' UNION ALL
+            SELECT 'SLU' UNION ALL
+            SELECT 'HPRO' UNION ALL
+            SELECT 'YNCR' UNION ALL
+            SELECT 'YSLU' UNION ALL
+            SELECT 'YNELU' UNION ALL
+            SELECT 'NWLU' UNION ALL
+            SELECT 'NELU'
             ) AS r
             LEFT JOIN (
-                SELECT 'WVIS BACOLOD' AS table_name, position FROM besi_employees_bacolod
-                UNION ALL
-                SELECT 'WVIS PANAY' AS table_name, position FROM besi_employees_panay
-                UNION ALL
-                SELECT 'NCR SMNL' AS table_name, position FROM besi_employees_smnl
-                UNION ALL
-                SELECT 'BSL BICOL' AS table_name, position FROM besi_employees_bicol
-                UNION ALL
-                SELECT 'BSL SMRLEYTE' AS table_name, position FROM besi_employees_smarleyte
-                UNION ALL
-                SELECT 'MINDANAO' AS table_name, position FROM besi_employees_min
-                UNION ALL
-                SELECT 'WVIS CENTRAL' AS table_name, position FROM besi_employees_central
-                UNION ALL
-                SELECT 'NCR CMNL' AS table_name, position FROM besi_employees_cmnl
-                UNION ALL
-                SELECT 'NCR CMNVA' AS table_name, position FROM besi_employees_cmnva
-                UNION ALL
-                SELECT 'SLU' AS table_name, position FROM besi_employees_slu
-                UNION ALL
-                SELECT 'HPRO' AS table_name, position FROM besi_employees_hpro
-                UNION ALL
-                SELECT 'YNCR' AS table_name, position FROM besi_employees_yncr
-                UNION ALL
-                SELECT 'YSLU' AS table_name, position FROM besi_employees_yslu
-                UNION ALL
-                SELECT 'YNELU' AS table_name, position FROM besi_employees_ynelu
-                UNION ALL
-                SELECT 'NWLU' AS table_name, position FROM besi_employees_nwlu
-                UNION ALL
-                SELECT 'NELU' AS table_name, position FROM besi_employees_nelu
+            SELECT 'WVIS BACOLOD' AS table_name, position, hire_date FROM besi_employees_bacolod
+            UNION ALL
+            SELECT 'WVIS PANAY' AS table_name, position, hire_date FROM besi_employees_panay
+            UNION ALL
+            SELECT 'NCR SMNL' AS table_name, position, hire_date FROM besi_employees_smnl
+            UNION ALL
+            SELECT 'BSL BICOL' AS table_name, position, hire_date FROM besi_employees_bicol
+            UNION ALL
+            SELECT 'BSL SMRLEYTE' AS table_name, position, hire_date FROM besi_employees_smarleyte
+            UNION ALL
+            SELECT 'MINDANAO' AS table_name, position, hire_date FROM besi_employees_min
+            UNION ALL
+            SELECT 'WVIS CENTRAL' AS table_name, position, hire_date FROM besi_employees_central
+            UNION ALL
+            SELECT 'NCR CMNL' AS table_name, position, hire_date FROM besi_employees_cmnl
+            UNION ALL
+            SELECT 'NCR CMNVA' AS table_name, position, hire_date FROM besi_employees_cmnva
+            UNION ALL
+            SELECT 'SLU' AS table_name, position, hire_date FROM besi_employees_slu
+            UNION ALL
+            SELECT 'HPRO' AS table_name, position, hire_date FROM besi_employees_hpro
+            UNION ALL
+            SELECT 'YNCR' AS table_name, position, hire_date FROM besi_employees_yncr
+            UNION ALL
+            SELECT 'YSLU' AS table_name, position, hire_date FROM besi_employees_yslu
+            UNION ALL
+            SELECT 'YNELU' AS table_name, position, hire_date FROM besi_employees_ynelu
+            UNION ALL
+            SELECT 'NWLU' AS table_name, position, hire_date FROM besi_employees_nwlu
+            UNION ALL
+            SELECT 'NELU' AS table_name, position, hire_date FROM besi_employees_nelu
             ) AS e ON r.region_label = e.table_name
-            GROUP BY r.region_label
-            ORDER BY r.region_label ASC;   
-        `;
+        GROUP BY r.region_label
+        ORDER BY r.region_label ASC;`;
 
         const [rows] = await db.query(sql); // Using db.query because it's a simple SELECT
         res.json(rows);
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to fetch report data" });
