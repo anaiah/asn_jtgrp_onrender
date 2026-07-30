@@ -88,10 +88,22 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
             email,
         } = record;
 
+        /*
+        or u can do this if the actual headers in excel have spaces or two words
+        // Destructure fields with spaces and map them to standard variables
+        it will First Name header in excel will be saved in first_name var 
+        
+            const {
+                "First Name": first_name,
+                "Last Name": last_name,
+                "Email": email
+            } = record;
+        */
+
         //for email lowercase
         const emailLower = (email ?? '').toLowerCase();
         
-        // Insert user
+        // ================ Insert user
         const query = `INSERT INTO ${xtable} (first_name, last_name, email) 
             VALUES (?, ?, ?)`;
         
@@ -202,6 +214,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
   }
 });
 
+//====================to mark the attendance after qr scan============
 router.get('/mark-attendance/:name', async (req, res) => {
     const { name } = req.params;
     console.log( req.params.name, 'scanned!')
@@ -214,7 +227,7 @@ router.get('/mark-attendance/:name', async (req, res) => {
     }));
 
 });
-
+//===== format the output of mark attendnace
 function renderAttendanceStatus({ title, message, isSuccess, redirectUrl }) {
     const themeColor = isSuccess ? "#198754" : "#dc3545"; 
     
@@ -316,7 +329,62 @@ function renderAttendanceStatus({ title, message, isSuccess, redirectUrl }) {
     `;
 }
 
+//================display event attendees============//
+// Endpoint: GET /getdgrp
+router.get('/getregistered', async (req, res) => {
+    try {
+        // Read URL variables sent by the frontend fetch request
+        //const { description, ageBracket, day, time } = req.params;
 
+        // Base query stringhow 
+        let queryText = `
+            SELECT 
+                UPPER(CONCAT_WS(' ', CONCAT(last_name, ', '), first_name)) AS full_name, 
+                email
+                 
+            FROM qr_jhuang
+            order by last_name asc;
+        `;
+        const queryParams = [];
+
+        // Check each variable and dynamically build secure query bindings
+        // if (description && description !== 'NA') {
+        //     queryText += ` AND group_description = ?`;
+        //     queryParams.push(description);
+        // }
+        // if (ageBracket && ageBracket !== 'NA') {
+        //     queryText += ` AND age_bracket = ?`;
+        //     queryParams.push(ageBracket);
+        // }
+        // if (day && day !== 'NA') {
+        //     queryText += ` AND meeting_day = ?`;
+        //     queryParams.push(day);
+        // }
+        // if (time && time !== 'NA') {
+        //     queryText += ` AND meeting_time = ?`;
+        //     queryParams.push(time);
+        // }
+
+        // Add sorting sequence at the tail end
+        // queryText += `
+        //     ORDER BY full_name,
+        //         FIELD(meeting_day, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
+        //         STR_TO_DATE(meeting_time, '%l:%i %p')
+        // `;
+
+        // console.log( "Constructed SQL Query:", queryText, "With Parameters:", queryParams);
+
+        // Destructure utilizing your style layout
+        const [result] = await db.query(queryText /*,queryParams*/);
+        
+        // Respond with only matching records array
+        res.status(200).json(result);
+
+    } catch (error) {
+        console.error('Database Query Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 // 2. ALWAYS export at the absolute bottom of the file
 module.exports = router;
