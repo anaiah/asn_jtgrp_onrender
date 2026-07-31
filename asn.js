@@ -125,10 +125,65 @@ let nLogged = 0
 let xmsg
 let userMode, userName 
 
+
 let connectedSockets = []
+let qrcodesocket = [] //test qrcode
+let qrMode, qrCodex
 
 //listen socket.io
 io.on('connection', (socket) => {
+
+    if(socket.handshake.query.qrcode){ //jhuang qcode test
+        const userName = socket.handshake.query.qrcode;
+        const qrCode = JSON.parse(userName)
+        qrCodex = qrCode.token
+
+        qrMode = qrCode.mode
+
+        qrcodesocket.push({
+            socketId: socket.id,
+            mode: qrMode
+        })
+
+        console.log('**QR CODE USERS\n', qrcodesocket)
+
+        socket.on('disconnect', (id) => {
+            console.log('disconnecting....')
+            // nLogged--
+            // if(nLogged <= 0){
+            //     nLogged = 0
+            // }
+            const togo = qrcodesocket.findIndex( x => x.socketId === socket.id)
+            if(togo !== -1) {
+                qrcodesocket.splice(togo, 1)
+            }
+            console.log(qrcodesocket)
+
+         
+            //console.log(`AsiaNow User Connected ${nLogged}`)
+        })
+
+        socket.on('update-grid', (data) => {
+            //let xdata = data
+            // qrcodesocket.forEach(socketInfo => {
+            //     if(socketInfo.mode =='qrcoder'){ //find events laptop
+            //         socket.to( socketInfo.socketId ).emit('reset-grid', data ) 
+            //         console.log(`Fired Event 'reset-grid' to USER: ${socketInfo.mode}, ID: ${socketInfo.socketId }`)
+            //     }
+            // })
+            const finder = qrcodesocket.findIndex( x => x.mode=="qrcoder")
+
+            if(finder >= 0){ 
+                socket.to( qrcodesocket[finder].socketId).emit('reset-grid', data )
+                console.log(`Fired Event 'reset-grid' to USER`)
+            }
+        })
+    
+    }//eif
+
+ //receive msg
+        
+
 
     if(socket.handshake.query.userName){
 		const userNames = socket.handshake.query.userName

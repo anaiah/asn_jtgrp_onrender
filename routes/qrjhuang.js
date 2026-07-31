@@ -65,7 +65,6 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
     const xtable = `qr_jhuang`;
     
     const conn = await mysqls.createConnection(dbconfig);
-
    
     // Read Excel
     const workbook = xlsx.read(req.file.buffer);
@@ -153,7 +152,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 
               // 2. Generate the QR code as a Base64 Image Buffer string
             // You can encode any text here, like their email, employee ID, or a profile link
-            url = `https://asn-jtgrp-api.onrender.com/qr/mark-attendance/${recipient.fullName}`;
+            url = `https://asn-jtgrp-api.onrender.com/qr/mark-attendance/${recipient.fullName}/${recipient.email}`;
 
             const qrBuffer = await QRCode.toBuffer( url, {
                 type: 'png',
@@ -215,16 +214,43 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 });
 
 //====================to mark the attendance after qr scan============
-router.get('/mark-attendance/:name', async (req, res) => {
-    const { name } = req.params;
+router.get('/mark-attendance/:name/:email', async (req, res) => {
+    const { name, email } = req.params;
+
     console.log( req.params.name, 'scanned!')
 
-    return res.send(renderAttendanceStatus({
-        title: "Attendance Logged!",
-        message: `Welcome, ${name}. Your check-in has been successfully recorded for today.`,
-        isSuccess: true,
-        redirectUrl: "https://anaiah.github.io/qr-joyhuang"
-    }));
+    try {
+        const updateSql = `
+                UPDATE qr_jhuang SET 
+                arrived = ?, date_added = NOW()
+                WHERE email = ?
+            `;
+        console.log(updateSql)
+        await db.query(updateSql, [ 1, email]);
+
+        res.status(200).json({ 
+            status: true,
+            message: 'Registration Success!',
+            xname: name.toUpperCase(),
+            xemail: email
+            //insertedCount: data.length,
+            //emailsSentCount: emailSummary.totalSent,
+            //failedEmails: emailSummary.failures 
+        });
+    }catch (err){
+         console.error(err);
+        return res.status(500).json({ ok: false, error: err.message });
+
+    }
+
+   
+
+    // return res.send(renderAttendanceStatus({
+    //     title: "Attendance Logged!",
+    //     message: `Welcome, ${name}. Your check-in has been successfully recorded for today.`,
+    //     isSuccess: true,
+    //     redirectUrl: "https://anaiah.github.io/qr-joyhuang"
+    // }));
 
 });
 //===== format the output of mark attendnace
@@ -340,7 +366,7 @@ router.get('/getregistered', async (req, res) => {
         let queryText = `
             SELECT 
                 UPPER(CONCAT_WS(' ', CONCAT(last_name, ', '), first_name)) AS full_name, 
-                email
+                email, arrived
                  
             FROM qr_jhuang
             order by last_name asc;
