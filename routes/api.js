@@ -720,7 +720,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                     const posCodeBlock = lastBlock.substring(0, 2); // Extract '01'
                     const seriesBlock  = lastBlock.substring(2);    // Extract '0006'
 
-                    // Pattern: BEE01010006 (Omit date block entirely)
+                    // Pattern: BE01010006 (Omit date block entirely)
                     transformedBesiId = `${companyBlock}${regionCodeRepresentation}${posCodeBlock}${seriesBlock}`;
                 } else {
                     transformedBesiId = originalBesiId; // Fallback if data string pattern differs
@@ -815,7 +815,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 
 //=====hris Search Employee====//
 router.post('/searchemp', upload.none(), async (req, res) => {
-	console.log( '====FIRING /searchemp()====',req.body )
+	console.log( '====FIRING /searchemp() called from hrisutil.searchemp() ====',req.body )
     const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
@@ -842,10 +842,18 @@ router.post('/searchemp', upload.none(), async (req, res) => {
         // Execute the query using the mysql2 connection pool
         const [rows] = await db.query(sql, params); // pool.execute returns [rows, fields]
         // =====================================================================
-		
+
+        // Transform the emp_id field for every row
+        const updatedRows = rows.map(row => {
+            return {
+                ...row,
+                emp_id: newBesiId(row.emp_id) // Updates the ID using your function
+            };
+        });
+
         //console.log(rows) //show result, taken out
 
-		return res.status(200).json({success:'true',msg:'SUCCESS',xdata:rows})
+		return res.status(200).json({success:'true',msg:'SUCCESS',xdata:updatedRows})
         //res.json(rows); // Send the query results back to the frontend
 
     } catch (error) {
@@ -855,6 +863,29 @@ router.post('/searchemp', upload.none(), async (req, res) => {
     }
 	
 });
+
+
+//-- HELPER TO MAKE OLD BESI ID TO NEW BESI ID --
+const newBesiId = (emp_id) => {
+    const originalBesiId = emp_id;
+    let transformedBesiId = originalBesiId; // Initialize fallback value
+
+    if (originalBesiId) {
+        const blocks = originalBesiId.split('-');
+        if (blocks.length === 4) {
+            const companyBlock = blocks[0];   // e.g., 'BE'
+            const lastBlock    = blocks[3];   // e.g., '010006'
+            
+            const posCodeBlock = lastBlock.substring(0, 2); // Extract '01'
+            const seriesBlock  = lastBlock.substring(2);    // Extract '0006'
+
+            // Note: Ensure 'regionCodeRepresentation' is defined somewhere in your upper scope
+            transformedBesiId = `${companyBlock}${regionCodeRepresentation}${posCodeBlock}${seriesBlock}`;
+        }
+    }
+    
+    return transformedBesiId; // Crucial step: you must return the value!
+};
 
 
 // --- HELPER FUNCTIONS (Place these outside your router.post or gein a utility file) ---
