@@ -869,17 +869,17 @@ router.post('/searchemp', upload.none(), async (req, res) => {
 
         
         // Transform the emp_id field for every row
-        const updatedRows = rows.map(row => {
-            return {
-                ...row,
-                emp_id: newBesiId(row.emp_id) // Updates the ID using your function
-            };
-        });
+        // const updatedRows = rows.map(row => {
+        //     return {
+        //         ...row,
+        //         emp_id: newBesiId(row.emp_id) // Updates the ID using your function
+        //     };
+        // });
 
         //console.log(rows) //show result, taken out
 
-		return res.status(200).json({success:'true',msg:'SUCCESS',xdata:updatedRows})
-        //res.json(rows); // Send the query results back to the frontend
+		//return res.status(200).json({success:'true',msg:'SUCCESS',xdata:updatedRows})
+        res.json(rows); // Send the query results back to the frontend
 
     } catch (error) {
         console.error('Error executing search query:', error.message);
