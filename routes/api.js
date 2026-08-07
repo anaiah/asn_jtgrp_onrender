@@ -827,11 +827,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
     const aRegion = ["smnl", "cmnl", "cmnva","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
                 "bicol","smarleyte","bacolod","panay","central","min"];
 
-
-
-    try {
-        
-        const filters = {
+  const filters = {
             name: xname,
             id: xid,
             region: xregion,
@@ -839,6 +835,10 @@ router.post('/searchemp', upload.none(), async (req, res) => {
             hub: xhub,
             position: xposition
         };
+
+    try {
+        
+      
 
         if (!xregion) {
             return res.status(400).send("Region is required");
