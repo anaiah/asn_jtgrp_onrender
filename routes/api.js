@@ -823,16 +823,38 @@ router.post('/searchemp', upload.none(), async (req, res) => {
     const xhub = req.body.filter_hub ?? req.body.xfilter_hub ?? null;
     const xposition = req.body.filter_position ?? req.body.xfilter_position ?? null;
 
-	const filters = {
-        name: xname,
-        id: xid,
-        region: xregion,
-        location: xlocation,
-        hub: xhub,
-        position: xposition
-    };
+     // Region lookup array for code conversions
+    const aRegion = ["smnl", "cmnl", "cmnva","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
+                "bicol","smarleyte","bacolod","panay","central","min"];
+
+
 
     try {
+        
+        const filters = {
+            name: xname,
+            id: xid,
+            region: xregion,
+            location: xlocation,
+            hub: xhub,
+            position: xposition
+        };
+
+        if (!xregion) {
+            return res.status(400).send("Region is required");
+        }
+
+        const regionClean   = xregion.toLowerCase(); 
+       
+        // 1. Calculate the 2-digit code for the requested region immediately
+        const regionIndex = aRegion.indexOf(regionClean);
+        let regionCodeRepresentation = "00"; 
+        if (regionIndex !== -1) {
+            regionCodeRepresentation = String(regionIndex + 1).padStart(2, '0');
+        }
+
+
+
         const { sql, params } = buildPersonnelSearchQuery(filters,false);
 
         //console.log('Generated SQL:', sql);
@@ -843,6 +865,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
         const [rows] = await db.query(sql, params); // pool.execute returns [rows, fields]
         // =====================================================================
 
+        
         // Transform the emp_id field for every row
         const updatedRows = rows.map(row => {
             return {
