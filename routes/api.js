@@ -816,6 +816,8 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
 //=====hris Search Employee====//
 router.post('/searchemp', upload.none(), async (req, res) => {
 	console.log( '====FIRING /searchemp() called from hrisutil.searchemp() ====',req.body )
+
+
     const xname = req.body.filter_name ?? req.body.xfilter_name ?? null;
     const xid = req.body.filter_id ?? req.body.xfilter_id ?? null;
     const xregion = req.body.filter_region ?? req.body.xfilter_region ?? null;
@@ -826,20 +828,20 @@ router.post('/searchemp', upload.none(), async (req, res) => {
      // Region lookup array for code conversions
     const aRegion = ["smnl", "cmnl", "cmnva","nelu","nwlu","slu","hpro","yncr","yslu","ynelu",
                 "bicol","smarleyte","bacolod","panay","central","min"];
+let regionCodeRepresentation = "00"; 
 
-  const filters = {
-            name: xname,
-            id: xid,
-            region: xregion,
-            location: xlocation,
-            hub: xhub,
-            position: xposition
-        };
+    const filters = {
+        name: xname,
+        id: xid,
+        region: xregion,
+        location: xlocation,
+        hub: xhub,
+        position: xposition
+    };
 
     try {
         
       
-
         if (!xregion) {
             return res.status(400).send("Region is required");
         }
@@ -849,13 +851,12 @@ router.post('/searchemp', upload.none(), async (req, res) => {
         // 1. Calculate the 2-digit code for the requested region immediately
         const regionIndex = aRegion.indexOf(regionClean);
         
-        let regionCodeRepresentation = "00"; 
-
+        
         if (regionIndex !== -1) {
             regionCodeRepresentation = String(regionIndex + 1).padStart(2, '0');
         }
 
-        console.log('searchemp() - regionCodeRepresentation:', regionCodeRepresentation);
+        console.log('******************searchemp() - regionCodeRepresentation:', regionCodeRepresentation);
 
         const { sql, params } = buildPersonnelSearchQuery(filters,false);
 
@@ -869,17 +870,17 @@ router.post('/searchemp', upload.none(), async (req, res) => {
 
         
         // Transform the emp_id field for every row
-        // const updatedRows = rows.map(row => {
-        //     return {
-        //         ...row,
-        //         emp_id: newBesiId(row.emp_id) // Updates the ID using your function
-        //     };
-        // });
+        const updatedRows = rows.map(row => {
+            return {
+                ...row,
+                emp_id: newBesiId(row.emp_id,regionCodeRepresentation) // Updates the ID using your function
+            };
+        });
 
         //console.log(rows) //show result, taken out
 
-		//return res.status(200).json({success:'true',msg:'SUCCESS',xdata:updatedRows})
-        res.json(rows); // Send the query results back to the frontend
+		return res.status(200).json({success:'true',msg:'SUCCESS',xdata:updatedRows})
+        //res.json(rows); // Send the query results back to the frontend
 
     } catch (error) {
         console.error('Error executing search query:', error.message);
@@ -891,7 +892,7 @@ router.post('/searchemp', upload.none(), async (req, res) => {
 
 
 //-- HELPER TO MAKE OLD BESI ID TO NEW BESI ID --
-const newBesiId = (emp_id) => {
+const newBesiId = (emp_id, regionCode) => {
     const originalBesiId = emp_id;
     let transformedBesiId = originalBesiId; // Initialize fallback value
 
@@ -905,7 +906,7 @@ const newBesiId = (emp_id) => {
             const seriesBlock  = lastBlock.substring(2);    // Extract '0006'
 
             // Note: Ensure 'regionCodeRepresentation' is defined somewhere in your upper scope
-            transformedBesiId = `${companyBlock}${regionCodeRepresentation}${posCodeBlock}${seriesBlock}`;
+            transformedBesiId = `${companyBlock}${regionCode}${posCodeBlock}${seriesBlock}`;
         }
     }
     
