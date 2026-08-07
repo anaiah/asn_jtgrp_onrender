@@ -848,12 +848,14 @@ router.post('/searchemp', upload.none(), async (req, res) => {
        
         // 1. Calculate the 2-digit code for the requested region immediately
         const regionIndex = aRegion.indexOf(regionClean);
+        
         let regionCodeRepresentation = "00"; 
+
         if (regionIndex !== -1) {
             regionCodeRepresentation = String(regionIndex + 1).padStart(2, '0');
         }
 
-
+        console.log('searchemp() - regionCodeRepresentation:', regionCodeRepresentation);
 
         const { sql, params } = buildPersonnelSearchQuery(filters,false);
 
