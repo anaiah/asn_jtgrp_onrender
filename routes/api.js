@@ -873,7 +873,7 @@ let regionCodeRepresentation = "00";
         const updatedRows = rows.map(row => {
             return {
                 ...row,
-                emp_id: newBesiId(row.emp_id,regionCodeRepresentation) // Updates the ID using your function
+                emp_id: `<font color="blue">${newBesiId(row.emp_id,regionCodeRepresentation)} (NEW ID) </font><BR> ${row.emp_id} (OLD ID)` // Updates the ID using your function
             };
         });
 
