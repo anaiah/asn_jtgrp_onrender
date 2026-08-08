@@ -873,8 +873,7 @@ let regionCodeRepresentation = "00";
         const updatedRows = rows.map(row => {
             return {
                 ...row,
-                emp_id: row.emp_id
-                //emp_id: newBesiId(row.emp_id, regionCodeRepresentation) // Updates the ID using your function
+                new_id: newBesiId(row.emp_id, regionCodeRepresentation) // Updates the ID using your function
             };
         });
 
@@ -2253,7 +2252,7 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
 
     try {
          // Check if region is valid
-        if (region && region.trim() !== "") {
+        if (region && region.trim() !== "head") {
             //console.log(region, uid); 
             const sql = `select * from besi_users_${region} where email=? and active=1`; // Assuming 'active' is a column to check if the user is active
             
