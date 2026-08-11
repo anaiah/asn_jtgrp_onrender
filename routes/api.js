@@ -2279,28 +2279,28 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
 			if (user.grp_id === 1) { // If the user is a rider (or grp_id 1)
 				console.log('User is a rider (grp_id 1). Fetching region from asn_hub...');
 
-				// Ensure the user has a 'hub' value to query with
-				if (user.hub) {
-					// Query asn_hub using the 'hub' field from asn_users
-					const hubRegionSql = `SELECT region FROM asn_hub WHERE hub = ?`;
+				// // Ensure the user has a 'hub' value to query with
+				// if (user.hub) {
+				// 	// Query asn_hub using the 'hub' field from asn_users
+				// 	const hubRegionSql = `SELECT region FROM asn_hub WHERE hub = ?`;
 					
-                    // Refactored: Destructure result
-                    const [hubRows] = await db.query(hubRegionSql, [user.hub]);
+                //     // Refactored: Destructure result
+                //     const [hubRows] = await db.query(hubRegionSql, [user.hub]);
 
-					if (hubRows && hubRows.length > 0) {
-						// Get the region value from asn_hub and attach it to the user object
-						user.region = hubRows[0].region; 
-						console.log('Rider region fetched from asn_hub:', user.region);
-					} else {
-						console.log('No matching region found in asn_hub for user.hub:', user.hub);
-						// You might want to set a default or null here if no region is found
-						user.region = null; 
-					}
-				} else {
-					console.log('Rider (grp_id 1) has no "hub" assigned in asn_users table.');
-					user.region = null; // No hub to look up, so no region
-				}
-
+				// 	if (hubRows && hubRows.length > 0) {
+				// 		// Get the region value from asn_hub and attach it to the user object
+				// 		user.region = hubRows[0].region; 
+				// 		console.log('Rider region fetched from asn_hub:', user.region);
+				// 	} else {
+				// 		console.log('No matching region found in asn_hub for user.hub:', user.hub);
+				// 		// You might want to set a default or null here if no region is found
+				// 		user.region = null; 
+				// 	}
+				// } else {
+				// 	console.log('Rider (grp_id 1) has no "hub" assigned in asn_users table.');
+				// 	user.region = null; // No hub to look up, so no region
+				// }
+                user.region = region || null; // Ensure region is set, even if null
 			}//eif
 
             console.log('User found:', user.email, user.region); // Log for debugging
@@ -2379,7 +2379,7 @@ const nuDateMysql=(date)=>{
 
 const nuDate = () =>{
 
-    // 1. Get current UTC time
+    // 1. Get current UTC time41
     const now = new Date();
     const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
     
@@ -2409,16 +2409,18 @@ router.post('/savetologin/:empid', async (req, res) => {
 	console.log('=========SAVING TO LOGIN()============',req.params.empid)
 	
 	try {
-		const sql = 'INSERT into asn_transaction (emp_id,parcel,transaction_number,created_at,login_time) VALUES(?,?,?,?,?)'
+		const sql = 'INSERT into besi_transaction (emp_id,parcel,transaction_number,created_at,login_time,region) VALUES(?,?,?,?,?,?)'
 	
 		const [datestr, datetimestr] = nuDate()
 
     	const [rows, fields] = await db.query(sql, [ 
-					parseInt(req.params.empid), 
-					parseInt(req.body.f_parcel), 
+					//parseInt(req.params.empid), 
+					req.body.besi_id,
+                    parseInt(req.body.f_parcel), 
 					req.body.transnumber, 
 					datestr,
-					datetimestr
+					datetimestr,
+					req.body.region
 				]);
 
 		const retdata = {success:'ok'} 
@@ -2428,7 +2430,7 @@ router.post('/savetologin/:empid', async (req, res) => {
 		console.log("SAVING LOGIN gettingchart data")
 
 	} catch (err) {
-		console.error('Error:', err);
+		console.error('Error:', err.code);
 
 		if(err.code === 'ER_DUP_ENTRY'){
 			return res.status(200).json({success:'fail',msg:'YOU ALREADY HAVE A DATA SAVED FOR TODAY!!!'})
@@ -2450,7 +2452,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
  	try {
 		const [datestr, datetimestr] = nuDate()
 
-		const sql = ` UPDATE asn_transaction 
+		const sql = ` UPDATE besi_transaction 
 			SET 
 			parcel=?,
 			actual_parcel =?, 
@@ -2470,7 +2472,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 					parseFloat(req.body.ff_amount), 
 					escapedText	,
 					datetimestr,
-					parseInt(req.params.empid),
+					req.body.besi_id,
 					req.body.ff_transnumber
 				]);
 
@@ -2496,6 +2498,7 @@ router.post('/savetransaction/:empid', async (req, res) => {
 
 //=============END ADD RIDER TRANSACTION J&T GRP====//
 //===get chart data
+//==== FOR EDIT MIGRATION
 const getChartData = async(req,res, retdata) =>{
 
 	try {
@@ -2544,7 +2547,7 @@ const sendSocket = (xdata) => {
 	console.log('io.emit sakses',xdata)
 }
 
-//===== piechart for rider====// 
+//===== piechart for rider==== FOR EDIT MIGRATION //
 router.get('/getpiedata/:empid', async(req,res)=>{
 	try {
 
@@ -2632,7 +2635,7 @@ router.get('/menu/:grpid', async(req,res)=>{
 
 })
 
-//==== for grid monthly transaction riders =======//
+//==== for grid monthly transaction riders  FOR EDIT MIGRATION=======//
 router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 
 	let connection;
@@ -4019,6 +4022,8 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
 
 	const cRegion = req.params.region;
 
+    console.log('===Region for /postimage===', cRegion.toUpperCase())
+
 	const busboy = Busboy({ headers: req.headers });
 		
 
@@ -4065,22 +4070,22 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
 					// DEFINE YOUR TARGET FOLDER HERE
 					// Note: This path is relative to your FTP user's root. 
 					// If your FTP user lands in /, you might need "/public_html/html/my_images"
-					switch (cRegion) {
-						case 'NCR-SMNL':
+					switch (cRegion.toUpperCase()) { // Use cRegion from URL
+						case 'SMNL':
 							subFolderName = 'ncr_smnl_rcpt';
 							break;
-						case 'NCR-CMNL':
+						case 'CMNL':
 							subFolderName = 'ncr_cmnl_rcpt';
 							break;
-						case 'NCR-CMNVA':
+						case 'CMNVA':
 							subFolderName = 'ncr_cmnva_rcpt';
 							break;
 
-                        case 'LUZ-NELU':
+                        case 'NELU':
 							subFolderName = 'luz_nelu_rcpt';
 							break;
                         
-                        case 'LUZ-NWLU':
+                        case 'NWLU':
 							subFolderName = 'luz_nwlu_rcpt';
 							break;
                         case 'SLU':
@@ -4095,19 +4100,19 @@ router.post('/postimage/:transnumber/:region',   async (req, res) => {
                         case 'MIN':
                             subFolderName = 'min_rcpt';
                             break;    
-                        case 'BSL-BICOL': // Example: for National Capital Region
+                        case 'BICOL': // Example: for National Capital Region
 							subFolderName = 'bsl_bicol_rcpt';
 							break;
-						case 'BSL-SMARLEYTE': // Example: for National Capital Region
+						case 'SMARLEYTE': // Example: for National Capital Region
 							subFolderName = 'bsl_smarleyte_rcpt';
 							break;
-						case 'WVIS-CENTRAL':
+						case 'CENTRAL':
 							subFolderName = 'wvis_central_rcpt';
 							break;
-						case 'WVIS-BACOLOD': // Example: for National Capital Region
+						case 'BACOLOD': // Example: for National Capital Region
 							subFolderName = 'wvis_bacolod_rcpt';
 							break;
-						case 'WVIS-PANAY': // Example: for National Capital Region
+						case 'PANAY': // Example: for National Capital Region
 							subFolderName = 'wvis_panay_rcpt';
 							break;		
 					}//end switch
