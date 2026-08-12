@@ -557,9 +557,9 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 WHERE sub_u.id IN (
                 SELECT MAX(id) FROM ${besiuserTable} GROUP BY besi_id
                 )
-            ) u ON u.besi_id = e.emp_id 
-            WHERE e.active = 1
-            `;
+            ) u ON u.besi_id = e.emp_id `;
+             
+// i took out this aug 12, 2026 so all records active not active will be included -> WHERE e.active = 1
 
         const conditions = [];
         const params = [];
