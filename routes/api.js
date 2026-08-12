@@ -548,7 +548,11 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 u.hub AS xhub,
                 u.location AS xlocation,
                 p.position AS display_position, 
-                'ACTIVE' AS active_text 
+                CASE 
+                    WHEN e.active = 1 THEN 'ACTIVE'
+                    WHEN e.active = 0 THEN 'INACTIVE'
+                    ELSE 'INACTIVE' 
+                END AS active_text 
             FROM ${userTableName} e 
             LEFT JOIN asn_position p ON e.position = p.code 
             LEFT JOIN (
@@ -558,7 +562,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 SELECT MAX(id) FROM ${besiuserTable} GROUP BY besi_id
                 )
             ) u ON u.besi_id = e.emp_id `;
-             
+
 // i took out this aug 12, 2026 so all records active not active will be included -> WHERE e.active = 1
 
         const conditions = [];
@@ -592,7 +596,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
         }
 
         if (conditions.length > 0) {
-        sql += " AND " + conditions.join(" AND ");
+        sql += " WHERE " + conditions.join(" AND ");
         }
 
         sql += " GROUP BY e.emp_id";
@@ -2260,7 +2264,7 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
             const [resultRows] = await db.query(sql, [uid]); 
             rows = resultRows;
             
-            //console.log(sql, rows[0]);
+            console.log(sql, rows[0]);
 
 		//if region:null	//======LOGIN TO OLD USERS TABLE
         } else {
@@ -2269,7 +2273,11 @@ router.get('/loginpost/:uid/:pwd/:region', async (req, res) => {
             // Refactored: Destructure to get only the data rows
             const [resultRows] = await db.query(sql, [uid, pwd]); 
             rows = resultRows;
+
+            console.log(sql, rows[0]);
         }
+
+
 
         // Refactored: Simply check if rows exists and has data
         if (rows && rows.length > 0) {
