@@ -2572,10 +2572,12 @@ router.get('/getpiedata/:empid', async(req,res)=>{
 			round( 100 - ( sum(actual_parcel) / sum(parcel) ) * 100 ) as undelivered_pct,
 			created_at,
 			emp_id
-			from asn_transaction
+			from besi_transaction
 			where SUBSTRING(created_at,1,7) like '${series}%' 
 			and emp_id ='${req.params.empid}' `
 	
+        console.log(sql)
+        
 		const [results, fields] = await db.query( sql );
 		
 		res.status(200).json({data:results})
@@ -2679,9 +2681,9 @@ router.get('/gridmonthlytransaction/:empid', async(req,res)=>{
 				sum(actual_amount) as actual_amount,
 				remarks,
 				DATE_FORMAT(created_at,'%Y-%m-%d') as created_at
-				FROM asn_transaction
+				FROM besi_transaction
 				WHERE SUBSTRING(created_at,1,7) like '${series2}%' 
-				and emp_id =${req.params.empid} 
+				and emp_id ='${req.params.empid}' 
 				GROUP BY DATE_FORMAT(created_at,'%Y-%m-%d') `	 
 
 		// Execute the queries

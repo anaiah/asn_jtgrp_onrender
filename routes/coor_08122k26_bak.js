@@ -63,16 +63,12 @@ const nuDate = () =>{
 const [daily, monthly] = nuDate()
 
 //==========SUMMARY OF COORDS
-router.get('/summary/:email/:region', async(req,res)=>{
-
-    console.log('firing summary() called from coordcontroller.js ====', req.params.email, req.params.region)
+router.get('/summary/:email', async(req,res)=>{
+    console.log('firing summary()====')
 
     try {
         const xmos = getmos()
         
-        const regionTable = `besi_employees_${req.params.region}`
-        const hubTable = `besi_${req.params.region}_hub`
-
         sql =`SELECT 
                 a.location,
                 a.hub,
@@ -81,15 +77,14 @@ router.get('/summary/:email/:region', async(req,res)=>{
                 COALESCE(SUM(b.amount), 0) AS amount,
                 COALESCE(SUM(b.actual_amount), 0) AS amount_remitted,
                 COALESCE(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0),0) as qty_pct
-                FROM ${hubTable} a
-                LEFT JOIN ${regionTable} c ON c.hub = a.hub 
-                LEFT JOIN besi_transaction b ON b.emp_id = c.emp_id
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub 
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
                 and b.created_at like '${daily}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by a.location, 
                 parcel_delivered DESC;`
-        console.log('====COORD SUMMARY ====', sql)
 
         const [rows, fields] = await db.query(sql);
         res.json(rows);
@@ -103,14 +98,10 @@ router.get('/summary/:email/:region', async(req,res)=>{
 
 
 //===============syummary riders
-router.get('/ridersummary/:hub/:region', async(req,res)=>{
+router.get('/ridersummary/:hub', async(req,res)=>{
     try {
-
-        const regionTable = `besi_employees_${req.params.region}`
-        //const hubTable = `besi_${req.params.region}_hub`
-        
-        sql =`select a.full_name,
-                a.emp_id, 
+        sql =`select a.xname as full_name,
+                a.id as emp_id, 
                 a.hub,
                 COALESCE(sum(b.parcel),0) as qty,
                 COALESCE(sum(b.actual_parcel),0) as actual_qty,
@@ -118,11 +109,11 @@ router.get('/ridersummary/:hub/:region', async(req,res)=>{
                 COALESCE(round(sum(b.actual_amount),2),0) as actual_amt,
                 COALESCE(round((sum(b.actual_parcel)/sum(b.parcel))*100),0) as delivered_pct,
                 COALESCE(round(100-(sum(b.actual_parcel)/sum(b.parcel))*100),0) as undelivered_pct
-                from ${regionTable} a
-                left join besi_transaction b 
-                on b.emp_id = a.emp_id
+                from asn_users a
+                left join asn_transaction b 
+                on b.emp_id = a.id
                 and b.created_at = '${daily}' 
-                where a.position = '01' and a.active= 1 and upper(a.hub) = '${req.params.hub}'
+                where a.grp_id=1 and a.active= 1 and upper(a.hub) = '${req.params.hub}'
                 group by a.id
                 order by actual_qty DESC, full_name;`
 
@@ -139,15 +130,12 @@ router.get('/ridersummary/:hub/:region', async(req,res)=>{
 
 })
 
-router.get('/mtdlocation/:email/:region', async( req, res) =>{
+router.get('/mtdlocation/:email', async( req, res) =>{
 
     try {
 
         const xmos = getmos()
 
-        const hubTable = `besi_${req.params.region}_hub`
-        const regionTable = `besi_employees_${req.params.region}`
-        
         console.log('mtd location()====')
         //before its monthly now daily
 
@@ -157,9 +145,9 @@ router.get('/mtdlocation/:email/:region', async( req, res) =>{
             COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
             COALESCE(SUM(b.amount), 0) AS amount,
             COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
-            FROM ${hubTable} a
-            LEFT JOIN ${regionTable} c ON c.hub = a.hub
-            LEFT JOIN besi_transaction b ON b.emp_id = c.emp_id
+            FROM asn_hub a
+            LEFT JOIN asn_users c ON c.hub = a.hub
+            LEFT JOIN asn_transaction b ON b.emp_id = c.id
             and b.created_at like '${daily}%' 
             WHERE a.coordinator_email = '${req.params.email}'
             GROUP BY a.location
@@ -297,14 +285,11 @@ router.get('/five/:email/:trans',async(req,res)=>{
 
 })
 
-router.get('/topfivehub/:email/:region/:trans', async(req,res)=>{
+router.get('/topfivehub/:email/:trans', async(req,res)=>{
 
     try {
 
         const xmos = getmos()
-
-        const regionTable = `besi_employees_${req.params.region}`
-  const hubTable = `besi_${req.params.region}_hub`
 
         if(req.params.trans=="hub"){
             console.log('top 5 hub()====')
@@ -314,9 +299,9 @@ router.get('/topfivehub/:email/:region/:trans', async(req,res)=>{
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
                 COALESCE(SUM(b.amount), 0) AS amount,
                 COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
-                FROM ${hubTable}  a
-                LEFT JOIN ${regionTable} c ON c.hub = a.hub
-                LEFT JOIN besi_transaction b ON b.emp_id = c.emp_id
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
                 and b.created_at like '${daily}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
@@ -325,18 +310,18 @@ router.get('/topfivehub/:email/:region/:trans', async(req,res)=>{
         }else{
             console.log('top 5 riderschart()====')
             sql =`SELECT 
-                c.full_name AS full_name,
+                c.xname AS xname,
                 COALESCE(SUM(b.parcel), 0) AS parcel,
                 COALESCE(SUM(b.actual_parcel), 0) AS parcel_delivered,
                 COALESCE(SUM(b.amount), 0) AS amount,
                 COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
-                FROM ${hubTable} a
-                LEFT JOIN ${regionTable} c ON c.hub = a.hub
-                LEFT JOIN besi_transaction b ON b.emp_id = c.emp_id
+                FROM asn_hub a
+                LEFT JOIN asn_users c ON c.hub = a.hub
+                LEFT JOIN asn_transaction b ON b.emp_id = c.id
                 and b.created_at like '${daily}%' 
                 WHERE a.coordinator_email = '${req.params.email}'
-                AND c.full_name IS NOT NULL 
-                GROUP BY c.full_name
+                AND c.xname IS NOT NULL 
+                GROUP BY c.xname
                 ORDER by parcel_delivered DESC
                 LIMIT 5;`
             
