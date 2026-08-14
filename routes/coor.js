@@ -84,7 +84,7 @@ router.get('/summary/:email/:region', async(req,res)=>{
                 FROM ${hubTable} a
                 LEFT JOIN ${regionTable} c ON c.hub = a.hub 
                 LEFT JOIN besi_transaction b 
-                ON b.emp_id = a.emp_id
+                ON b.emp_id = c.emp_id
                 AND b.region = '${req.params.region}'
                 AND b.created_at = '${daily}' 
                 WHERE a.coordinator_email = '${req.params.email}'
@@ -94,6 +94,7 @@ router.get('/summary/:email/:region', async(req,res)=>{
         console.log('====COORD SUMMARY ====', sql)
 
         const [rows, fields] = await db.query(sql);
+
         res.json(rows);
 
     } catch (err) {
@@ -184,7 +185,7 @@ router.get('/mtdlocation/:email/:region', async( req, res) =>{
             FROM ${hubTable} a
             LEFT JOIN ${regionTable} c ON c.hub = a.hub
             LEFT JOIN besi_transaction b 
-            ON b.emp_id = a.emp_id
+            ON b.emp_id = c.emp_id
             AND b.region = '${req.params.region}'
             AND b.created_at = '${daily}' 
             WHERE a.coordinator_email = '${req.params.email}'
@@ -343,7 +344,7 @@ router.get('/topfivehub/:email/:region/:trans', async(req,res)=>{
                 FROM ${hubTable}  a
                 LEFT JOIN ${regionTable} c ON c.hub = a.hub
                 LEFT JOIN besi_transaction b 
-                ON b.emp_id = a.emp_id
+                ON b.emp_id = c.emp_id
                 AND b.region = '${req.params.region}'
                 AND b.created_at = '${daily}' 
                 WHERE a.coordinator_email = '${req.params.email}'
@@ -361,7 +362,7 @@ router.get('/topfivehub/:email/:region/:trans', async(req,res)=>{
                 FROM ${hubTable} a
                 LEFT JOIN ${regionTable} c ON c.hub = a.hub
                 LEFT JOIN besi_transaction b 
-                ON b.emp_id = a.emp_id
+                ON b.emp_id = c.emp_id
                 AND b.region = '${req.params.region}'
                 AND b.created_at = '${daily}' 
                 WHERE a.coordinator_email = '${req.params.email}'
