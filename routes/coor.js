@@ -83,10 +83,12 @@ router.get('/summary/:email/:region', async(req,res)=>{
                 COALESCE(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0),0) as qty_pct
                 FROM ${hubTable} a
                 LEFT JOIN ${regionTable} c ON c.hub = a.hub 
-                LEFT JOIN besi_transaction b ON b.emp_id = c.emp_id
-                and b.created_at like '${daily}%' 
+                LEFT JOIN besi_transaction b 
+                ON b.emp_id = a.emp_id
+                AND b.region = '${req.params.region}'
+                AND b.created_at = '${daily}' 
                 WHERE a.coordinator_email = '${req.params.email}'
-                GROUP BY a.hub
+                GROUP BY a.hub,a.location
                 ORDER by a.location, 
                 parcel_delivered DESC;`
         console.log('====COORD SUMMARY ====', sql)
@@ -109,24 +111,46 @@ router.get('/ridersummary/:hub/:region', async(req,res)=>{
         const regionTable = `besi_employees_${req.params.region}`
         //const hubTable = `besi_${req.params.region}_hub`
         
-        sql =`select a.full_name,
-                a.emp_id, 
-                a.hub,
-                COALESCE(sum(b.parcel),0) as qty,
-                COALESCE(sum(b.actual_parcel),0) as actual_qty,
-                COALESCE(round(sum(b.amount),2),0) as amt,
-                COALESCE(round(sum(b.actual_amount),2),0) as actual_amt,
-                COALESCE(round((sum(b.actual_parcel)/sum(b.parcel))*100),0) as delivered_pct,
-                COALESCE(round(100-(sum(b.actual_parcel)/sum(b.parcel))*100),0) as undelivered_pct
-                from ${regionTable} a
-                left join besi_transaction b 
-                on b.emp_id = a.emp_id
-                and b.created_at = '${daily}' 
-                where a.position = '01' and a.active= 1 and upper(a.hub) = '${req.params.hub}'
-                group by a.id
-                order by actual_qty DESC, full_name;`
+        // sql =`select a.full_name,
+        //         a.emp_id, 
+        //         a.hub,
+        //         COALESCE(sum(b.parcel),0) as qty,
+        //         COALESCE(sum(b.actual_parcel),0) as actual_qty,
+        //         COALESCE(round(sum(b.amount),2),0) as amt,
+        //         COALESCE(round(sum(b.actual_amount),2),0) as actual_amt,
+        //         COALESCE(round((sum(b.actual_parcel)/sum(b.parcel))*100),0) as delivered_pct,
+        //         COALESCE(round(100-(sum(b.actual_parcel)/sum(b.parcel))*100),0) as undelivered_pct
+        //         from ${regionTable} a
+        //         left join besi_transaction b 
+        //         on b.emp_id = a.emp_id
+        //         and b.created_at = '${daily}' 
+        //         where a.position = '01' and a.active= 1 and upper(a.hub) = '${req.params.hub}'
+        //         group by a.id
+        //         order by actual_qty DESC, full_name;`
 
-                console.log( `====RIDER DAILY ${daily}` )
+        sql = `SELECT 
+            a.full_name,
+            a.emp_id, 
+            a.hub,
+            COALESCE(SUM(b.parcel), 0) AS qty,
+            COALESCE(SUM(b.actual_parcel), 0) AS actual_qty,
+            COALESCE(ROUND(SUM(b.amount), 2), 0) AS amt,
+            COALESCE(ROUND(SUM(b.actual_amount), 2), 0) AS actual_amt,
+            COALESCE(ROUND((SUM(b.actual_parcel) / NULLIF(SUM(b.parcel), 0)) * 100), 0) AS delivered_pct,
+            COALESCE(ROUND(100 - (SUM(b.actual_parcel) / NULLIF(SUM(b.parcel), 0)) * 100), 0) AS undelivered_pct
+        FROM ${regionTable} a
+        LEFT JOIN besi_transaction b 
+            ON b.emp_id = a.emp_id
+            AND b.region = '${req.params.region}'
+            AND b.created_at = '${daily}' 
+        WHERE a.position = '01' 
+        AND a.active = 1 
+        AND UPPER(a.hub) = '${req.params.hub.toUpperCase()}'
+        GROUP BY a.emp_id, a.full_name, a.hub
+        ORDER BY actual_qty DESC, a.full_name;`;
+
+        console.log( `====RIDER DAILY ${daily}` )
+        
         const [rows, fields] = await db.query(sql);
         res.json(rows);
 
@@ -159,8 +183,10 @@ router.get('/mtdlocation/:email/:region', async( req, res) =>{
             COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
             FROM ${hubTable} a
             LEFT JOIN ${regionTable} c ON c.hub = a.hub
-            LEFT JOIN besi_transaction b ON b.emp_id = c.emp_id
-            and b.created_at like '${daily}%' 
+            LEFT JOIN besi_transaction b 
+            ON b.emp_id = a.emp_id
+            AND b.region = '${req.params.region}'
+            AND b.created_at = '${daily}' 
             WHERE a.coordinator_email = '${req.params.email}'
             GROUP BY a.location
             ORDER by parcel_delivered DESC`
@@ -304,7 +330,7 @@ router.get('/topfivehub/:email/:region/:trans', async(req,res)=>{
         const xmos = getmos()
 
         const regionTable = `besi_employees_${req.params.region}`
-  const hubTable = `besi_${req.params.region}_hub`
+        const hubTable = `besi_${req.params.region}_hub`
 
         if(req.params.trans=="hub"){
             console.log('top 5 hub()====')
@@ -316,8 +342,10 @@ router.get('/topfivehub/:email/:region/:trans', async(req,res)=>{
                 COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
                 FROM ${hubTable}  a
                 LEFT JOIN ${regionTable} c ON c.hub = a.hub
-                LEFT JOIN besi_transaction b ON b.emp_id = c.emp_id
-                and b.created_at like '${daily}%' 
+                LEFT JOIN besi_transaction b 
+                ON b.emp_id = a.emp_id
+                AND b.region = '${req.params.region}'
+                AND b.created_at = '${daily}' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 GROUP BY a.hub
                 ORDER by parcel_delivered DESC, a.hub
@@ -332,8 +360,10 @@ router.get('/topfivehub/:email/:region/:trans', async(req,res)=>{
                 COALESCE(SUM(b.actual_amount), 0) AS amount_remitted
                 FROM ${hubTable} a
                 LEFT JOIN ${regionTable} c ON c.hub = a.hub
-                LEFT JOIN besi_transaction b ON b.emp_id = c.emp_id
-                and b.created_at like '${daily}%' 
+                LEFT JOIN besi_transaction b 
+                ON b.emp_id = a.emp_id
+                AND b.region = '${req.params.region}'
+                AND b.created_at = '${daily}' 
                 WHERE a.coordinator_email = '${req.params.email}'
                 AND c.full_name IS NOT NULL 
                 GROUP BY c.full_name
