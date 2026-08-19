@@ -2566,7 +2566,7 @@ const getChartData = async(req,res, retdata) =>{
                     ON tx.emp_id = emp.emp_id
                     AND tx.region = ?
                     AND tx.created_at = ?
-                WHERE emp.position = '01' 
+                WHERE emp.position = '01' or emp.position = '17'
                 AND emp.active = 1
             `;
 

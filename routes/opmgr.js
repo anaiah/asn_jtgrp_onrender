@@ -169,6 +169,10 @@ const getmos = () => {
 
 router.get('/summary/:email', async(req,res)=>{
     try {
+
+        const [ xmos, ymos ] = getmos()
+        const datestr = ymos; // Your date string format (e.g., '2026-08%')
+
         // Step 1: Start directly with the array of all regions from your master table
         const [regions] = await db.query('SELECT region_name FROM besi_region');
         
@@ -184,7 +188,8 @@ router.get('/summary/:email', async(req,res)=>{
                 const [hubAreaMappings] = await db.query(`SELECT hub, area FROM besi_${regionName}_hub`);
                 
                 // Fetch the employee-to-hub mapping for this specific region's table
-                const [employeeHubMappings] = await db.query(`SELECT emp_id, hub FROM besi_employees_${regionName}`);
+                const [employeeHubMappings] = await db.query(`SELECT emp_id, hub FROM besi_employees_${regionName} 
+                    where (position = '01' or position = '17') and active = 1`);
 
                 // Fetch and sum up the transactions belonging strictly to this region
                 const [transactions] = await db.query(`
