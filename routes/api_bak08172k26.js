@@ -2514,73 +2514,30 @@ const getChartData = async(req,res, retdata) =>{
 		const [datestr, datetimestr] = nuDate()
 		
 		//=== GET REALTIME DATA========
-		// sql = `SELECT 
-		// 	a.region_name as 'region',
-		// 	count(c.xname) as reg,
-		// 	count(b.emp_id) as logged,
-		// 	COALESCE(CAST(round( count(b.emp_id)  / count(c.xname) *100,0) AS SIGNED),0)  as attendance_pct,
-		// 	COALESCE(CAST(round(SUM(b.parcel),0)AS SIGNED),0) AS parcel,
-		// 	COALESCE(CAST(round(SUM(b.actual_parcel),0)AS SIGNED), 0) AS parcel_delivered,
-		// 	COALESCE(round(SUM(b.amount),2), 0) AS amount,
-		// 	COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted,
-		// 	COALESCE(CAST(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0)AS SIGNED),0) as qty_pct
-		// 	FROM besi_region a
-		// 	LEFT JOIN asn_users c 
-		// 	ON c.hub = a.hub
-		// 	LEFT JOIN asn_transaction b 
-		// 	ON b.emp_id = c.id
-		// 	and b.created_at = '${datestr}' 
-		// 	and c.grp_id = 1 and c.active = 1  
-		// 	GROUP BY a.region 17
-		// 	ORDER by a.region;`
+		sql = `SELECT 
+			a.region_name as 'region',
+			count(c.xname) as reg,
+			count(b.emp_id) as logged,
+			COALESCE(CAST(round( count(b.emp_id)  / count(c.xname) *100,0) AS SIGNED),0)  as attendance_pct,
+			COALESCE(CAST(round(SUM(b.parcel),0)AS SIGNED),0) AS parcel,
+			COALESCE(CAST(round(SUM(b.actual_parcel),0)AS SIGNED), 0) AS parcel_delivered,
+			COALESCE(round(SUM(b.amount),2), 0) AS amount,
+			COALESCE(round(SUM(b.actual_amount),2), 0) AS amount_remitted,
+			COALESCE(CAST(round( SUM(b.actual_parcel) / SUM(b.parcel)*100,0)AS SIGNED),0) as qty_pct
+			FROM besi_region a
+			LEFT JOIN asn_users c 
+			ON c.hub = a.hub
+			LEFT JOIN asn_transaction b 
+			ON b.emp_id = c.id
+			and b.created_at = '${datestr}' 
+			and c.grp_id = 1 and c.active = 1  
+			GROUP BY a.region 
+			ORDER by a.region;`
 
-		// const [result, fields] = await db.query(sql);
+		const [result, fields] = await db.query(sql);
 		
-		// res.status(200).json( { success:'ok',data:result} )
+		res.status(200).json( { success:'ok',data:result} )
 
-        // 1. Fetch your active master regions list from the database first
-        const [regionsList] = await db.query("SELECT region_name FROM besi_region ORDER BY region_name ASC");
-
-        // This array will hold the individual rows compiled from all 16 tables
-        const result = [];
-
-        // 2. Loop through each region to aggregate the metrics dynamically
-        for (const row of regionsList) {
-            const regionName = row.region_name;
-            const regionTableCode = regionName.toLowerCase();
-            const employeeTable = `besi_employees_${regionTableCode}`;
-
-            const regionalSql = `
-                SELECT 
-                    ? AS region,
-                    COUNT(DISTINCT emp.emp_id) AS reg,
-                    COUNT(DISTINCT tx.emp_id) AS logged,
-                    COALESCE(CAST(ROUND(COUNT(DISTINCT tx.emp_id) / NULLIF(COUNT(DISTINCT emp.emp_id), 0) * 100, 0) AS SIGNED), 0) AS attendance_pct,
-                    COALESCE(CAST(ROUND(SUM(tx.parcel), 0) AS SIGNED), 0) AS parcel,
-                    COALESCE(CAST(ROUND(SUM(tx.actual_parcel), 0) AS SIGNED), 0) AS parcel_delivered,
-                    COALESCE(ROUND(SUM(tx.amount), 2), 0) AS amount,
-                    COALESCE(ROUND(SUM(tx.actual_amount), 2), 0) AS amount_remitted,
-                    COALESCE(CAST(ROUND(SUM(tx.actual_parcel) / NULLIF(SUM(tx.parcel), 0) * 100, 0) AS SIGNED), 0) AS qty_pct
-                FROM ${employeeTable} emp
-                LEFT JOIN besi_transaction tx 
-                    ON tx.emp_id = emp.emp_id
-                    AND tx.region = ?
-                    AND tx.created_at = ?
-                WHERE emp.position = '01' 
-                AND emp.active = 1
-            `;
-
-            // Execute query cleanly using parameter protection arrays
-            const [queryRows] = await db.query(regionalSql, [regionName, regionName, `${datestr}%`]);//tis shud be datestr
-            
-            if (queryRows && queryRows[0]) {
-                result.push(queryRows[0]);
-            }
-        }
-
-        //console.log( 'getChartData()', result )
-        // ---- [ YOUR ORIGINAL RESPONSE RETURN FORMAT ] ----
-        res.status(200).json({ success: 'ok', data: result });
 
 	} catch (err) {
 		console.error("get data error getchartdata()", err);
