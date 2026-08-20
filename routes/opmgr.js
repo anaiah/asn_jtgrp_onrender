@@ -195,7 +195,9 @@ router.get('/summary/:email', async(req,res)=>{
                 const [transactions] = await db.query(`
                     SELECT emp_id, 
                     COALESCE(CAST(ROUND(SUM(parcel), 0) AS SIGNED), 0) AS parcel,
-                    COALESCE(CAST(ROUND(SUM(actual_parcel), 0) AS SIGNED), 0) AS parcel_delivered
+                    COALESCE(CAST(ROUND(SUM(actual_parcel), 0) AS SIGNED), 0) AS parcel_delivered,
+                    COALESCE(round(SUM(amount),2), 0) AS amount,
+                    COALESCE(round(SUM(actual_amount),2), 0) AS amount_remitted
                     FROM besi_transaction
                     WHERE region = ? and created_at LIKE '${datestr}%'  -- Replace with your dynamic date string
                     GROUP BY emp_id
@@ -203,33 +205,6 @@ router.get('/summary/:email', async(req,res)=>{
 
                 console.log(`Region: ${regionName} | Transactions fetched: ${transactions.length}`);
 
-                // Step 3: Match them up easily inside Node.js memory
-                // transactions.forEach(tx => {
-                //     // Find which hub this employee belongs to
-                //     const empMapping = employeeHubMappings.find(e => e.emp_id === tx.emp_id);
-                //     const hubName = empMapping ? empMapping.hub : null;
-
-                //     // Find which area that hub belongs to
-                //     const areaMapping = hubAreaMappings.find(h => h.hub === hubName);
-                //     const areaName = areaMapping ? areaMapping.area : '** UNKNOWN';
-
-                //     // Create a unique key for grouping (e.g., "North_Manila")
-                //     const uniqueGroupKey = `${regionName}_${areaName}`;
-
-                //     // If we haven't seen this region + area combo yet, initialize it
-                //     if (!gridDataMap[uniqueGroupKey]) {
-                //         gridDataMap[uniqueGroupKey] = {
-                //             region: regionName.toUpperCase(),
-                //             area: areaName,
-                //             parcel: 0,
-                //             parcel_delivered: 0
-                //         };
-                //     }
-
-                //     // Add the transaction sums to this specific Region and Area combo
-                //     gridDataMap[uniqueGroupKey].parcel += parseInt(tx.parcel) || 0;
-                //     gridDataMap[uniqueGroupKey].parcel_delivered += parseInt(tx.parcel_delivered) || 0;
-                // });
                 // Step 3: Match them up easily inside Node.js memory
                 transactions.forEach(tx => {
                     // Find which hub this employee belongs to
@@ -262,13 +237,17 @@ router.get('/summary/:email', async(req,res)=>{
                             region: regionName.toUpperCase(),
                             area: areaName,
                             parcel: 0,
-                            parcel_delivered: 0
+                            parcel_delivered: 0,
+                            amount: 0,
+                            amount_remitted: 0
                         };
                     }
 
                     // Add the transaction sums to this specific Region and Area combo
                     gridDataMap[uniqueGroupKey].parcel += parseInt(tx.parcel) || 0;
                     gridDataMap[uniqueGroupKey].parcel_delivered += parseInt(tx.parcel_delivered) || 0;
+                    gridDataMap[uniqueGroupKey].amount += parseFloat(tx.amount) || 0;
+                    gridDataMap[uniqueGroupKey].amount_remitted += parseFloat(tx.amount_remitted) || 0;
                 });
 
 
@@ -291,34 +270,39 @@ router.get('/summary/:email', async(req,res)=>{
 });
 
 
-
 //===============syummary riders
-router.get('/ridersummary/:hub', async(req,res)=>{
+router.get('/ridersummary/:hub/:region', async(req,res)=>{
 
     try {
         console.log('firing rider-summary()====')
         
         const [xmos,ymos] = getmos()
+        const regionTable = `besi_employees_${req.params.region.toLowerCase()}` 
 
-        sql =`select a.xname as full_name,
-                a.id as emp_id, 
-                a.hub,
-                COALESCE(sum(b.parcel),0) as qty,
-                COALESCE(sum(b.actual_parcel),0) as actual_qty,
-                COALESCE(round(sum(b.amount),2),0) as amt,
-                COALESCE(round(sum(b.actual_amount),2),0) as actual_amt,
-                COALESCE(round((sum(b.actual_parcel)/sum(b.parcel))*100),0) as delivered_pct,
-                COALESCE(round(100-(sum(b.actual_parcel)/sum(b.parcel))*100),0) as undelivered_pct
-                from asn_users a
-                left join asn_transaction b 
-                on b.emp_id = a.id
-                and b.created_at like '${ymos}%' 
-                where a.grp_id=1 and a.active= 1 and upper(a.hub) = '${req.params.hub}'
-                group by a.id
-                order by actual_qty DESC, full_name;`
-        console.log(sql, ymos)
+        sql = `SELECT 
+            a.full_name,
+            a.emp_id, 
+            a.hub,
+            COALESCE(SUM(b.parcel), 0) AS qty,
+            COALESCE(SUM(b.actual_parcel), 0) AS actual_qty,
+            COALESCE(ROUND(SUM(b.amount), 2), 0) AS amt,
+            COALESCE(ROUND(SUM(b.actual_amount), 2), 0) AS actual_amt,
+            COALESCE(ROUND((SUM(b.actual_parcel) / NULLIF(SUM(b.parcel), 0)) * 100), 0) AS delivered_pct,
+            COALESCE(ROUND(100 - (SUM(b.actual_parcel) / NULLIF(SUM(b.parcel), 0)) * 100), 0) AS undelivered_pct
+        FROM ${regionTable} a
+        LEFT JOIN besi_transaction b 
+            ON b.emp_id = a.emp_id
+            AND b.region = '${req.params.region}'
+            AND b.created_at LIKE '${ymos}%'
+        WHERE ( a.position = '01' OR a.position = '17' )
+        AND a.active = 1 
+        AND UPPER(a.hub) = '${req.params.hub.toUpperCase()}'
+        GROUP BY a.emp_id, a.full_name, a.hub
+        ORDER BY actual_qty DESC, a.full_name;`;
+        
         const [rows, fields] = await db.query(sql);
         res.json(rows);
+
 
 
     } catch (err) {

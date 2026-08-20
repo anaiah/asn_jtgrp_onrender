@@ -110,25 +110,7 @@ router.get('/ridersummary/:hub/:region', async(req,res)=>{
     try {
 
         const regionTable = `besi_employees_${req.params.region}`
-        //const hubTable = `besi_${req.params.region}_hub`
-        
-        // sql =`select a.full_name,
-        //         a.emp_id, 
-        //         a.hub,
-        //         COALESCE(sum(b.parcel),0) as qty,
-        //         COALESCE(sum(b.actual_parcel),0) as actual_qty,
-        //         COALESCE(round(sum(b.amount),2),0) as amt,
-        //         COALESCE(round(sum(b.actual_amount),2),0) as actual_amt,
-        //         COALESCE(round((sum(b.actual_parcel)/sum(b.parcel))*100),0) as delivered_pct,
-        //         COALESCE(round(100-(sum(b.actual_parcel)/sum(b.parcel))*100),0) as undelivered_pct
-        //         from ${regionTable} a
-        //         left join besi_transaction b 
-        //         on b.emp_id = a.emp_id
-        //         and b.created_at = '${daily}' 
-        //         where a.position = '01' and a.active= 1 and upper(a.hub) = '${req.params.hub}'
-        //         group by a.id
-        //         order by actual_qty DESC, full_name;`
-
+      
         sql = `SELECT 
             a.full_name,
             a.emp_id, 
@@ -144,7 +126,7 @@ router.get('/ridersummary/:hub/:region', async(req,res)=>{
             ON b.emp_id = a.emp_id
             AND b.region = '${req.params.region}'
             AND b.created_at = '${daily}' 
-        WHERE a.position = '01' 
+        WHERE ( a.position = '01' OR a.position = '17' )
         AND a.active = 1 
         AND UPPER(a.hub) = '${req.params.hub.toUpperCase()}'
         GROUP BY a.emp_id, a.full_name, a.hub
