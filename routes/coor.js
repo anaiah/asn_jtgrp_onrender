@@ -126,7 +126,7 @@ router.get('/ridersummary/:hub/:region', async(req,res)=>{
             ON b.emp_id = a.emp_id
             AND b.region = '${req.params.region}'
             AND b.created_at = '${daily}' 
-        WHERE ( a.position = '01' OR a.position = '17' )
+        WHERE ( a.position = '01' OR a.position = '17' or a.position = '03' )
         AND a.active = 1 
         AND UPPER(a.hub) = '${req.params.hub.toUpperCase()}'
         GROUP BY a.emp_id, a.full_name, a.hub

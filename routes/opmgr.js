@@ -189,7 +189,7 @@ router.get('/summary/:email', async(req,res)=>{
                 
                 // Fetch the employee-to-hub mapping for this specific region's table
                 const [employeeHubMappings] = await db.query(`SELECT emp_id, hub FROM besi_employees_${regionName} 
-                    where (position = '01' or position = '17') and active = 1`);
+                    where (position = '01' or position = '17' or position = '03') and active = 1`);
 
                 // Fetch and sum up the transactions belonging strictly to this region
                 const [transactions] = await db.query(`
@@ -294,7 +294,7 @@ router.get('/ridersummary/:hub/:region', async(req,res)=>{
             ON b.emp_id = a.emp_id
             AND b.region = '${req.params.region}'
             AND b.created_at LIKE '${ymos}%'
-        WHERE ( a.position = '01' OR a.position = '17' )
+        WHERE ( a.position = '01' OR a.position = '17' or a.position = '03' )
         AND a.active = 1 
         AND UPPER(a.hub) = '${req.params.hub.toUpperCase()}'
         GROUP BY a.emp_id, a.full_name, a.hub
