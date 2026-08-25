@@ -214,8 +214,9 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 });
 
 //====================to mark the attendance after qr scan============
-router.get('/mark-attendance/:name/:email', async (req, res) => {
-    const { name, email } = req.params;
+router.get('/mark-attendance/:name/:email/:id', async (req, res) => {
+//router.get('/mark-attendance/:id', async (req, res) => {    
+     const { name, email, id} = req.params;
 
     console.log( req.params.name, 'scanned!')
 
@@ -223,10 +224,10 @@ router.get('/mark-attendance/:name/:email', async (req, res) => {
         const updateSql = `
                 UPDATE qr_jhuang SET 
                 arrived = ?, date_added = NOW()
-                WHERE email = ?
+                WHERE id = ? 
             `;
         console.log(updateSql)
-        await db.query(updateSql, [ 1, email]);
+        await db.query(updateSql, [ 1, id]);
 
         res.status(200).json({ 
             status: true,
