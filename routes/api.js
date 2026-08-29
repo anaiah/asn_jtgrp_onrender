@@ -753,7 +753,7 @@ router.post("/printmasterfile", upload.none(), async (req, res) => {
                 r.per_parcel_rate || "",                        // S: PER PARCEL
                 r.allowance || "",                              // T: ALLOWANCE
                 r.phone || r.contact_no || "",                  // U: CONTACT NO.
-                r.education || "HIGH SCHOOL GRADUATE",          // V: EDUCATION
+                r.education_level|| "HIGH SCHOOL GRADUATE",          // V: EDUCATION
                 r.id_type || "",                                // W: ID TYPE
                 r.id_no || "",                                  // X: ID NO.
                 r.active_text || "",                            // Y: STATUS
