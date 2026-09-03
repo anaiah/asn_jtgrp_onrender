@@ -163,8 +163,8 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
             await transporter.sendMail({
                 from: '"VERTIV" <your-hr-email@gmail.com>',
                 to: recipient.email,
-                cc: 'anaiahdaniel@gmail.com',
-                subject: 'VERTIV Account Registration Created Successfully (TEST ONLY!)',
+                bcc: 'anaiahdaniel@gmail.com',
+                subject: 'VERTIV Event Registration QR Code',
                 html: `
                     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                         <h2>Hello ${recipient.fullName || 'Employee'},</h2>
@@ -174,7 +174,8 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
                             <img src="cid:uniqueQRCodeImage" alt="HR QR Code" style="border: 2px solid #333; padding: 5px;" />
                         </div>  <br>
 
-                        <p style="color: #666; font-size: 12px;">Do not share this code with anyone else.</p><br>
+                        <p style="color: #666; font-size: 12px;">Please present upon arrival and claim your event badge.<br><br>
+                        Do not share this code with anyone else.</p><br>
 
                         <p>Best regards,<br>Vertiv Team</p><br><br>
 
