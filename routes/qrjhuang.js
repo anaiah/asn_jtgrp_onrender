@@ -167,15 +167,32 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
     console.log('SUCCESS: Excel uploaded and data inserted. Series updated.');
     
     // 2. Configure Nodemailer Transporter
+    // let transporter = nodemailer.createTransport({
+    //     service: 'gmail',
+    //     auth: {
+    //         user : 'ulianluis.macarandan@vertivco.com'
+    //        // user: 'adminbesi@gmail.com',
+    //        // pass: 'eumgsmqfjrebyxvn'
+    //     },
+    //     tls:{
+    //         rejectUnauthorized:false
+    //     }
+    // });
+
     let transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: 'adminbesi@gmail.com',
-            pass: 'eumgsmqfjrebyxvn'
-        },
-        tls:{
-            rejectUnauthorized:false
-        }
+    host: '://office365.com',
+    port: 587,
+    secure: false, // Must be false for 587; it upgrades to TLS automatically via STARTTLS
+    
+    auth: {
+        user: 'julianluis.macarandan@vertivco.com', // Your client's full company email
+        pass: 'softBrownies21'        // Their 16-character Microsoft App Password
+    },
+
+    tls: {
+        ciphers: 'SSLv3', // Helps compatibility with Microsoft servers
+        rejectUnauthorized: false
+    }
     });
 
     // Track mailing operations
