@@ -167,16 +167,26 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
     console.log('SUCCESS: Excel uploaded and data inserted. Series updated.');
     
     // 2. Configure Nodemailer Transporter
-    let transporter = nodemailer.createTransport({
-        service: 'gmail',
+    // let transporter = nodemailer.createTransport({
+    //     service: 'gmail',
+    //     auth: {
+    //         //user : 'ulianluis.macarandan@vertivco.com'
+    //        user: 'adminbesi@gmail.com',
+    //        pass: 'eumgsmqfjrebyxvn'
+    //     },
+    //     tls:{
+    //         rejectUnauthorized:false
+    //     }
+    // });
+
+     const transporter = nodemailer.createTransport({
+        host: 'smtp.hostinger.com',
+        port: 465,
+        secure: true,
         auth: {
-            //user : 'ulianluis.macarandan@vertivco.com'
-           user: 'adminbesi@gmail.com',
-           pass: 'eumgsmqfjrebyxvn'
+        user: 'admin@vertiv-asia.com',
+        pass: 'mQ6YkMi2/',
         },
-        tls:{
-            rejectUnauthorized:false
-        }
     });
 
     // let transporter = nodemailer.createTransport({
@@ -205,7 +215,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 
               // 2. Generate the QR code as a Base64 Image Buffer string
             // You can encode any text here, like their email, employee ID, or a profile link
-            url = `https://asn-jtgrp-api.onrender.com/qr/mark-attendance/${recipient.fullName}/${recipient.email}/${recipient.company}/${recipient.event}`;
+            url = `${recipient.fullName}/${recipient.email}/${recipient.company}/${recipient.event}`;
 
             const qrBuffer = await QRCode.toBuffer( url, {
                 type: 'png',
@@ -268,7 +278,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 });
 
 //====================to mark the attendance after qr scan============
-router.get('/mark-attendance/:name/:email/:event', async (req, res) => {
+router.get('/mark-attendance/:name/:email/:company/:event', async (req, res) => {
   
      const { name, email, company, event } = req.params;
 
