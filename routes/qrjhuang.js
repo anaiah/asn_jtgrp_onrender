@@ -56,6 +56,24 @@ router.get('/testmail', async(req,res)=>	{
 // Helper function to create a 1-second delay between emails
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+
+//GET COUNTRIES
+// server.js (or wherever your other routes live)
+router.get('/countries', async (req, res) => {
+    try {
+        const response = await fetch('https://api.restcountries.com/countries/v5?region=Asia&limit=150', {
+            headers: { 'Authorization': `Bearer rc_live_1521daf9c1304a99bc8cdca90b5d3b52` }
+        });
+        const data = await response.json();
+        const countryNames = data.data.objects.map(c => c.names.common);
+        res.json(countryNames);
+    } catch (error) {
+        console.error('Failed to fetch countries:', error);
+        res.status(500).json({ error: 'Failed to fetch country list' });
+    }
+});
+
+
 router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 
   console.log('==FIRING qrxls() ==');
@@ -85,6 +103,12 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
             first_name,
             last_name,
             email,
+            company,
+            event,
+            country,
+            business_phone,
+            job_function,
+            industry
         } = record;
 
         /*
@@ -103,14 +127,20 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
         const emailLower = (email ?? '').toLowerCase();
         
         // ================ Insert user
-        const query = `INSERT INTO ${xtable} (first_name, last_name, email) 
-            VALUES (?, ?, ?)`;
+        const query = `INSERT INTO ${xtable} (first_name, last_name, email, company, event, country, business_phone, job_function, industry) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         
         // Replace undefined with null
         const params = [
             first_name ?? null,
             last_name ?? null,
-            emailLower
+            emailLower,
+            company ?? null,
+            event ?? null,
+            country ?? null,
+            business_phone ?? null,
+            job_function ?? null,
+            industry ?? null
         ];
 
         await conn.execute(query, params);
@@ -119,7 +149,13 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
         if (emailLower && emailLower.includes('@')) {
             emailsToBlast.push({
                 fullName: `${first_name ?? ''} ${last_name ?? ''}`.trim(),
-                email: emailLower
+                email: emailLower,
+                company: company ?? '',
+                event: event ?? '',
+                country: country ?? '',
+                business_phone: business_phone ?? '',
+                job_function: job_function ?? '',
+                industry: industry ?? ''
             });
         }
     }
@@ -152,7 +188,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 
               // 2. Generate the QR code as a Base64 Image Buffer string
             // You can encode any text here, like their email, employee ID, or a profile link
-            url = `https://asn-jtgrp-api.onrender.com/qr/mark-attendance/${recipient.fullName}/${recipient.email}`;
+            url = `https://asn-jtgrp-api.onrender.com/qr/mark-attendance/${recipient.fullName}/${recipient.email}/${recipient.company}/${recipient.event}`;
 
             const qrBuffer = await QRCode.toBuffer( url, {
                 type: 'png',
@@ -215,9 +251,9 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 });
 
 //====================to mark the attendance after qr scan============
-router.get('/mark-attendance/:name/:email', async (req, res) => {
-//router.get('/mark-attendance/:id', async (req, res) => {    
-     const { name, email} = req.params;
+router.get('/mark-attendance/:name/:email/:company/:event', async (req, res) => {
+  
+     const { name, email, company, event } = req.params;
 
     console.log( req.params.name, 'scanned!')
 
@@ -235,6 +271,8 @@ router.get('/mark-attendance/:name/:email', async (req, res) => {
             message: 'Registration Success!',
             xname: name.toUpperCase(),
             xemail: email,
+            xcompany: company,
+            xevent: event,
             displayname: name.split(' ')[0]
             //insertedCount: data.length,
             //emailsSentCount: emailSummary.totalSent,
@@ -369,40 +407,14 @@ router.get('/getregistered', async (req, res) => {
         let queryText = `
             SELECT 
                 UPPER(CONCAT_WS(' ', CONCAT(last_name, ', '), first_name)) AS full_name, 
-                email, arrived
+                email, company, event, arrived
                  
             FROM qr_jhuang
             order by last_name asc;
         `;
         const queryParams = [];
 
-        // Check each variable and dynamically build secure query bindings
-        // if (description && description !== 'NA') {
-        //     queryText += ` AND group_description = ?`;
-        //     queryParams.push(description);
-        // }
-        // if (ageBracket && ageBracket !== 'NA') {
-        //     queryText += ` AND age_bracket = ?`;
-        //     queryParams.push(ageBracket);
-        // }
-        // if (day && day !== 'NA') {
-        //     queryText += ` AND meeting_day = ?`;
-        //     queryParams.push(day);
-        // }
-        // if (time && time !== 'NA') {
-        //     queryText += ` AND meeting_time = ?`;
-        //     queryParams.push(time);
-        // }
-
-        // Add sorting sequence at the tail end
-        // queryText += `
-        //     ORDER BY full_name,
-        //         FIELD(meeting_day, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
-        //         STR_TO_DATE(meeting_time, '%l:%i %p')
-        // `;
-
-        // console.log( "Constructed SQL Query:", queryText, "With Parameters:", queryParams);
-
+       
         // Destructure utilizing your style layout
         const [result] = await db.query(queryText /*,queryParams*/);
         
