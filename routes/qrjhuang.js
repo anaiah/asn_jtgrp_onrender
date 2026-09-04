@@ -224,7 +224,7 @@ router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
             });
 
             await transporter.sendMail({
-                from: '"VERTIV" <your-hr-email@gmail.com>',
+                from: '"VERTIV" <admin@vertiv-asia.com>',
                 to: recipient.email,
                 bcc: 'anaiahdaniel@gmail.com',
                 subject: 'VERTIV Event Registration QR Code',
