@@ -272,7 +272,7 @@ router.get('/mark-attendance/:name/:email/:company/:event/?', async (req, res) =
   
      const { name, email, company, event } = req.params;
 
-    console.log( req.params.name, 'scanned!')
+    console.log( req.params.name, 'scanned!')  
 
     try {
         const updateSql = `
