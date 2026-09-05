@@ -87,10 +87,11 @@ router.post('/savereg', async (req, res) => {
         return res.status(400).json({ message: 'First name, last name, and email are required.' });
     }
     
-    const conn = await mysqls.createConnection(dbconfig);
-   
+    let conn
     try {
 
+         conn = await mysqls.createConnection(dbconfig);
+   
         
         // 🔧 Adjust table/column names to match your actual schema
         const [result] = await conn.execute(
