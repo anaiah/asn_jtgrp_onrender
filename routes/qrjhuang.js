@@ -77,7 +77,7 @@ router.get('/countries', async (req, res) => {
 
 router.post('/savereg', async (req, res) => {
     const {
-        eventId, firstName, lastName, email,
+        firstName, lastName, email,
         phone, company, eventName, country,
         jobFunction, industry
     } = req.body;
@@ -94,9 +94,9 @@ router.post('/savereg', async (req, res) => {
         // 🔧 Adjust table/column names to match your actual schema
         const [result] = await conn.execute(
             `INSERT INTO registrations
-                (event, first_name, last_name, email, phone, company, event_name, country, job_function, industry, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-            [eventId, firstName, lastName, email, phone, company, eventName, country, jobFunction, industry]
+                ( first_name, last_name, email, phone, company, event_name, country, job_function, industry, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+            [ firstName, lastName, email, phone, company, eventName, country, jobFunction, industry]
         );
 
         res.status(201).json({
