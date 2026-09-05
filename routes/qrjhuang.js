@@ -88,7 +88,7 @@ router.post('/savereg', async (req, res) => {
     }
 
     try {
-        
+
         const conn = await mysqls.createConnection(dbconfig);
    
         // 🔧 Adjust table/column names to match your actual schema
@@ -107,6 +107,8 @@ router.post('/savereg', async (req, res) => {
     } catch (error) {
         console.error('Database error saving registration:', error);
         res.status(500).json({ message: 'Failed to save registration.' });
+    } finally {
+        await conn.end(); // Ensure the connection is closed after the operation
     }
 });
 
