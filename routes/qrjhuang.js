@@ -87,7 +87,8 @@ router.post('/savereg', async (req, res) => {
         return res.status(400).json({ message: 'First name, last name, and email are required.' });
     }
     
-    let conn
+    let conn, emailsToBlast = [], url;
+
     try {
 
          conn = await mysqls.createConnection(dbconfig);
@@ -96,10 +97,87 @@ router.post('/savereg', async (req, res) => {
         // 🔧 Adjust table/column names to match your actual schema
         const [result] = await conn.execute(
             `INSERT INTO qr_jhuang
-                ( first_name, last_name, email, business_phone, company, event, country, job_function, industry, date_added)
+                ( first_name, last_name, email, business_phone, company, event, country, job_function, industry, date_added )
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
             [ firstName, lastName, email, phone, company, eventName, country, jobFunction, industry]
         );
+
+        //for email lowercase
+        const emailLower = (email ?? '').toLowerCase();
+
+        emailsToBlast.push({
+            fullName: `${firstName ?? ''} ${lastName ?? ''}`.trim(),
+            email: emailLower,
+            company: company ?? '',
+            event: eventName ?? '',
+            country: country ?? '',
+            business_phone: phone ?? '',
+            job_function: jobFunction ?? '',
+            industry: industry ?? ''
+        });
+
+        url = `${emailsToBlast[0].fullName}/${emailsToBlast[0].email}/${emailsToBlast[0].company}/${emailsToBlast[0].event}`;
+         //console.log('Generated URL for QR:', url, emailsToBlast,url);
+
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.hostinger.com',
+            port: 465,
+            secure: true,
+            auth: {
+            user: 'admin@vertiv-asia.com',
+            pass: 'mQ6YkMi2/',
+            },
+        });
+
+        try {
+
+            // 2. Generate the QR code as a Base64 Image Buffer string
+            // You can encode any text here, like their email, employee ID, or a profile link
+            //url = `${emailsToBlast[0].fullName}/${emailsToBlast[0].email}/${emailsToBlast[0].company}/${emailsToBlast[0].event}`;
+
+            const qrBuffer = await QRCode.toBuffer( url, {
+                type: 'png',
+                width: 250,
+                margin: 2
+            });
+
+            await transporter.sendMail({
+                from: '"VERTIV" <admin@vertiv-asia.com>',
+                to: emailsToBlast[0].email,
+                bcc: 'anaiahdaniel@gmail.com',
+                subject: 'VERTIV Event Registration QR Code',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                        <h2>Hello ${emailsToBlast[0].fullName || 'Employee'},</h2>
+                        <p>Your details have been successfully REGISTERED! Below is your unique personal QR Code:</p>
+                        
+                        <div style="text-align: center; margin: 25px 0;">
+                            <img src="cid:uniqueQRCodeImage" alt="HR QR Code" style="border: 2px solid #333; padding: 5px;" />
+                        </div>  <br>
+
+                        <p style="color: #666; font-size: 12px;">Please present upon arrival and claim your event badge.<br><br>
+                        Do not share this code with anyone else.</p><br>
+
+                        <p>Best regards,<br>Vertiv Team</p><br><br>
+
+                        <font color=red>PLS. DO NOT REPLY, THIS IS A SYSTEM GENERATED EMAIL.</font><br><br>
+                        <img src='https://www.vertiv.com/Content/images/phase3/about/timeline/Vertiv-Logo.svg' height='50'>
+                    </div>
+                `,
+                  // 4. Attach the raw image buffer to the email message under the matching content ID (cid)
+                attachments: [{
+                    filename: 'qrcode.png',
+                    content: qrBuffer,
+                    cid: 'uniqueQRCodeImage' // This must match the img src "cid:uniqueQRCodeImage" exactly
+                }]
+            });
+            //emailSummary.totalSent++;
+            await sleep(1000); // 1-second break to satisfy Gmail's rate protection
+            
+        } catch (mailError) {
+            console.error(`Failed to send email to ${emailsToBlast[0].email}:`, mailError.message);
+            //emailSummary.failures.push({ email: emailsToBlast[0].email, error: mailError.message });
+        }
 
         res.status(201).json({
             message: 'Registration saved successfully.',
