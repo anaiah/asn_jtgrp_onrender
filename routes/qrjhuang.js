@@ -321,6 +321,35 @@ router.get('/mark-attendance/:name/:email/:company/:event', async (req, res) => 
     // }));
 
 });
+
+//=====================to mark the attendance after re printing of badge label============
+router.get('/remark-attendance/:email', async (req, res) => {
+  
+     const { email } = req.params;
+
+    console.log( req.params.email, 'reprinted!')
+    try {
+        const updateSql = `
+                UPDATE qr_jhuang SET 
+                arrived = ?, date_added = NOW()
+                WHERE email = ? 
+            `;
+        console.log(updateSql)
+        await db.query(updateSql, [ 1, email ]);
+
+        res.status(200).json({ 
+            status: true,
+            xstatus: 'Arrived',
+            xemail : email
+        });
+    }catch (err){
+         console.error(err);
+        return res.status(500).json({ ok: false, error: err.message });
+
+    }
+});
+
+
 //===== format the output of mark attendnace
 function renderAttendanceStatus({ title, message, isSuccess, redirectUrl }) {
     const themeColor = isSuccess ? "#198754" : "#dc3545"; 
