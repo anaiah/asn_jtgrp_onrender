@@ -86,11 +86,12 @@ router.post('/savereg', async (req, res) => {
     if (!firstName || !lastName || !email) {
         return res.status(400).json({ message: 'First name, last name, and email are required.' });
     }
-
+    
+    const conn = await mysqls.createConnection(dbconfig);
+   
     try {
 
-        const conn = await mysqls.createConnection(dbconfig);
-   
+        
         // 🔧 Adjust table/column names to match your actual schema
         const [result] = await conn.execute(
             `INSERT INTO qr_jhuang
