@@ -61,7 +61,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // server.js (or wherever your other routes live)
 router.get('/countries', async (req, res) => {
     try {
-        const response = await fetch('https://api.restcountries.com/countries/v5?region=Asia&limit=150', {
+        const response = await fetch('https://api.restcountries.com/countries/v5?region=Asia&limit=100', {
             headers: { 'Authorization': `Bearer rc_live_1521daf9c1304a99bc8cdca90b5d3b52` }
         });
         const data = await response.json();
