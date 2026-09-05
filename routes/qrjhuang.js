@@ -73,7 +73,44 @@ router.get('/countries', async (req, res) => {
     }
 });
 
+//======= late registrants ==================//
 
+router.post('/savereg', async (req, res) => {
+    const {
+        eventId, firstName, lastName, email,
+        phone, company, eventName, country,
+        jobFunction, industry
+    } = req.body;
+
+    // Basic required-field validation
+    if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: 'First name, last name, and email are required.' });
+    }
+
+    try {
+        
+        const conn = await mysqls.createConnection(dbconfig);
+   
+        // 🔧 Adjust table/column names to match your actual schema
+        const [result] = await conn.execute(
+            `INSERT INTO registrations
+                (event, first_name, last_name, email, phone, company, event_name, country, job_function, industry, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+            [eventId, firstName, lastName, email, phone, company, eventName, country, jobFunction, industry]
+        );
+
+        res.status(201).json({
+            message: 'Registration saved successfully.',
+            insertId: result.insertId
+        });
+
+    } catch (error) {
+        console.error('Database error saving registration:', error);
+        res.status(500).json({ message: 'Failed to save registration.' });
+    }
+});
+
+//====================UPLOAD EXCEL AND SEND EMAIL WITH QR CODE========================
 router.post('/qrxls' , upload.single('hris_upload_file'), async (req, res) => {
 
   console.log('==FIRING qrxls() ==');
